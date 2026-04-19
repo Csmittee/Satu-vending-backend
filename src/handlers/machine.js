@@ -1,6 +1,6 @@
 import { generateSetupCode } from '../utils/setupCode.js';
 import { addCommand } from '../commands/queue.js';
-
+import { authenticateJWT } from '../middleware/auth.js';
 export async function handleClaimDevice(request, env) {
     // STEP 1: Get logged-in user from JWT token
     const auth = await authenticateJWT(request, env);
