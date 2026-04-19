@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satu - Temple Donation System</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Sarabun', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .header {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            color: #333;
+            font-size: 1.8rem;
+        }
+        .card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .device-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+        .device-card {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            border-left: 4px solid #4CAF50;
+        }
+        .device-card.disabled {
+            border-left-color: #f44336;
+        }
+        .device-card.pending {
+            border-left-color: #ff9800;
+        }
+        .status {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .status-active { background: #4CAF50; color: white; }
+        .status-disabled { background: #f44336; color: white; }
+        .status-pending { background: #ff9800; color: white; }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+        .btn:hover { background: #5a67d8; }
+        .loading { text-align: center; padding: 2rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🙏 Satu Temple Donation System</h1>
+            <p>จัดการเครื่องบริจาคของคุณ</p>
+        </div>
+        
+        <div class="card">
+            <h2>เครื่องของฉัน</h2>
+            <div id="devices" class="device-grid">
+                <div class="loading">กำลังโหลด...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_URL = 'https://api.satu-th.com/v1';
+        const token = localStorage.getItem('jwt_token');
+        
+        async function loadDevices() {
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/dashboard/devices`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) throw new Error('Failed to load devices');
+                
+                const data = await response.json();
+                renderDevices(data.devices);
+                
+            } catch (error) {
+                console.error('Error loading devices:', error);
+                document.getElementById('devices').innerHTML = '<div class="card">เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง</div>';
+            }
+        }
+        
+        function renderDevices(devices) {
+            const container = document.getElementById('devices');
+            
+            if (!devices || devices.length === 0) {
+                container.innerHTML = '<div class="card">ยังไม่มีเครื่องบริจาค กรุณาลงทะเบียนเครื่อง</div>';
+                return;
+            }
+            
+            container.innerHTML = devices.map(device => `
+                <div class="device-card ${device.status}">
+                    <h3>${device.temple_name || 'ยังไม่ตั้งชื่อ'}</h3>
+                    <p><strong>Device ID:</strong> ${device.device_id}</p>
+                    <p><strong>สถานะ:</strong> <span class="status status-${device.status}">${getStatusThai(device.status)}</span></p>
+                    <p><strong>เวอร์ชัน:</strong> ${device.firmware_version || 'ไม่ระบุ'}</p>
+                    <p><strong>ออนไลน์ล่าสุด:</strong> ${formatTimestamp(device.last_heartbeat)}</p>
+                    <button class="btn" onclick="viewDetails('${device.device_id}')">ดูรายละเอียด</button>
+                </div>
+            `).join('');
+        }
+        
+        function getStatusThai(status) {
+            const statusMap = {
+                'active': 'ทำงาน',
+                'disabled': 'ปิดใช้งาน',
+                'pending': 'รอลงทะเบียน'
+            };
+            return statusMap[status] || status;
+        }
+        
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return 'ไม่เคย';
+            const date = new Date(timestamp);
+            return date.toLocaleString('th-TH');
+        }
+        
+        function viewDetails(deviceId) {
+            window.location.href = `/device.html?id=${deviceId}`;
+        }
+        
+        loadDevices();
+    </script>
+</body>
+</html>
