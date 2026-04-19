@@ -6,7 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "satu_db"
-database_id = "YOUR_DATABASE_ID"
+database_id = "be41fa29-3310-423f-bb18-1e4c6f8480c8"
 
 [env.production]
 vars = { ENVIRONMENT = "production" }
