@@ -2,20 +2,16 @@ name = "satu-api"
 main = "src/index.js"
 compatibility_date = "2024-04-01"
 compatibility_flags = ["nodejs_compat"]
+workers_dev = true
 
 [[d1_databases]]
 binding = "DB"
 database_name = "satu_db"
 database_id = "be41fa29-3310-423f-bb18-1e4c6f8480c8"
 
-[env.production]
-vars = { ENVIRONMENT = "production" }
+routes = [
+  { pattern = "janishammer.com/api/*", zone_name = "janishammer.com" }
+]
 
-[[env.production.d1_databases]]
-binding = "DB"
-database_name = "satu_db"
-database_id = "be41fa29-3310-423f-bb18-1e4c6f8480c8"
-
-# ADD THIS SECTION
 [observability]
 enabled = true
