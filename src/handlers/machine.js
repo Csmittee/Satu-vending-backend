@@ -2,25 +2,47 @@ import { generateSetupCode } from '../utils/setupCode.js';
 import { addCommand } from '../commands/queue.js';
 
 export async function handleClaimDevice(request, env) {
+    // STEP 1: Get logged-in user from JWT token
+    const auth = await authenticateJWT(request, env);
+    if (!auth.valid) {
+        return Response.json({ error: 'Unauthorized - Please login first' }, { status: 401 });
+    }
+    
+    const owner_id = auth.userId;  // This is where owner_id comes from
+    
+    // STEP 2: Get request data
     const { setup_code, temple_name, address, contact_phone } = await request.json();
     
-    // Check if device already has owner
+    // STEP 3: Find device by setup code
     const existingDevice = await env.DB.prepare(
-        `SELECT device_id, owner_id FROM devices WHERE mac = 
-            (SELECT assigned_mac FROM setup_codes WHERE code = ?)`
+        `SELECT device_id, owner_id, mac FROM devices WHERE mac = 
+            (SELECT assigned_mac FROM setup_codes WHERE code = ? AND used = 0)`
     ).bind(setup_code).first();
     
-    if (existingDevice && existingDevice.owner_id) {
+    // STEP 4: Validate setup code
+    if (!existingDevice) {
+        return Response.json({ error: 'Invalid or expired setup code' }, { status: 400 });
+    }
+    
+    // STEP 5: Check if already owned
+    if (existingDevice.owner_id) {
         return Response.json({ 
             error: 'This machine already belongs to another temple. Contact support.' 
         }, { status: 403 });
     }
     
-    // Claim the device
+    // STEP 6: Claim the device
     await env.DB.prepare(
-        `UPDATE devices SET owner_id = ?, status = 'active' WHERE device_id = ?`
-    ).bind(/* owner_id */, existingDevice.device_id).run();
+        `UPDATE devices SET owner_id = ?, status = 'active', temple_name = ?, address = ?, contact_phone = ? 
+         WHERE device_id = ?`
+    ).bind(owner_id, temple_name, address, contact_phone, existingDevice.device_id).run();
     
+    // STEP 7: Mark setup code as used
+    await env.DB.prepare(
+        `UPDATE setup_codes SET used = 1, used_at = ? WHERE code = ?`
+    ).bind(Date.now(), setup_code).run();
+    
+    // STEP 8: Return success
     return Response.json({ 
         status: 'claimed', 
         device_id: existingDevice.device_id,
