@@ -1,20 +1,12 @@
 name = "satu-api"
 main = "src/index.js"
-type = "esm"  
 compatibility_date = "2024-04-01"
+compatibility_flags = ["nodejs_compat"]
 
 [[d1_databases]]
 binding = "DB"
 database_name = "satu_db"
-database_id = "YOUR_DATABASE_ID"  # Replace after creating D1
+database_id = "YOUR_DATABASE_ID"
 
 [env.production]
 vars = { ENVIRONMENT = "production" }
-[env.production.secrets]
-OMISE_SECRET_KEY = ""
-JWT_SECRET = ""
-ADMIN_EMAIL = ""
-ADMIN_PASSWORD_HASH = ""
-
-[env.staging]
-vars = { ENVIRONMENT = "staging" }
