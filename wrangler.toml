@@ -9,6 +9,7 @@ database_name = "satu_db"
 database_id = "be41fa29-3310-423f-bb18-1e4c6f8480c8"
 
 [env.production]
+name = "satu-api"
 vars = { ENVIRONMENT = "production" }
 
 [[env.production.d1_databases]]
