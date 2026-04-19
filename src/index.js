@@ -24,6 +24,14 @@ export default {
                 environment: env.ENVIRONMENT || 'production'
             });
         }
+        // Root path - show API info
+        if (path === '/' && method === 'GET') {
+            return Response.json({
+                service: 'Satu API',
+                status: 'running',
+                endpoints: ['GET /health', 'POST /v1/machine/hello', 'POST /v1/order', 'GET /v1/machine/commands']
+            });
+        }
         
         // Public endpoints (no auth required)
         if (path === '/v1/machine/hello' && method === 'POST') {
