@@ -1,6 +1,20 @@
 import { generateSetupCode } from '../utils/setupCode.js';
 import { addCommand } from '../commands/queue.js';
-
+// Add this function to src/handlers/machine.js
+export async function handleClaimDevice(request, env) {
+    const { setup_code, temple_name, address, contact_phone } = await request.json();
+    
+    // Check if device already has owner
+    const existingDevice = await env.DB.prepare(
+        `SELECT device_id, owner_id FROM devices WHERE mac = 
+            (SELECT assigned_mac FROM setup_codes WHERE code = ?)`
+    ).bind(setup_code).first();
+    
+    if (existingDevice && existingDevice.owner_id) {
+        return Response.json({ 
+            error: 'This machine already belongs to another temple. Contact support.' 
+        }, { status: 403 });
+    }
 export async function handleMachineHello(request, env) {
     try {
         const { mac, firmware } = await request.json();
