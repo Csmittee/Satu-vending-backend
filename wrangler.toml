@@ -15,3 +15,7 @@ vars = { ENVIRONMENT = "production" }
 binding = "DB"
 database_name = "satu_db"
 database_id = "be41fa29-3310-423f-bb18-1e4c6f8480c8"
+
+# ADD THIS SECTION
+[observability]
+enabled = true
