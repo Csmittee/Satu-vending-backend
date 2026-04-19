@@ -1,6 +1,6 @@
 import { generateSetupCode } from '../utils/setupCode.js';
 import { addCommand } from '../commands/queue.js';
-// Add this function to src/handlers/machine.js
+
 export async function handleClaimDevice(request, env) {
     const { setup_code, temple_name, address, contact_phone } = await request.json();
     
@@ -15,6 +15,19 @@ export async function handleClaimDevice(request, env) {
             error: 'This machine already belongs to another temple. Contact support.' 
         }, { status: 403 });
     }
+    
+    // Claim the device
+    await env.DB.prepare(
+        `UPDATE devices SET owner_id = ?, status = 'active' WHERE device_id = ?`
+    ).bind(/* owner_id */, existingDevice.device_id).run();
+    
+    return Response.json({ 
+        status: 'claimed', 
+        device_id: existingDevice.device_id,
+        message: 'Device claimed successfully' 
+    });
+}
+
 export async function handleMachineHello(request, env) {
     try {
         const { mac, firmware } = await request.json();
@@ -26,13 +39,11 @@ export async function handleMachineHello(request, env) {
         const now = Date.now();
         const setupCode = generateSetupCode();
         
-        // Check if device already exists
         const existing = await env.DB.prepare(
             'SELECT * FROM devices WHERE mac = ?'
         ).bind(mac).first();
         
         if (existing) {
-            // Device already registered
             return Response.json({ 
                 status: existing.status, 
                 device_id: existing.device_id,
@@ -40,13 +51,11 @@ export async function handleMachineHello(request, env) {
             });
         }
         
-        // Insert new device
         await env.DB.prepare(
             `INSERT INTO devices (mac, firmware_version, status, first_seen, last_heartbeat) 
              VALUES (?, ?, 'pending', ?, ?)`
         ).bind(mac, firmware, now, now).run();
         
-        // Generate and store setup code
         await env.DB.prepare(
             `INSERT INTO setup_codes (code, assigned_mac, generated_at) 
              VALUES (?, ?, ?)`
@@ -55,7 +64,7 @@ export async function handleMachineHello(request, env) {
         return Response.json({
             status: 'pending',
             message: 'Device registered. Use setup code to claim.',
-            setup_code: setupCode  // In production, send via email/SMS
+            setup_code: setupCode
         });
         
     } catch (error) {
@@ -78,7 +87,6 @@ export async function handleHeartbeat(request, env) {
             `UPDATE devices SET last_heartbeat = ? WHERE device_id = ?`
         ).bind(now, device_id).run();
         
-        // Log heartbeat (optional)
         await env.DB.prepare(
             `INSERT INTO admin_log (admin_id, action, target, details, created_at) 
              VALUES (0, 'heartbeat', ?, ?, ?)`
@@ -101,14 +109,12 @@ export async function handleGetCommands(request, env) {
             return Response.json({ error: 'device_id required' }, { status: 400 });
         }
         
-        // Get unexecuted commands
         const commands = await env.DB.prepare(
             `SELECT id, command, data FROM device_commands 
              WHERE device_id = ? AND executed = 0 
              ORDER BY created_at ASC`
         ).bind(device_id).all();
         
-        // Mark commands as executed
         for (const cmd of commands.results) {
             await env.DB.prepare(
                 `UPDATE device_commands SET executed = 1, executed_at = ? WHERE id = ?`
