@@ -1,6 +1,4 @@
-import { createOmiseCharge } from '../utils/omise.js';
-import { addCommand } from '../commands/queue.js';
-
+// src/handlers/order.js - COPY THIS ENTIRE FILE
 function generateOrderId() {
     const date = new Date();
     const yyyymmdd = date.toISOString().slice(0, 10).replace(/-/g, '');
@@ -10,14 +8,13 @@ function generateOrderId() {
 
 export async function handleCreateOrder(request, env) {
     try {
-        const { device_id, user_id, product_id } = await request.json();
+        const { device_id, product_id } = await request.json();
         
-        if (!device_id || !user_id || !product_id) {
-            return Response.json({ error: 'device_id, user_id, product_id required' }, { status: 400 });
+        if (!device_id || !product_id) {
+            return Response.json({ error: 'device_id and product_id required' }, { status: 400 });
         }
         
-        // Product prices (could be stored in DB)
-        const products = { 1: 1000, 2: 2000, 3: 5000, 4: 10000, 5: 20000 };
+        const products = { 1: 10, 2: 20, 3: 50, 4: 100, 5: 500 };
         const amount = products[product_id];
         
         if (!amount) {
@@ -27,29 +24,26 @@ export async function handleCreateOrder(request, env) {
         const order_id = generateOrderId();
         const now = Date.now();
         
-        // Create order in database
         await env.DB.prepare(
-            `INSERT INTO orders (order_id, device_id, user_id, product_id, amount, status, created_at)
-             VALUES (?, ?, ?, ?, ?, 'pending', ?)`
-        ).bind(order_id, device_id, user_id, product_id, amount, now).run();
+            `INSERT INTO orders (order_id, device_id, product_id, amount, status, created_at)
+             VALUES (?, ?, ?, ?, 'pending', ?)`
+        ).bind(order_id, device_id, product_id, amount, now).run();
         
-        // Create Omise charge
-        const charge = await createOmiseCharge(amount, `Donation for ${device_id}`, env);
-        
-        // Update order with Omise charge ID and QR code
-        await env.DB.prepare(
-            `UPDATE orders SET omise_charge_id = ?, qr_code_url = ? WHERE order_id = ?`
-        ).bind(charge.id, charge.source.scannable_code.image.download_uri, order_id).run();
+        // TEMPORARY: Fake QR for testing without Omise
+        const qrText = `TEST|${order_id}|${amount}|${now}`;
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrText)}`;
         
         return Response.json({
             order_id: order_id,
-            qr_code_url: charge.source.scannable_code.image.download_uri,
-            amount: amount
+            qr_code_url: qrCodeUrl,
+            amount: amount,
+            test_mode: true,
+            message: "TEST MODE - Use this QR code to simulate payment"
         });
         
     } catch (error) {
         console.error('Create order error:', error);
-        return Response.json({ error: 'Payment creation failed' }, { status: 500 });
+        return Response.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 
@@ -66,7 +60,15 @@ export async function handleGetOrderStatus(order_id, env) {
         return Response.json({ status: order.status });
         
     } catch (error) {
-        console.error('Get order status error:', error);
         return Response.json({ error: 'Internal error' }, { status: 500 });
     }
+}
+
+// Call this to simulate payment during testing
+export async function simulatePayment(order_id, env) {
+    await env.DB.prepare(
+        `UPDATE orders SET status = 'paid', paid_at = ? WHERE order_id = ?`
+    ).bind(Date.now(), order_id).run();
+    
+    return Response.json({ status: 'paid' });
 }
