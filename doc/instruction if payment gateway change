@@ -1,0 +1,239 @@
+# Payment Gateway Switch - Complete Change Guide
+
+## Files That Need Changes
+
+| File | What changes | Line approx |
+|------|--------------|-------------|
+| `src/handlers/order.js` | API endpoint, headers, secret name | 15-40 |
+| `src/handlers/webhook.js` | Webhook path, payload parsing | 1-50 |
+| `wrangler.toml` or Secrets | Secret variable name | - |
+| `satu-system-tester.html` | Test mode webhook URL | 360-500 |
+
+---
+
+## File 1: `src/handlers/order.js`
+
+### Find this section (lines 15-40):
+
+```javascript
+async function createPayment(amount, orderId, env) {
+    const paymentMode = env.PAYMENT_MODE || 'fake';
+    
+    if (paymentMode === 'live') {
+        // CHANGE THIS BLOCK FOR NEW GATEWAY
+        const response = await fetch('https://api.omise.co/charges', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${btoa(env.OMISE_SECRET_KEY + ':')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                amount: amount,
+                currency: 'thb',
+                description: `Satu donation ${orderId}`,
+                source: { type: 'promptpay' }
+            })
+        });
+        return await response.json();
+    } else {
+        // Fake mode - DO NOT CHANGE
+        const fakeUrl = env.FAKE_OMISE_URL || 'https://fake-omise.csmittee.workers.dev';
+        const response = await fetch(`${fakeUrl}/charges`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                amount: amount,
+                currency: 'thb',
+                description: `Satu donation ${orderId}`
+            })
+        });
+        return await response.json();
+    }
+}
+```
+
+### Change to Kasher example:
+
+```javascript
+async function createPayment(amount, orderId, env) {
+    const paymentMode = env.PAYMENT_MODE || 'fake';
+    
+    if (paymentMode === 'live') {
+        // KASHER EXAMPLE - REPLACE URL, HEADERS, BODY
+        const response = await fetch('https://api.kasher.com/v1/charges', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${env.KASHER_SECRET_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                amount: amount,
+                currency: 'THB',
+                channel: 'promptpay',
+                description: `Satu donation ${orderId}`,
+                webhook_url: 'https://api.janishammer.com/v1/webhook/kasher'
+            })
+        });
+        return await response.json();
+    } else {
+        // Fake mode - NO CHANGE
+        const fakeUrl = env.FAKE_OMISE_URL || 'https://fake-omise.csmittee.workers.dev';
+        const response = await fetch(`${fakeUrl}/charges`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                amount: amount,
+                currency: 'thb',
+                description: `Satu donation ${orderId}`
+            })
+        });
+        return await response.json();
+    }
+}
+```
+
+### What to change in this file:
+
+| Item | Omise | Kasher (example) |
+|------|-------|------------------|
+| URL | `https://api.omise.co/charges` | `https://api.kasher.com/v1/charges` |
+| Auth header | `Basic ${btoa(secret + ':')}` | `Bearer ${env.KASHER_SECRET_KEY}` |
+| Secret name | `OMISE_SECRET_KEY` | `KASHER_SECRET_KEY` |
+| Body format | `{ amount, currency, description, source }` | `{ amount, currency, channel, description, webhook_url }` |
+| Webhook URL in body | Not needed | `https://api.janishammer.com/v1/webhook/kasher` |
+
+---
+
+## File 2: `src/handlers/webhook.js`
+
+### Find this section:
+
+```javascript
+export async function handleOmiseWebhook(request, env) {
+    try {
+        const payload = await request.json();
+        
+        if (payload.object === 'charge' && payload.status === 'successful') {
+            const order = await env.DB.prepare(
+                `SELECT order_id, device_id, product_id FROM orders WHERE omise_charge_id = ?`
+            ).bind(payload.id).first();
+            
+            if (order) {
+                await env.DB.prepare(
+                    `UPDATE orders SET status = 'paid', paid_at = ? WHERE order_id = ?`
+                ).bind(Date.now(), order.order_id).run();
+                
+                await addCommand(order.device_id, 'payment_confirmed', {
+                    order_id: order.order_id,
+                    product_id: order.product_id
+                }, env);
+            }
+        }
+        
+        return Response.json({ status: 'ok' });
+    } catch (error) {
+        return Response.json({ error: 'Webhook processing failed' }, { status: 500 });
+    }
+}
+```
+
+### Change to Kasher example:
+
+```javascript
+export async function handleKasherWebhook(request, env) {
+    try {
+        const payload = await request.json();
+        
+        // Kasher webhook format - ADJUST BASED ON THEIR DOCS
+        if (payload.event === 'charge.successful') {
+            const order = await env.DB.prepare(
+                `SELECT order_id, device_id, product_id FROM orders WHERE omise_charge_id = ?`
+            ).bind(payload.data.charge_id).first();
+            
+            if (order) {
+                await env.DB.prepare(
+                    `UPDATE orders SET status = 'paid', paid_at = ? WHERE order_id = ?`
+                ).bind(Date.now(), order.order_id).run();
+                
+                await addCommand(order.device_id, 'payment_confirmed', {
+                    order_id: order.order_id,
+                    product_id: order.product_id
+                }, env);
+            }
+        }
+        
+        return Response.json({ status: 'ok' });
+    } catch (error) {
+        return Response.json({ error: 'Webhook processing failed' }, { status: 500 });
+    }
+}
+```
+
+### Also update route in `src/index.js`:
+
+```javascript
+// Change this line:
+if (path === '/v1/webhook/omise' && method === 'POST') {
+    return handleOmiseWebhook(request, env);
+}
+
+// To:
+if (path === '/v1/webhook/kasher' && method === 'POST') {
+    return handleKasherWebhook(request, env);
+}
+```
+
+---
+
+## File 3: Cloudflare Secrets
+
+### Current secrets (Omise):
+
+| Secret Name | Value |
+|-------------|-------|
+| `PAYMENT_MODE` | `fake` or `live` |
+| `FAKE_OMISE_URL` | `https://fake-omise.csmittee.workers.dev` |
+| `OMISE_SECRET_KEY` | `skey_live_xxx` |
+
+### For Kasher:
+
+| Secret Name | Value |
+|-------------|-------|
+| `PAYMENT_MODE` | `fake` or `live` |
+| `FAKE_OMISE_URL` | `https://fake-omise.csmittee.workers.dev` (keep for fake mode) |
+| `KASHER_SECRET_KEY` | `kasher_live_xxx` (replace OMISE_SECRET_KEY) |
+
+---
+
+## File 4: `satu-system-tester.html` (test mode only)
+
+### Find test 7, 8, 10 (around lines 360-500):
+
+Change the webhook URL in the test:
+
+```javascript
+// Change from:
+const simRes = await fetch(`${apiUrl}/v1/test/simulate-payment/${order.order_id}`
+
+// To (if Kasher has different test endpoint):
+const simRes = await fetch(`${apiUrl}/v1/test/simulate-payment-kasher/${order.order_id}`
+```
+
+Or keep using Fake Omise for testing (recommended).
+
+---
+
+## Summary Checklist for Gateway Change
+
+| Step | File | Action |
+|------|------|--------|
+| 1 | `order.js` | Replace API URL, headers, body format |
+| 2 | `order.js` | Change secret name (OMISE_SECRET_KEY → KASHER_SECRET_KEY) |
+| 3 | `webhook.js` | Create new handler or rename existing |
+| 4 | `index.js` | Update webhook route path |
+| 5 | Cloudflare | Add new secret, remove old one |
+| 6 | Tester | Update test webhook URLs (optional) |
+
+## Note for Next AI
+
+> **This system uses a fake payment worker for testing. The `PAYMENT_MODE` secret switches between `fake` (calls fake-omise worker) and `live` (calls real gateway). To change the live gateway, only modify the `if (paymentMode === 'live')` block in `order.js` and the corresponding webhook handler. Do not change the fake mode block.**
