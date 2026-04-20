@@ -34,4 +34,25 @@ export async function handleOmiseWebhook(request, env) {
         console.error('Webhook error:', error);
         return Response.json({ error: 'Webhook processing failed' }, { status: 500 });
     }
-}
+        }
+        // When payment is successful
+        async function handleSuccessfulPayment(order_id, env) {
+            // 1. Update order status
+            await env.DB.prepare(
+                `UPDATE orders SET status = 'paid', paid_at = ? WHERE order_id = ?`
+            ).bind(Date.now(), order_id).run();
+            
+            // 2. Get order details
+            const order = await env.DB.prepare(
+                `SELECT device_id, product_id FROM orders WHERE order_id = ?`
+            ).bind(order_id).first();
+            
+            // 3. ADD DOOR OPEN COMMAND TO QUEUE
+            await env.DB.prepare(
+                `INSERT INTO device_commands (device_id, command, data, created_at)
+                 VALUES (?, 'payment_confirmed', ?, ?)`
+            ).bind(order.device_id, JSON.stringify({ 
+                order_id: order_id, 
+                product_id: order.product_id 
+            }), Date.now()).run();
+        }
