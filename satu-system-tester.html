@@ -361,14 +361,14 @@
                     };
                 }
             },
-            {
+                    {
                 id: 7,
                 name: "Omise Payment Approval",
                 description: "Does Omise give approval when payment succeeds?",
                 checkpoint: "Webhook receives charge.successful",
                 run: async (apiUrl, deviceId, mode) => {
                     if (mode === 'fake') {
-                        // Simulate payment approval
+                        // Create order
                         const orderRes = await fetch(`${apiUrl}/v1/order`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -376,24 +376,30 @@
                         });
                         const order = await orderRes.json();
                         
-                        if (order.order_id) {
-                            // Call simulate endpoint (fake)
-                            const simRes = await fetch(`${apiUrl}/v1/test/simulate-payment/${order.order_id}`, {
-                                method: 'POST'
+                        if (order.order_id && order.omise_charge_id) {
+                            // Call Fake Omise to trigger webhook
+                            const simRes = await fetch(`${FAKE_OMISE_URL}/simulate-payment`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ 
+                                    order_id: order.order_id, 
+                                    charge_id: order.omise_charge_id 
+                                })
                             });
+                            const result = await simRes.json();
                             return {
                                 passed: simRes.ok,
-                                message: `[FAKE MODE] Payment simulated for order ${order.order_id}`,
-                                data: await simRes.json()
+                                message: `[FAKE MODE] Webhook triggered for order ${order.order_id}`,
+                                data: result
                             };
                         }
-                        return { passed: false, message: "Could not create order" };
+                        return { passed: false, message: "Could not create order or missing charge_id" };
                     } else {
                         return { passed: true, message: "Omise test mode - requires webhook setup", skipped: true };
                     }
                 }
             },
-            {
+                       {
                 id: 8,
                 name: "Door Unlock on Payment Success",
                 description: "Does door open when Omise payment passes?",
@@ -407,12 +413,22 @@
                     });
                     const order = await orderRes.json();
                     
-                    if (!order.order_id) {
-                        return { passed: false, message: "Failed to create order" };
+                    if (!order.order_id || !order.omise_charge_id) {
+                        return { passed: false, message: "Failed to create order or missing charge_id" };
                     }
                     
-                    // Simulate payment
-                    await fetch(`${apiUrl}/v1/test/simulate-payment/${order.order_id}`, { method: 'POST' });
+                    // Call Fake Omise to trigger webhook
+                    await fetch(`${FAKE_OMISE_URL}/simulate-payment`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            order_id: order.order_id, 
+                            charge_id: order.omise_charge_id 
+                        })
+                    });
+                    
+                    // Wait for webhook to process
+                    await new Promise(r => setTimeout(r, 500));
                     
                     // Check for command
                     const cmdRes = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
@@ -446,7 +462,7 @@
                     };
                 }
             },
-            {
+                    {
                 id: 10,
                 name: "Door Unlock on Payment Pass",
                 description: "Does door open correctly when payment passes?",
@@ -460,11 +476,22 @@
                     });
                     const order = await orderRes.json();
                     
-                    if (!order.order_id) {
-                        return { passed: false, message: "Failed to create order" };
+                    if (!order.order_id || !order.omise_charge_id) {
+                        return { passed: false, message: "Failed to create order or missing charge_id" };
                     }
                     
-                    await fetch(`${apiUrl}/v1/test/simulate-payment/${order.order_id}`, { method: 'POST' });
+                    // Call Fake Omise to trigger webhook
+                    await fetch(`${FAKE_OMISE_URL}/simulate-payment`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            order_id: order.order_id, 
+                            charge_id: order.omise_charge_id 
+                        })
+                    });
+                    
+                    // Wait for webhook to process
+                    await new Promise(r => setTimeout(r, 500));
                     
                     const cmdRes = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
                     const commands = await cmdRes.json();
