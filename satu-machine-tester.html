@@ -13,7 +13,7 @@
             padding: 20px;
         }
         .container {
-            max-width: 1200px;
+            max-width: 1300px;
             margin: 0 auto;
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -30,6 +30,34 @@
             margin-bottom: 20px;
             font-size: 18px;
         }
+
+        /* Config bar */
+        .config-bar {
+            max-width: 1300px;
+            margin: 0 auto 20px;
+            background: #0f0f1a;
+            border-radius: 12px;
+            padding: 14px 20px;
+            border: 1px solid #2a2a3e;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .config-bar label { font-size: 13px; color: #888; white-space: nowrap; }
+        .config-bar input {
+            background: #1a1a2e;
+            border: 1px solid #3a3a4e;
+            border-radius: 8px;
+            padding: 6px 10px;
+            color: white;
+            font-size: 13px;
+            width: 220px;
+            margin-top: 0;
+        }
+        .config-group { display: flex; align-items: center; gap: 8px; }
+
+        /* Products */
         .product-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
@@ -46,30 +74,18 @@
             text-align: center;
             transition: all 0.2s;
         }
-        .product-btn:hover {
-            background: #667eea;
-            transform: scale(1.02);
-        }
-        .product-btn.selected {
-            background: #10b981;
-            border: 2px solid white;
-        }
-        .product-price {
-            font-size: 12px;
-            color: #888;
-            margin-top: 5px;
-        }
+        .product-btn:hover { background: #667eea; transform: scale(1.02); }
+        .product-btn.selected { background: #10b981; border: 2px solid white; }
+        .product-price { font-size: 12px; color: #888; margin-top: 5px; }
+
+        /* Donor */
         .donor-section {
             background: #1a1a2e;
             border-radius: 12px;
             padding: 15px;
             margin: 15px 0;
         }
-        .donor-options {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
+        .donor-options { display: flex; gap: 10px; margin-bottom: 15px; }
         .donor-btn {
             background: #2a2a3e;
             border: none;
@@ -79,9 +95,8 @@
             color: white;
             flex: 1;
         }
-        .donor-btn.active {
-            background: #667eea;
-        }
+        .donor-btn.active { background: #667eea; }
+
         input, select {
             width: 100%;
             padding: 10px;
@@ -91,9 +106,9 @@
             color: white;
             margin-top: 10px;
         }
-        .status-list {
-            margin-top: 20px;
-        }
+
+        /* Status */
+        .status-list { margin-top: 10px; }
         .status-item {
             display: flex;
             justify-content: space-between;
@@ -104,14 +119,39 @@
         .status-green { color: #10b981; }
         .status-red { color: #ef4444; }
         .status-yellow { color: #f59e0b; }
+
+        /* QR area */
         .qr-area {
             text-align: center;
             padding: 20px;
             background: white;
             border-radius: 12px;
             margin-top: 20px;
+            color: #1a1a2e;
         }
         .qr-area img { max-width: 200px; }
+        .qr-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .qr-actions button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .btn-pay-success { background: #10b981; color: white; }
+        .btn-pay-fail { background: #ef4444; color: white; }
+        .btn-pay-success:hover { background: #059669; }
+        .btn-pay-fail:hover { background: #dc2626; }
+        .btn-pay-success:disabled,
+        .btn-pay-fail:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Buttons */
         .action-btn {
             background: #667eea;
             border: none;
@@ -121,28 +161,28 @@
             color: white;
             font-size: 16px;
             width: 100%;
-            margin-top: 20px;
+            margin-top: 15px;
         }
-        .action-btn:disabled {
-            background: #2a2a3e;
-            cursor: not-allowed;
-        }
+        .action-btn:disabled { background: #2a2a3e; cursor: not-allowed; }
+        .action-btn.secondary { background: #3a3a4e; font-size: 14px; margin-top: 10px; }
+        .action-btn.secondary:hover { background: #4a4a5e; }
+
+        /* Log */
         .log-area {
             background: #0a0a12;
             border-radius: 8px;
             padding: 10px;
-            height: 300px;
+            height: 260px;
             overflow-y: auto;
             font-family: monospace;
             font-size: 12px;
         }
-        .log-entry {
-            padding: 5px;
-            border-bottom: 1px solid #1a1a2e;
-        }
+        .log-entry { padding: 5px; border-bottom: 1px solid #1a1a2e; }
         .log-success { color: #10b981; }
         .log-error { color: #ef4444; }
         .log-info { color: #f59e0b; }
+
+        /* Misc */
         .selected-product {
             background: #2a2a3e;
             padding: 10px;
@@ -150,6 +190,16 @@
             margin-bottom: 15px;
             text-align: center;
         }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 6px;
+        }
+        .badge-yellow { background: #f59e0b20; border: 1px solid #f59e0b; color: #f59e0b; }
+        .badge-green { background: #10b98120; border: 1px solid #10b981; color: #10b981; }
         .fake-mode {
             background: #f59e0b20;
             border: 1px solid #f59e0b;
@@ -159,24 +209,57 @@
             font-size: 12px;
             margin-bottom: 15px;
         }
+        .timer-bar {
+            height: 4px;
+            background: #2a2a3e;
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        .timer-fill {
+            height: 100%;
+            background: #f59e0b;
+            border-radius: 2px;
+            transition: width 1s linear;
+        }
+        .section-divider {
+            border: none;
+            border-top: 1px solid #2a2a3e;
+            margin: 15px 0;
+        }
     </style>
 </head>
 <body>
+
+    <!-- Config Bar -->
+    <div class="config-bar">
+        <div class="config-group">
+            <label>Backend URL:</label>
+            <input type="text" id="cfgApiBase" value="https://api.janishammer.com">
+        </div>
+        <div class="config-group">
+            <label>Device ID:</label>
+            <input type="text" id="cfgDeviceId" value="SATU-TEST001">
+        </div>
+        <div class="config-group">
+            <label>Fake Omise URL:</label>
+            <input type="text" id="cfgFakeOmise" value="https://fake-omise.csmittee.workers.dev">
+        </div>
+    </div>
+
     <div class="container">
         <!-- Left Panel: Machine Simulation -->
         <div class="panel">
-            <h2>🖥️ Vending Machine Simulator</h2>
-            
+            <h2>🖥️ Vending Machine Simulator <span class="badge badge-yellow">TEST MODE</span></h2>
+
             <div class="fake-mode">
-                🔧 TEST MODE - No real payment gateway. Fake QR only.
+                🔧 Fake QR · Real backend · Real webhook · Real command queue
             </div>
-            
-            <div class="selected-product" id="selectedDisplay">
-                No product selected
-            </div>
-            
+
+            <div class="selected-product" id="selectedDisplay">No product selected</div>
+
             <div class="product-grid" id="productGrid"></div>
-            
+
             <div class="donor-section">
                 <h3>🙏 Donor Information</h3>
                 <div class="donor-options">
@@ -186,21 +269,33 @@
                 </div>
                 <div id="donorInputArea"></div>
             </div>
-            
+
             <button class="action-btn" id="donateBtn" disabled>Select a product first</button>
-            
+
+            <!-- QR + payment controls -->
             <div class="qr-area" id="qrArea" style="display:none;">
-                <h3>📱 Scan QR Code to Pay</h3>
+                <h3 style="color:#1a1a2e;">📱 Scan QR Code to Pay</h3>
                 <img id="qrImage" src="" alt="QR Code">
-                <p style="margin-top:10px;font-size:12px;" id="orderIdDisplay"></p>
-                <div id="paymentStatus"></div>
+                <p style="margin-top:10px;font-size:12px;color:#555;" id="orderIdDisplay"></p>
+
+                <!-- Timer -->
+                <div style="font-size:12px;color:#888;margin-top:8px;" id="timerLabel">Waiting for payment…</div>
+                <div class="timer-bar"><div class="timer-fill" id="timerFill" style="width:100%"></div></div>
+
+                <!-- Manual payment buttons -->
+                <div class="qr-actions">
+                    <button class="btn-pay-success" id="btnPaySuccess">✅ Simulate Payment Success</button>
+                    <button class="btn-pay-fail" id="btnPayFail">❌ Simulate Payment Fail</button>
+                </div>
+
+                <div id="paymentStatus" style="margin-top:10px;font-size:13px;"></div>
             </div>
         </div>
-        
+
         <!-- Right Panel: Status Dashboard -->
         <div class="panel">
             <h2>📊 Connection Status</h2>
-            <div class="status-list" id="statusList">
+            <div class="status-list">
                 <div class="status-item">
                     <span>🔌 Backend Connection</span>
                     <span id="backendStatus" class="status-red">● Not tested</span>
@@ -221,111 +316,153 @@
                     <span>🤖 Machine Command</span>
                     <span id="commandStatus" class="status-red">● No command</span>
                 </div>
+                <div class="status-item">
+                    <span>🔁 Webhook Idempotency</span>
+                    <span id="idempotencyStatus" class="status-red">● Not tested</span>
+                </div>
             </div>
-            
-            <h2 style="margin-top:20px;">📜 Activity Log</h2>
+
+            <hr class="section-divider">
+
+            <h2>📜 Activity Log</h2>
             <div class="log-area" id="logArea">
                 <div class="log-entry log-info">Ready. Select a product to begin.</div>
             </div>
-            
-            <button class="action-btn" id="testBackendBtn" style="background:#3a3a4e;">Test Backend Connection</button>
+
+            <button class="action-btn secondary" id="testBackendBtn">🔌 Test Backend Connection</button>
+            <button class="action-btn secondary" id="testIdempotencyBtn">🔁 Test Webhook Idempotency</button>
+            <button class="action-btn secondary" id="clearLogBtn" style="background:#2a2a3e;">🗑 Clear Log</button>
         </div>
     </div>
-    
+
     <script>
         // ============================================
-        // CONFIGURATION
+        // CONFIG — reads from the input fields
         // ============================================
-        const API_BASE = 'https://api.janishammer.com';
-        const API_URL = `${API_BASE}/v1`;
-        
-        // Product list
+        function getConfig() {
+            return {
+                API_BASE: document.getElementById('cfgApiBase').value.replace(/\/$/, ''),
+                DEVICE_ID: document.getElementById('cfgDeviceId').value.trim(),
+                FAKE_OMISE: document.getElementById('cfgFakeOmise').value.replace(/\/$/, '')
+            };
+        }
+
+        // Products
         const products = [
-            { id: 1, name: "Blessing Card", price: 10 },
-            { id: 2, name: "Small Amulet", price: 20 },
-            { id: 3, name: "Medium Amulet", price: 50 },
-            { id: 4, name: "Large Amulet", price: 100 },
-            { id: 5, name: "Monk Blessing", price: 500 },
-            { id: 6, name: "Temple Donation", price: 1000 },
-            { id: 7, name: "Merit Set", price: 2000 },
-            { id: 8, name: "Gold Leaf", price: 5000 },
-            { id: 9, name: "Buddha Statue", price: 10000 },
-            { id: 10, name: "Lifetime Blessing", price: 20000 }
+            { id: 1,  name: "Blessing Card",    price: 10 },
+            { id: 2,  name: "Small Amulet",     price: 20 },
+            { id: 3,  name: "Medium Amulet",    price: 50 },
+            { id: 4,  name: "Large Amulet",     price: 100 },
+            { id: 5,  name: "Monk Blessing",    price: 500 },
+            { id: 6,  name: "Temple Donation",  price: 1000 },
+            { id: 7,  name: "Merit Set",        price: 2000 },
+            { id: 8,  name: "Gold Leaf",        price: 5000 },
+            { id: 9,  name: "Buddha Statue",    price: 10000 },
+            { id: 10, name: "Lifetime Blessing",price: 20000 }
         ];
-        
+
         // State
         let selectedProduct = null;
-        let donorMode = 'anonymous';
-        let donorName = '';
-        let donorId = '';
-        let currentOrderId = null;
-        
-        // Helper functions
+        let donorMode      = 'anonymous';
+        let donorName      = '';
+        let donorId        = '';
+        let currentOrder   = null;   // { order_id, omise_charge_id, amount, qr_code_url }
+        let paymentPending = false;
+        let timerInterval  = null;
+
+        // ============================================
+        // HELPERS
+        // ============================================
         function generateThaiId() {
-            let first = Math.floor(Math.random() * 9) + 1;
-            let second = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-            let third = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-            let fourth = Math.floor(Math.random() * 100).toString().padStart(2, '0');
-            let fifth = Math.floor(Math.random() * 10);
-            return `${first}-${second}-${third}-${fourth}-${fifth}`;
+            const r = (n) => Math.floor(Math.random() * n);
+            return `${r(9)+1}-${String(r(10000)).padStart(4,'0')}-${String(r(10000)).padStart(4,'0')}-${String(r(100)).padStart(2,'0')}-${r(10)}`;
         }
-        
+
         function generateThaiName() {
-            const firstNames = ['Somchai', 'Somsri', 'Preecha', 'Wichai', 'Nongnuch', 'Samorn', 'Chaiwat', 'Ratree', 'Manop', 'Supaporn'];
-            const lastNames = ['Jaidee', 'Sukhumvit', 'Wongkraisri', 'Thongprasert', 'Srisuk', 'Khamsing', 'Prasertkul', 'Boonyarat'];
-            return firstNames[Math.floor(Math.random() * firstNames.length)] + ' ' + lastNames[Math.floor(Math.random() * lastNames.length)];
+            const first = ['Somchai','Somsri','Preecha','Wichai','Nongnuch','Samorn','Chaiwat','Ratree','Manop','Supaporn'];
+            const last  = ['Jaidee','Sukhumvit','Wongkraisri','Thongprasert','Srisuk','Khamsing','Prasertkul','Boonyarat'];
+            return first[Math.floor(Math.random()*first.length)] + ' ' + last[Math.floor(Math.random()*last.length)];
         }
-        
+
         function addLog(message, type = 'info') {
             const logArea = document.getElementById('logArea');
             const time = new Date().toLocaleTimeString();
-            const logEntry = document.createElement('div');
-            logEntry.className = `log-entry log-${type}`;
-            logEntry.innerHTML = `[${time}] ${message}`;
-            logArea.insertBefore(logEntry, logArea.firstChild);
-            if (logArea.children.length > 50) logArea.removeChild(logArea.lastChild);
+            const div = document.createElement('div');
+            div.className = `log-entry log-${type}`;
+            div.innerHTML = `[${time}] ${message}`;
+            logArea.insertBefore(div, logArea.firstChild);
+            if (logArea.children.length > 80) logArea.removeChild(logArea.lastChild);
         }
-        
-        function updateStatus(indicator, status, text) {
-            const el = document.getElementById(indicator);
-            if (el) {
-                el.className = `status-${status}`;
-                el.textContent = text;
-            }
+
+        function updateStatus(id, color, text) {
+            const el = document.getElementById(id);
+            if (el) { el.className = `status-${color}`; el.textContent = text; }
         }
-        
+
+        function setQrButtons(enabled) {
+            document.getElementById('btnPaySuccess').disabled = !enabled;
+            document.getElementById('btnPayFail').disabled    = !enabled;
+        }
+
+        function startTimer(seconds) {
+            clearInterval(timerInterval);
+            const fill  = document.getElementById('timerFill');
+            const label = document.getElementById('timerLabel');
+            let remaining = seconds;
+            fill.style.width = '100%';
+            label.textContent = `Waiting for payment… (${remaining}s)`;
+
+            timerInterval = setInterval(() => {
+                remaining--;
+                fill.style.width = `${(remaining / seconds) * 100}%`;
+                label.textContent = `Waiting for payment… (${remaining}s)`;
+                if (remaining <= 0) {
+                    clearInterval(timerInterval);
+                    label.textContent = 'QR expired — no payment received';
+                    fill.style.background = '#ef4444';
+                    if (paymentPending) {
+                        paymentPending = false;
+                        setQrButtons(false);
+                        addLog('⏰ Payment timeout — QR expired', 'error');
+                        updateStatus('paymentStatusIndicator', 'red', '● Timed out');
+                        document.getElementById('paymentStatus').innerHTML =
+                            '<span style="color:#ef4444;">⏰ Payment timed out. Please start again.</span>';
+                    }
+                }
+            }, 1000);
+        }
+
+        // ============================================
+        // BACKEND CALLS
+        // ============================================
         async function testBackend() {
-            addLog('Testing backend connection...', 'info');
-            updateStatus('backendStatus', 'yellow', '● Testing...');
-            
+            const { API_BASE } = getConfig();
+            addLog('Testing backend connection…', 'info');
+            updateStatus('backendStatus', 'yellow', '● Testing…');
             try {
-                // Fixed: use API_BASE, not API_URL (no /v1 for health)
-                const response = await fetch(`${API_BASE}/health`);
-                if (response.ok) {
-                    const data = await response.json();
+                const res  = await fetch(`${API_BASE}/health`);
+                const data = await res.json();
+                if (res.ok) {
                     addLog(`✅ Backend connected! Status: ${data.status}`, 'success');
                     updateStatus('backendStatus', 'green', '● Connected');
-                    updateStatus('dbStatus', 'green', '● Available (via Worker)');
+                    updateStatus('dbStatus', 'green', '● Available');
                     return true;
-                } else {
-                    throw new Error(`HTTP ${response.status}`);
                 }
-            } catch (error) {
-                addLog(`❌ Backend connection failed: ${error.message}`, 'error');
+                throw new Error(`HTTP ${res.status}`);
+            } catch (err) {
+                addLog(`❌ Backend connection failed: ${err.message}`, 'error');
                 updateStatus('backendStatus', 'red', '● Disconnected');
                 return false;
             }
         }
-        
+
         async function createOrder() {
-            if (!selectedProduct) {
-                addLog('Please select a product first', 'error');
-                return false;
-            }
-            
-            addLog(`Creating order for product: ${selectedProduct.name} (${selectedProduct.price} THB)`, 'info');
-            updateStatus('orderStatus', 'yellow', '● Creating...');
-            
+            const { API_BASE, DEVICE_ID } = getConfig();
+            if (!selectedProduct) { addLog('Please select a product first', 'error'); return null; }
+
+            addLog(`Creating order: ${selectedProduct.name} (${selectedProduct.price} THB)`, 'info');
+            updateStatus('orderStatus', 'yellow', '● Creating…');
+
             let donorData = {};
             if (donorMode === 'name' && donorName) {
                 donorData.donor_name = donorName;
@@ -333,95 +470,269 @@
             } else if (donorMode === 'idcard' && donorId) {
                 donorData.national_id_hash = `HASH_${donorId.replace(/-/g, '')}`;
                 donorData.consent = true;
-                addLog(`ID Card: ${donorId} (hashed for privacy)`, 'info');
+                addLog(`ID Card hashed (PDPA compliant)`, 'info');
             } else {
                 donorData.donor_name = null;
-                addLog(`Donor: Anonymous`, 'info');
+                addLog('Donor: Anonymous', 'info');
             }
-            
+
             try {
-                const response = await fetch(`${API_URL}/order`, {
+                const res = await fetch(`${API_BASE}/v1/order`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        device_id: 'SATU-TEST001',
-                        product_id: selectedProduct.id,
-                        ...donorData
-                    })
+                    body: JSON.stringify({ device_id: DEVICE_ID, product_id: selectedProduct.id, ...donorData })
                 });
-                
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                currentOrderId = data.order_id;
-                addLog(`✅ Order created: ${currentOrderId}`, 'success');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (!data.order_id) throw new Error('Backend returned no order_id');
+                if (!data.omise_charge_id) {
+                    addLog('⚠️ Warning: No omise_charge_id in response — payment simulation may fail', 'error');
+                }
+
+                currentOrder = data;
+                addLog(`✅ Order created: ${data.order_id} | charge: ${data.omise_charge_id || 'N/A'}`, 'success');
                 updateStatus('orderStatus', 'green', '● Created');
                 return data;
-            } catch (error) {
-                addLog(`❌ Order creation failed: ${error.message}`, 'error');
+            } catch (err) {
+                addLog(`❌ Order creation failed: ${err.message}`, 'error');
                 updateStatus('orderStatus', 'red', '● Failed');
                 return null;
             }
         }
-        
-        async function simulatePayment(orderId) {
-            addLog(`Processing payment for order: ${orderId}`, 'info');
-            updateStatus('paymentStatusIndicator', 'yellow', '● Processing...');
-            
-            await new Promise(r => setTimeout(r, 1500));
-            
-            addLog(`✅ Payment successful! Amount: ${selectedProduct.price} THB`, 'success');
-            updateStatus('paymentStatusIndicator', 'green', '● Completed');
-            updateStatus('commandStatus', 'green', '● Dispense command sent');
-            addLog(`🎁 Dispensing product: ${selectedProduct.name}`, 'success');
-            
-            return true;
+
+        // FIX: actually calls fake Omise → real webhook → real backend
+        async function simulatePaymentSuccess(orderId, chargeId) {
+            const { FAKE_OMISE } = getConfig();
+            addLog(`Triggering payment via Fake Omise…`, 'info');
+            updateStatus('paymentStatusIndicator', 'yellow', '● Processing…');
+
+            try {
+                const res = await fetch(`${FAKE_OMISE}/simulate-payment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order_id: orderId, charge_id: chargeId })
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                addLog(`✅ Webhook sent to backend. Response: ${JSON.stringify(data.webhook_response)}`, 'success');
+                updateStatus('paymentStatusIndicator', 'green', '● Completed');
+            } catch (err) {
+                addLog(`❌ Payment simulation failed: ${err.message}`, 'error');
+                updateStatus('paymentStatusIndicator', 'red', '● Failed');
+                return false;
+            }
+
+            // Poll command queue for payment_confirmed
+            addLog('Polling command queue for payment_confirmed…', 'info');
+            updateStatus('commandStatus', 'yellow', '● Waiting…');
+            return await pollCommandQueue('payment_confirmed');
         }
-        
-        async function startDonation() {
-            if (!selectedProduct) {
-                addLog('Please select a product first', 'error');
+
+        async function simulatePaymentFailed(orderId, chargeId) {
+            const { FAKE_OMISE } = getConfig();
+            addLog(`Triggering FAILED payment via Fake Omise…`, 'info');
+            updateStatus('paymentStatusIndicator', 'yellow', '● Processing failure…');
+
+            try {
+                const res = await fetch(`${FAKE_OMISE}/simulate-failed-payment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order_id: orderId, charge_id: chargeId, reason: 'insufficient_funds' })
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                addLog(`Failure webhook sent. Backend response: ${JSON.stringify(data.webhook_response)}`, 'info');
+                updateStatus('paymentStatusIndicator', 'red', '● Failed (correct)');
+            } catch (err) {
+                addLog(`❌ Failed payment simulation error: ${err.message}`, 'error');
+                updateStatus('paymentStatusIndicator', 'red', '● Error');
+                return false;
+            }
+
+            // Verify door did NOT unlock
+            addLog('Verifying door stays locked…', 'info');
+            await new Promise(r => setTimeout(r, 1500));
+            const { API_BASE, DEVICE_ID } = getConfig();
+            const cmdRes   = await fetch(`${API_BASE}/v1/machine/commands?device_id=${DEVICE_ID}`);
+            const commands = await cmdRes.json();
+            const hasUnlock = commands.commands && commands.commands.some(c => c.command === 'payment_confirmed');
+
+            if (hasUnlock) {
+                addLog('❌ BUG: payment_confirmed command found after FAILED payment!', 'error');
+                updateStatus('commandStatus', 'red', '● BUG: Unlocked on failure!');
+                return false;
+            } else {
+                addLog('✅ Door stays locked — no unlock command after failed payment', 'success');
+                updateStatus('commandStatus', 'green', '● Locked (correct)');
+                return true;
+            }
+        }
+
+        // Polls /v1/machine/commands with retry until command appears or timeout
+        async function pollCommandQueue(commandName, maxAttempts = 8, intervalMs = 800) {
+            const { API_BASE, DEVICE_ID } = getConfig();
+            for (let i = 0; i < maxAttempts; i++) {
+                await new Promise(r => setTimeout(r, intervalMs));
+                try {
+                    const res      = await fetch(`${API_BASE}/v1/machine/commands?device_id=${DEVICE_ID}`);
+                    const commands = await res.json();
+                    addLog(`Poll ${i+1}/${maxAttempts}: ${JSON.stringify(commands.commands || [])}`, 'info');
+                    if (commands.commands && commands.commands.some(c => c.command === commandName)) {
+                        addLog(`✅ "${commandName}" command received by machine!`, 'success');
+                        updateStatus('commandStatus', 'green', `● ${commandName} ✓`);
+                        return true;
+                    }
+                } catch (err) {
+                    addLog(`Poll error: ${err.message}`, 'error');
+                }
+            }
+            addLog(`❌ Timeout: "${commandName}" never appeared in command queue`, 'error');
+            updateStatus('commandStatus', 'red', '● No command received');
+            return false;
+        }
+
+        // Idempotency test: fire same webhook twice, check command queue count
+        async function testIdempotency() {
+            const { FAKE_OMISE, API_BASE, DEVICE_ID } = getConfig();
+            addLog('--- Idempotency Test Start ---', 'info');
+            updateStatus('idempotencyStatus', 'yellow', '● Testing…');
+
+            // 1. Create order
+            const orderRes = await fetch(`${API_BASE}/v1/order`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ device_id: DEVICE_ID, product_id: 1 })
+            });
+            const order = await orderRes.json();
+            if (!order.order_id || !order.omise_charge_id) {
+                addLog('❌ Idempotency test: failed to create order', 'error');
+                updateStatus('idempotencyStatus', 'red', '● Order failed');
                 return;
             }
-            
+            addLog(`Order created: ${order.order_id}`, 'info');
+
+            // 2. Fire webhook TWICE with same charge_id
+            for (let i = 1; i <= 2; i++) {
+                await fetch(`${FAKE_OMISE}/simulate-payment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order_id: order.order_id, charge_id: order.omise_charge_id })
+                });
+                addLog(`Webhook fire #${i} sent for ${order.omise_charge_id}`, 'info');
+                await new Promise(r => setTimeout(r, 600));
+            }
+
+            // 3. Count payment_confirmed commands in queue
+            await new Promise(r => setTimeout(r, 1000));
+            const cmdRes   = await fetch(`${API_BASE}/v1/machine/commands?device_id=${DEVICE_ID}`);
+            const commands = await cmdRes.json();
+            const count    = (commands.commands || []).filter(c => c.command === 'payment_confirmed').length;
+
+            addLog(`payment_confirmed commands in queue: ${count}`, count === 1 ? 'success' : 'error');
+
+            if (count === 0) {
+                addLog('❌ Idempotency: webhook never produced a command', 'error');
+                updateStatus('idempotencyStatus', 'red', '● No command at all');
+            } else if (count === 1) {
+                addLog('✅ Idempotency PASS: duplicate webhook ignored correctly', 'success');
+                updateStatus('idempotencyStatus', 'green', '● PASS — duplicate ignored');
+            } else {
+                addLog(`❌ Idempotency FAIL: ${count} commands created from 1 payment — backend processed duplicate!`, 'error');
+                updateStatus('idempotencyStatus', 'red', `● FAIL — ${count} commands`);
+            }
+            addLog('--- Idempotency Test End ---', 'info');
+        }
+
+        // ============================================
+        // MAIN FLOW
+        // ============================================
+        async function startDonation() {
+            if (!selectedProduct) { addLog('Please select a product first', 'error'); return; }
+
+            // Reset state
+            paymentPending = false;
+            clearInterval(timerInterval);
             document.getElementById('qrArea').style.display = 'none';
+            document.getElementById('paymentStatus').innerHTML = '';
+            document.getElementById('timerFill').style.background = '#f59e0b';
             updateStatus('orderStatus', 'red', '● Not created');
             updateStatus('paymentStatusIndicator', 'red', '● Not attempted');
             updateStatus('commandStatus', 'red', '● No command');
-            
+
+            document.getElementById('donateBtn').disabled = true;
+
             const order = await createOrder();
-            if (!order) return;
-            
-            const qrArea = document.getElementById('qrArea');
-            const qrImage = document.getElementById('qrImage');
-            const orderIdDisplay = document.getElementById('orderIdDisplay');
-            
-            qrImage.src = order.qr_code_url;
-            orderIdDisplay.innerHTML = `Order ID: ${order.order_id}<br>Amount: ${order.amount} THB`;
-            qrArea.style.display = 'block';
-            
-            addLog(`📱 QR Code displayed. Waiting for payment...`, 'info');
-            
-            setTimeout(async () => {
-                await simulatePayment(order.order_id);
-                
-                const paymentDiv = document.getElementById('paymentStatus');
-                paymentDiv.innerHTML = '<div style="color:#10b981; margin-top:15px;">✅ Payment Confirmed! Dispensing product...</div>';
-                
-                addLog(`✅ Machine dispensed ${selectedProduct.name}. Thank you!`, 'success');
-                
-                setTimeout(() => {
-                    paymentDiv.innerHTML = '';
-                    qrArea.style.display = 'none';
-                    selectedProduct = null;
-                    document.getElementById('selectedDisplay').innerHTML = 'No product selected';
-                    document.querySelectorAll('.product-btn').forEach(btn => btn.classList.remove('selected'));
-                    document.getElementById('donateBtn').disabled = true;
-                    document.getElementById('donateBtn').textContent = 'Select a product first';
-                    addLog(`Ready for next customer`, 'info');
-                }, 3000);
-            }, 2000);
+            if (!order) { document.getElementById('donateBtn').disabled = false; return; }
+
+            // Show QR
+            document.getElementById('qrImage').src         = order.qr_code_url || '';
+            document.getElementById('orderIdDisplay').innerHTML =
+                `Order: <b>${order.order_id}</b> &nbsp;|&nbsp; Amount: <b>${order.amount || selectedProduct.price} THB</b>`;
+            document.getElementById('qrArea').style.display = 'block';
+
+            paymentPending = true;
+            setQrButtons(true);
+            startTimer(120); // 2-minute QR window
+
+            addLog('📱 QR displayed. Use the buttons to simulate customer payment.', 'info');
         }
-        
+
+        async function handlePaySuccess() {
+            if (!paymentPending || !currentOrder) return;
+            paymentPending = false;
+            clearInterval(timerInterval);
+            setQrButtons(false);
+            document.getElementById('timerLabel').textContent = 'Payment received!';
+
+            const ok = await simulatePaymentSuccess(currentOrder.order_id, currentOrder.omise_charge_id);
+
+            const paymentDiv = document.getElementById('paymentStatus');
+            if (ok) {
+                paymentDiv.innerHTML = '<b style="color:#10b981;">✅ Payment confirmed! Door unlocked — dispensing product…</b>';
+                addLog(`🎁 Dispensing: ${selectedProduct.name}`, 'success');
+                setTimeout(resetMachine, 4000);
+            } else {
+                paymentDiv.innerHTML = '<b style="color:#ef4444;">❌ Payment webhook sent but command not received. Check backend logs.</b>';
+                document.getElementById('donateBtn').disabled = false;
+            }
+        }
+
+        async function handlePayFail() {
+            if (!paymentPending || !currentOrder) return;
+            paymentPending = false;
+            clearInterval(timerInterval);
+            setQrButtons(false);
+            document.getElementById('timerLabel').textContent = 'Payment failed.';
+
+            const ok = await simulatePaymentFailed(currentOrder.order_id, currentOrder.omise_charge_id);
+
+            const paymentDiv = document.getElementById('paymentStatus');
+            if (ok) {
+                paymentDiv.innerHTML = '<b style="color:#f59e0b;">⚠️ Payment failed — door stays locked. Please try again.</b>';
+            } else {
+                paymentDiv.innerHTML = '<b style="color:#ef4444;">❌ BUG: Door unlocked despite payment failure!</b>';
+            }
+            setTimeout(resetMachine, 4000);
+        }
+
+        function resetMachine() {
+            paymentPending = false;
+            clearInterval(timerInterval);
+            currentOrder   = null;
+            selectedProduct = null;
+            document.getElementById('qrArea').style.display = 'none';
+            document.getElementById('paymentStatus').innerHTML = '';
+            document.getElementById('selectedDisplay').innerHTML = 'No product selected';
+            document.querySelectorAll('.product-btn').forEach(b => b.classList.remove('selected'));
+            document.getElementById('donateBtn').disabled = true;
+            document.getElementById('donateBtn').textContent = 'Select a product first';
+            addLog('✅ Transaction complete. Ready for next customer.', 'success');
+        }
+
+        // ============================================
+        // UI SETUP
+        // ============================================
         function renderProducts() {
             const grid = document.getElementById('productGrid');
             grid.innerHTML = products.map(p => `
@@ -430,91 +741,95 @@
                     <div class="product-price">${p.price} THB</div>
                 </div>
             `).join('');
-            
-            document.querySelectorAll('.product-btn').forEach(btn => {
+
+            grid.querySelectorAll('.product-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    const id = parseInt(btn.dataset.id);
-                    const name = btn.dataset.name;
-                    const price = parseInt(btn.dataset.price);
-                    
-                    document.querySelectorAll('.product-btn').forEach(b => b.classList.remove('selected'));
+                    if (paymentPending) { addLog('⚠️ Payment in progress — please wait', 'error'); return; }
+                    grid.querySelectorAll('.product-btn').forEach(b => b.classList.remove('selected'));
                     btn.classList.add('selected');
-                    
-                    selectedProduct = { id, name, price };
-                    document.getElementById('selectedDisplay').innerHTML = `Selected: ${name} (${price} THB)`;
+                    selectedProduct = {
+                        id:    parseInt(btn.dataset.id),
+                        name:  btn.dataset.name,
+                        price: parseInt(btn.dataset.price)
+                    };
+                    document.getElementById('selectedDisplay').innerHTML =
+                        `Selected: <b>${selectedProduct.name}</b> (${selectedProduct.price} THB)`;
                     document.getElementById('donateBtn').disabled = false;
-                    document.getElementById('donateBtn').textContent = `Donate ${price} THB`;
-                    
-                    addLog(`Product selected: ${name} (${price} THB)`, 'success');
+                    document.getElementById('donateBtn').textContent = `Donate ${selectedProduct.price} THB`;
+                    addLog(`Product selected: ${selectedProduct.name} (${selectedProduct.price} THB)`, 'success');
                 });
             });
         }
-        
+
         function setupDonorUI() {
-            const anonymousBtn = document.getElementById('anonymousBtn');
-            const enterNameBtn = document.getElementById('enterNameBtn');
-            const insertIdBtn = document.getElementById('insertIdBtn');
-            const donorInputArea = document.getElementById('donorInputArea');
-            
+            const anonBtn  = document.getElementById('anonymousBtn');
+            const nameBtn  = document.getElementById('enterNameBtn');
+            const idBtn    = document.getElementById('insertIdBtn');
+            const area     = document.getElementById('donorInputArea');
+
             function updateUI() {
                 if (donorMode === 'anonymous') {
-                    donorInputArea.innerHTML = '<div style="padding:10px;background:#2a2a3e;border-radius:8px;">🙏 Donating anonymously</div>';
-                    donorName = '';
-                    donorId = '';
+                    area.innerHTML = '<div style="padding:10px;background:#2a2a3e;border-radius:8px;">🙏 Donating anonymously</div>';
+                    donorName = ''; donorId = '';
                 } else if (donorMode === 'name') {
                     donorName = generateThaiName();
-                    donorInputArea.innerHTML = `
+                    area.innerHTML = `
                         <input type="text" id="donorNameInput" placeholder="Your name" value="${donorName}">
-                        <button id="randomNameBtn" style="margin-top:5px;background:#3a3a4e;padding:5px;">🎲 Random Name</button>
+                        <button style="margin-top:5px;background:#3a3a4e;padding:5px;border:none;border-radius:6px;color:white;cursor:pointer;" id="randomNameBtn">🎲 Random Name</button>
                     `;
-                    document.getElementById('donorNameInput')?.addEventListener('change', (e) => { donorName = e.target.value; });
-                    document.getElementById('randomNameBtn')?.addEventListener('click', () => {
+                    area.querySelector('#donorNameInput').addEventListener('input', e => { donorName = e.target.value; });
+                    area.querySelector('#randomNameBtn').addEventListener('click', () => {
                         donorName = generateThaiName();
-                        document.getElementById('donorNameInput').value = donorName;
-                        addLog(`Random name generated: ${donorName}`, 'info');
+                        area.querySelector('#donorNameInput').value = donorName;
+                        addLog(`Random name: ${donorName}`, 'info');
                     });
                 } else if (donorMode === 'idcard') {
                     donorId = generateThaiId();
-                    donorInputArea.innerHTML = `
+                    area.innerHTML = `
                         <input type="text" id="donorIdInput" placeholder="13-digit ID" value="${donorId}">
-                        <button id="randomIdBtn" style="margin-top:5px;background:#3a3a4e;padding:5px;">🎲 Random ID</button>
-                        <div style="font-size:11px;color:#888;margin-top:5px;">⚠️ ID will be hashed for PDPA compliance</div>
+                        <button style="margin-top:5px;background:#3a3a4e;padding:5px;border:none;border-radius:6px;color:white;cursor:pointer;" id="randomIdBtn">🎲 Random ID</button>
+                        <div style="font-size:11px;color:#888;margin-top:5px;">⚠️ ID will be hashed before sending (PDPA)</div>
                     `;
-                    document.getElementById('donorIdInput')?.addEventListener('change', (e) => { donorId = e.target.value; });
-                    document.getElementById('randomIdBtn')?.addEventListener('click', () => {
+                    area.querySelector('#donorIdInput').addEventListener('input', e => { donorId = e.target.value; });
+                    area.querySelector('#randomIdBtn').addEventListener('click', () => {
                         donorId = generateThaiId();
-                        document.getElementById('donorIdInput').value = donorId;
-                        addLog(`Random ID generated: ${donorId}`, 'info');
+                        area.querySelector('#donorIdInput').value = donorId;
+                        addLog(`Random ID generated`, 'info');
                     });
                 }
-                
-                anonymousBtn.classList.remove('active');
-                enterNameBtn.classList.remove('active');
-                insertIdBtn.classList.remove('active');
-                if (donorMode === 'anonymous') anonymousBtn.classList.add('active');
-                if (donorMode === 'name') enterNameBtn.classList.add('active');
-                if (donorMode === 'idcard') insertIdBtn.classList.add('active');
+                [anonBtn, nameBtn, idBtn].forEach(b => b.classList.remove('active'));
+                if (donorMode === 'anonymous') anonBtn.classList.add('active');
+                if (donorMode === 'name')      nameBtn.classList.add('active');
+                if (donorMode === 'idcard')    idBtn.classList.add('active');
             }
-            
-            anonymousBtn.onclick = () => { donorMode = 'anonymous'; updateUI(); addLog('Mode: Anonymous donation', 'info'); };
-            enterNameBtn.onclick = () => { donorMode = 'name'; updateUI(); addLog('Mode: Donor provides name', 'info'); };
-            insertIdBtn.onclick = () => { donorMode = 'idcard'; updateUI(); addLog('Mode: ID Card (PDPA compliant - hashed storage)', 'info'); };
-            
+
+            anonBtn.onclick = () => { donorMode = 'anonymous'; updateUI(); addLog('Mode: Anonymous', 'info'); };
+            nameBtn.onclick = () => { donorMode = 'name';      updateUI(); addLog('Mode: Named donor', 'info'); };
+            idBtn.onclick   = () => { donorMode = 'idcard';    updateUI(); addLog('Mode: ID Card (PDPA hashed)', 'info'); };
             updateUI();
         }
-        
+
         function init() {
             renderProducts();
             setupDonorUI();
-            
-            document.getElementById('donateBtn').onclick = startDonation;
-            document.getElementById('testBackendBtn').onclick = testBackend;
-            
-            addLog('Simulator ready. API URL: ' + API_URL, 'success');
-            
+
+            document.getElementById('donateBtn').onclick       = startDonation;
+            document.getElementById('btnPaySuccess').onclick   = handlePaySuccess;
+            document.getElementById('btnPayFail').onclick      = handlePayFail;
+            document.getElementById('testBackendBtn').onclick  = testBackend;
+            document.getElementById('testIdempotencyBtn').onclick = testIdempotency;
+            document.getElementById('clearLogBtn').onclick     = () => {
+                document.getElementById('logArea').innerHTML =
+                    '<div class="log-entry log-info">Log cleared.</div>';
+            };
+
+            setQrButtons(false);
+
+            const { API_BASE, DEVICE_ID } = getConfig();
+            addLog(`Simulator ready — Backend: ${API_BASE} | Device: ${DEVICE_ID}`, 'success');
             setTimeout(testBackend, 500);
         }
-        
+
         init();
     </script>
 </body>
