@@ -1,0 +1,59 @@
+# Satu Payment Mode Switch - Documentation
+
+## One Secret Controls Everything
+
+| Secret Name | Values | What it does |
+|-------------|--------|--------------|
+| `PAYMENT_MODE` | `fake` or `live` | Switches between Fake Omise and Real Omise |
+
+## How to Switch
+
+### To Fake Mode (Testing - No Real Money)
+
+```bash
+npx wrangler secret put PAYMENT_MODE
+# Enter: fake
+```
+
+Or via Cloudflare Dashboard:
+1. Workers & Pages → `satu-api` → Settings → Variables
+2. Edit `PAYMENT_MODE` secret
+3. Change value to `fake`
+4. Save
+
+### To Live Mode (Production - Real Money)
+
+```bash
+npx wrangler secret put PAYMENT_MODE
+# Enter: live
+```
+
+Also need `OMISE_SECRET_KEY` secret added (only for live mode).
+
+## What Changes
+
+| Mode | Payment URL | QR Code Source | Money Moves |
+|------|-------------|----------------|-------------|
+| `fake` | `fake-omise.csmittee.workers.dev` | Fake QR server | ❌ No |
+| `live` | `api.omise.co` | Real Omise PromptPay | ✅ Yes |
+
+## Verification
+
+Check current mode:
+
+```bash
+curl https://api.janishammer.com/health
+```
+
+Response shows: `{"status":"ok","payment_mode":"fake",...}`
+
+## Files That Use This Secret
+
+| File | What it does |
+|------|--------------|
+| `src/handlers/order.js` | Reads `env.PAYMENT_MODE` to decide which payment gateway to call |
+| `src/index.js` | Exposes `payment_mode` in `/health` endpoint for verification |
+
+## No Code Change Needed
+
+Change the secret. The Worker reads it instantly. No redeploy required.
