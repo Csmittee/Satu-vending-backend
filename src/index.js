@@ -113,10 +113,23 @@ export default {
             return new Response(text, { headers: { 'Content-Type': 'text/html' } });
         }
 
+        // Serve machine tester
+        if (path === '/demo' && method === 'GET') {
+            const html = await fetch('https://raw.githubusercontent.com/Csmittee/Satu-vending-backend/main/satu-machine-tester.html');
+            const text = await html.text();
+            return new Response(text, { headers: { 'Content-Type': 'text/html' } });
+        }
         
-        return Response.json({ error: 'Not found' }, { status: 404 });
-    }
-};
+        // Serve system tester
+        if (path === '/test' && method === 'GET') {
+            const html = await fetch('https://raw.githubusercontent.com/Csmittee/Satu-vending-backend/main/satu-system-tester.html');
+            const text = await html.text();
+            return new Response(text, { headers: { 'Content-Type': 'text/html' } });
+        }        
+                
+                return Response.json({ error: 'Not found' }, { status: 404 });
+            }
+        };
 
 async function handleAdminDashboard(env) {
     const tables = await env.DB.prepare(
