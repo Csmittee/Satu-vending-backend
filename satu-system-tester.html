@@ -388,9 +388,15 @@
                                 })
                             });
                             const result = await simRes.json();
+                            const webhookOk = result.webhook_response && 
+                                (result.webhook_response.status === 'ok' || 
+                                 result.webhook_response.order_id !== undefined ||
+                                 result.webhook_response.success === true);
                             return {
-                                passed: simRes.ok,
-                                message: `[FAKE MODE] Webhook triggered for order ${order.order_id}`,
+                                passed: simRes.ok && webhookOk,
+                                message: simRes.ok && webhookOk
+                                    ? `[FAKE MODE] Webhook received by backend for order ${order.order_id}`
+                                    : `[FAKE MODE] Fake Omise OK but backend webhook failed: ${JSON.stringify(result.webhook_response)}`,
                                 data: result
                             };
                         }
@@ -429,13 +435,16 @@
                     });
                     
                     // Wait for webhook to process
-                    await new Promise(r => setTimeout(r, 500));
-                    
-                    // Check for command
-                    const cmdRes = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
-                    const commands = await cmdRes.json();
-                    
-                    const hasPaymentCommand = commands.commands && commands.commands.some(c => c.command === 'payment_confirmed');
+                   // Poll with retry — webhook processing can take 1-3 seconds across workers
+                    let commands = { commands: [] };
+                    let hasPaymentCommand = false;
+                    for (let attempt = 0; attempt < 6; attempt++) {
+                        await new Promise(r => setTimeout(r, 800));
+                        const cmdRes = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
+                        commands = await cmdRes.json();
+                        hasPaymentCommand = commands.commands && commands.commands.some(c => c.command === 'payment_confirmed');
+                        if (hasPaymentCommand) break;
+                    }
                     
                     return {
                         passed: hasPaymentCommand,
@@ -450,15 +459,41 @@
                 description: "Does door stay closed when payment fails?",
                 checkpoint: "No unlock command when payment fails",
                 run: async (apiUrl, deviceId, mode) => {
-                    // For fake mode, we test that no command is sent without payment
+                    // Create a real order, then simulate a FAILED payment
+                    const orderRes = await fetch(`${apiUrl}/v1/order`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ device_id: deviceId, product_id: 1 })
+                    });
+                    const order = await orderRes.json();
+
+                    if (!order.order_id || !order.omise_charge_id) {
+                        return { passed: false, message: "Failed to create order for failure test" };
+                    }
+
+                    // Trigger failed payment webhook
+                    await fetch(`${FAKE_OMISE_URL}/simulate-failed-payment`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            order_id: order.order_id,
+                            charge_id: order.omise_charge_id,
+                            reason: 'insufficient_funds'
+                        })
+                    });
+
+                    // Wait for processing
+                    await new Promise(r => setTimeout(r, 1500));
+
                     const cmdRes = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
                     const commands = await cmdRes.json();
-                    
-                    // Check if there's any payment_confirmed without a paid order
-                    // This is a logical test - we verify the system doesn't auto-unlock
+                    const hasUnlock = commands.commands && commands.commands.some(c => c.command === 'payment_confirmed');
+
                     return {
-                        passed: true,
-                        message: `No automatic unlock without payment (system behaves correctly)`,
+                        passed: !hasUnlock,
+                        message: !hasUnlock
+                            ? `✅ Door stays locked — no unlock command after failed payment`
+                            : `❌ BUG: Unlock command found after failed payment!`,
                         data: commands
                     };
                 }
@@ -492,11 +527,16 @@
                     });
                     
                     // Wait for webhook to process
-                    await new Promise(r => setTimeout(r, 500));
-                    
-                    const cmdRes = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
-                    const commands = await cmdRes.json();
-                    const hasUnlock = commands.commands && commands.commands.some(c => c.command === 'payment_confirmed');
+                    // Poll with retry — webhook processing can take 1-3 seconds across workers
+                    let commands = { commands: [] };
+                    let hasUnlock = false;
+                    for (let attempt = 0; attempt < 6; attempt++) {
+                        await new Promise(r => setTimeout(r, 800));
+                        const cmdRes = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
+                        commands = await cmdRes.json();
+                        hasUnlock = commands.commands && commands.commands.some(c => c.command === 'payment_confirmed');
+                        if (hasUnlock) break;
+                    }
                     
                     return {
                         passed: hasUnlock,
