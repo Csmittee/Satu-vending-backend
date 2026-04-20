@@ -30,7 +30,16 @@ export default {
                 endpoints: ['GET /health', 'POST /v1/machine/hello', 'POST /v1/order', 'GET /v1/machine/commands']
             });
         }
-        
+
+// ============================================
+// ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+// ⚠️  ADMIN DASHBOARD - DO NOT MODIFY OR REMOVE                       ⚠️
+// ⚠️  This is the secret admin dashboard. Changing the path or        ⚠️
+// ⚠️  removing this code will break the admin interface.              ⚠️
+// ⚠️  URL: https://api.janishammer.com/xK9mP2nQ5rT8wY1z               ⚠️
+// ⚠️  If you need to change the path, update BOTH instances below.    ⚠️
+// ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+// ============================================        
         // ADMIN DASHBOARD
         if (path === '/xK9mP2nQ5rT8wY1z' && method === 'GET') {
             return await handleAdminDashboard(env);
@@ -132,6 +141,15 @@ export default {
         };
 
 async function handleAdminDashboard(env) {
+// ============================================
+// ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+// ⚠️  ADMIN DASHBOARD - DO NOT MODIFY OR REMOVE                       ⚠️
+// ⚠️  This is the secret admin dashboard. Changing the path or        ⚠️
+// ⚠️  removing this code will break the admin interface.              ⚠️
+// ⚠️  URL: https://api.janishammer.com/xK9mP2nQ5rT8wY1z               ⚠️
+// ⚠️  If you need to change the path, update BOTH instances below.    ⚠️
+// ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+// ============================================            
     const tables = await env.DB.prepare(
         `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`
     ).all();
