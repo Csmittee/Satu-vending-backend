@@ -99,6 +99,20 @@ export default {
             if (!adminCheck) return Response.json({ error: 'Admin required' }, { status: 403 });
             return handleGetAllDevices(request, env);
         }
+        // Serve machine tester
+        if (path === '/demo' && method === 'GET') {
+            const html = await fetch('https://raw.githubusercontent.com/Csmittee/Satu-vending-backend/main/satu-machine-tester.html');
+            const text = await html.text();
+            return new Response(text, { headers: { 'Content-Type': 'text/html' } });
+        }
+        
+        // Serve system tester
+        if (path === '/test' && method === 'GET') {
+            const html = await fetch('https://raw.githubusercontent.com/Csmittee/Satu-vending-backend/main/satu-system-tester.html');
+            const text = await html.text();
+            return new Response(text, { headers: { 'Content-Type': 'text/html' } });
+        }
+
         
         return Response.json({ error: 'Not found' }, { status: 404 });
     }
