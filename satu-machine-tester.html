@@ -234,10 +234,10 @@
     
     <script>
         // ============================================
-        // CONFIGURATION - CHANGE THIS TO YOUR WORKER URL
+        // CONFIGURATION
         // ============================================
-        const API_URL = 'https://api.janishammer.com/v1';
-    
+        const API_BASE = 'https://api.janishammer.com';
+        const API_URL = `${API_BASE}/v1`;
         
         // Product list
         const products = [
@@ -255,13 +255,12 @@
         
         // State
         let selectedProduct = null;
-        let donorMode = 'anonymous'; // anonymous, name, idcard
+        let donorMode = 'anonymous';
         let donorName = '';
         let donorId = '';
         let currentOrderId = null;
-        let logs = [];
         
-        // Helper: Generate random Thai ID (13 digits)
+        // Helper functions
         function generateThaiId() {
             let first = Math.floor(Math.random() * 9) + 1;
             let second = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
@@ -271,14 +270,12 @@
             return `${first}-${second}-${third}-${fourth}-${fifth}`;
         }
         
-        // Helper: Generate random Thai name
         function generateThaiName() {
             const firstNames = ['Somchai', 'Somsri', 'Preecha', 'Wichai', 'Nongnuch', 'Samorn', 'Chaiwat', 'Ratree', 'Manop', 'Supaporn'];
             const lastNames = ['Jaidee', 'Sukhumvit', 'Wongkraisri', 'Thongprasert', 'Srisuk', 'Khamsing', 'Prasertkul', 'Boonyarat'];
             return firstNames[Math.floor(Math.random() * firstNames.length)] + ' ' + lastNames[Math.floor(Math.random() * lastNames.length)];
         }
         
-        // Add log entry
         function addLog(message, type = 'info') {
             const logArea = document.getElementById('logArea');
             const time = new Date().toLocaleTimeString();
@@ -289,7 +286,6 @@
             if (logArea.children.length > 50) logArea.removeChild(logArea.lastChild);
         }
         
-        // Update status indicator
         function updateStatus(indicator, status, text) {
             const el = document.getElementById(indicator);
             if (el) {
@@ -298,13 +294,13 @@
             }
         }
         
-        // Test backend connection
         async function testBackend() {
             addLog('Testing backend connection...', 'info');
             updateStatus('backendStatus', 'yellow', '● Testing...');
             
             try {
-                const response = await fetch(`${API_URL.replace('/v1', '')}/health`);
+                // Fixed: use API_BASE, not API_URL (no /v1 for health)
+                const response = await fetch(`${API_BASE}/health`);
                 if (response.ok) {
                     const data = await response.json();
                     addLog(`✅ Backend connected! Status: ${data.status}`, 'success');
@@ -321,7 +317,6 @@
             }
         }
         
-      // Create order - always calls real API
         async function createOrder() {
             if (!selectedProduct) {
                 addLog('Please select a product first', 'error');
@@ -331,7 +326,6 @@
             addLog(`Creating order for product: ${selectedProduct.name} (${selectedProduct.price} THB)`, 'info');
             updateStatus('orderStatus', 'yellow', '● Creating...');
             
-            // Build donor data
             let donorData = {};
             if (donorMode === 'name' && donorName) {
                 donorData.donor_name = donorName;
@@ -368,7 +362,7 @@
                 return null;
             }
         }
-        // Simulate payment (fake - no real gateway)
+        
         async function simulatePayment(orderId) {
             addLog(`Processing payment for order: ${orderId}`, 'info');
             updateStatus('paymentStatusIndicator', 'yellow', '● Processing...');
@@ -378,31 +372,25 @@
             addLog(`✅ Payment successful! Amount: ${selectedProduct.price} THB`, 'success');
             updateStatus('paymentStatusIndicator', 'green', '● Completed');
             updateStatus('commandStatus', 'green', '● Dispense command sent');
-            
-            // Simulate dispense
             addLog(`🎁 Dispensing product: ${selectedProduct.name}`, 'success');
             
             return true;
         }
         
-        // Start donation flow
         async function startDonation() {
             if (!selectedProduct) {
                 addLog('Please select a product first', 'error');
                 return;
             }
             
-            // Reset UI
             document.getElementById('qrArea').style.display = 'none';
             updateStatus('orderStatus', 'red', '● Not created');
             updateStatus('paymentStatusIndicator', 'red', '● Not attempted');
             updateStatus('commandStatus', 'red', '● No command');
             
-            // Create order
             const order = await createOrder();
             if (!order) return;
             
-            // Show QR code
             const qrArea = document.getElementById('qrArea');
             const qrImage = document.getElementById('qrImage');
             const orderIdDisplay = document.getElementById('orderIdDisplay');
@@ -413,17 +401,14 @@
             
             addLog(`📱 QR Code displayed. Waiting for payment...`, 'info');
             
-            // Simulate payment after 2 seconds (or wait for user)
             setTimeout(async () => {
                 await simulatePayment(order.order_id);
                 
-                // Show success
                 const paymentDiv = document.getElementById('paymentStatus');
                 paymentDiv.innerHTML = '<div style="color:#10b981; margin-top:15px;">✅ Payment Confirmed! Dispensing product...</div>';
                 
                 addLog(`✅ Machine dispensed ${selectedProduct.name}. Thank you!`, 'success');
                 
-                // Reset after 3 seconds
                 setTimeout(() => {
                     paymentDiv.innerHTML = '';
                     qrArea.style.display = 'none';
@@ -437,11 +422,6 @@
             }, 2000);
         }
         
-        // ============================================
-        // UI RENDERING
-        // ============================================
-        
-        // Render product grid
         function renderProducts() {
             const grid = document.getElementById('productGrid');
             grid.innerHTML = products.map(p => `
@@ -470,7 +450,6 @@
             });
         }
         
-        // Handle donor mode UI
         function setupDonorUI() {
             const anonymousBtn = document.getElementById('anonymousBtn');
             const enterNameBtn = document.getElementById('enterNameBtn');
@@ -488,9 +467,7 @@
                         <input type="text" id="donorNameInput" placeholder="Your name" value="${donorName}">
                         <button id="randomNameBtn" style="margin-top:5px;background:#3a3a4e;padding:5px;">🎲 Random Name</button>
                     `;
-                    document.getElementById('donorNameInput')?.addEventListener('change', (e) => {
-                        donorName = e.target.value;
-                    });
+                    document.getElementById('donorNameInput')?.addEventListener('change', (e) => { donorName = e.target.value; });
                     document.getElementById('randomNameBtn')?.addEventListener('click', () => {
                         donorName = generateThaiName();
                         document.getElementById('donorNameInput').value = donorName;
@@ -503,9 +480,7 @@
                         <button id="randomIdBtn" style="margin-top:5px;background:#3a3a4e;padding:5px;">🎲 Random ID</button>
                         <div style="font-size:11px;color:#888;margin-top:5px;">⚠️ ID will be hashed for PDPA compliance</div>
                     `;
-                    document.getElementById('donorIdInput')?.addEventListener('change', (e) => {
-                        donorId = e.target.value;
-                    });
+                    document.getElementById('donorIdInput')?.addEventListener('change', (e) => { donorId = e.target.value; });
                     document.getElementById('randomIdBtn')?.addEventListener('click', () => {
                         donorId = generateThaiId();
                         document.getElementById('donorIdInput').value = donorId;
@@ -513,7 +488,6 @@
                     });
                 }
                 
-                // Update button active states
                 anonymousBtn.classList.remove('active');
                 enterNameBtn.classList.remove('active');
                 insertIdBtn.classList.remove('active');
@@ -529,7 +503,6 @@
             updateUI();
         }
         
-        // Initialize
         function init() {
             renderProducts();
             setupDonorUI();
@@ -538,11 +511,7 @@
             document.getElementById('testBackendBtn').onclick = testBackend;
             
             addLog('Simulator ready. API URL: ' + API_URL, 'success');
-            if (!USE_REAL_API) {
-                addLog('⚠️ FAKE MODE: Using simulated QR and payment. Set USE_REAL_API=true when Worker is ready.', 'info');
-            }
             
-            // Auto-test backend on load
             setTimeout(testBackend, 500);
         }
         
