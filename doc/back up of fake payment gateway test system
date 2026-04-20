@@ -1,0 +1,151 @@
+You're right. Let me give you a self-contained documentation file you can save in your repo.
+
+---
+
+# Save this as `PAYMENT_SWITCH.md` in your repo root
+
+```markdown
+# Satu Payment Mode Switch - Complete Documentation
+
+## One Secret Controls Everything
+
+| Secret Name | Values | What it does |
+|-------------|--------|--------------|
+| `PAYMENT_MODE` | `fake` or `live` | Switches between Fake Omise and Real Omise |
+
+## Where to Change It
+
+**Cloudflare Dashboard:**
+1. Workers & Pages → `satu-api` → Settings → Variables
+2. Find `PAYMENT_MODE` secret
+3. Change value to `fake` or `live`
+4. Save
+
+**Or via Wrangler CLI:**
+```bash
+npx wrangler secret put PAYMENT_MODE
+# Enter: fake or live
+```
+
+## What Each Mode Does
+
+| Mode | Payment URL | Money Moves | Use For |
+|------|-------------|-------------|---------|
+| `fake` | `fake-omise.csmittee.workers.dev` | ❌ No | Testing, demos |
+| `live` | `api.omise.co` (or your gateway) | ✅ Yes | Production |
+
+## Files That Control This
+
+| File | What it does |
+|------|--------------|
+| `src/handlers/order.js` | Reads `env.PAYMENT_MODE` and calls the correct payment gateway |
+| `src/index.js` | Shows `payment_mode` in `/health` endpoint for verification |
+
+## How to Verify Current Mode
+
+```bash
+curl https://api.janishammer.com/health
+```
+
+Response shows: `{"status":"ok","payment_mode":"fake",...}`
+
+## Going Live with Omise
+
+**Step 1:** Add Omise secret
+```bash
+npx wrangler secret put OMISE_SECRET_KEY
+# Paste your live Omise secret key
+```
+
+**Step 2:** Switch mode
+```bash
+npx wrangler secret put PAYMENT_MODE
+# Enter: live
+```
+
+**No code change needed.** The `order.js` already has Omise logic ready.
+
+## Switching to Kasher (Different Gateway)
+
+If you use Kasher instead of Omise:
+
+1. **Edit `src/handlers/order.js`** - Find the `createPayment` function
+2. **Replace the `live` section** with Kasher API calls
+3. **Add Kasher secret:** `KASHER_SECRET_KEY`
+4. **Keep `PAYMENT_MODE` secret** - it still works the same way
+
+The swap principle remains identical: `PAYMENT_MODE = fake` or `live`
+
+## Emergency Rollback
+
+If live payment breaks:
+
+```bash
+npx wrangler secret put PAYMENT_MODE
+# Enter: fake
+```
+
+System returns to test mode instantly. No downtime.
+
+## Summary
+
+| Action | Command |
+|--------|---------|
+| Check current mode | `curl https://api.janishammer.com/health` |
+| Go to test mode | `wrangler secret put PAYMENT_MODE fake` |
+| Go to live mode | `wrangler secret put PAYMENT_MODE live` |
+| Change payment gateway | Edit `src/handlers/order.js` (one file only) |
+
+**You do NOT need to change code to switch between fake and live. Only change the secret.**
+```
+
+---
+
+## Also Save This as `README.md` (or update yours)
+
+```markdown
+# Satu Backend
+
+## Quick Links
+
+| What | URL |
+|------|-----|
+| API Health | `https://api.janishammer.com/health` |
+| Machine Demo | `https://api.janishammer.com/demo` |
+| System Tester | `https://api.janishammer.com/test` |
+| Admin Dashboard | `https://api.janishammer.com/xK9mP2nQ5rT8wY1z` |
+
+## Payment Mode
+
+See `PAYMENT_SWITCH.md` for full documentation.
+
+Current mode: Check `https://api.janishammer.com/health` - look for `payment_mode` field.
+
+## Files Structure
+
+| File | Purpose |
+|------|---------|
+| `src/index.js` | Main Worker router + admin dashboard |
+| `src/handlers/order.js` | Order creation + payment mode logic |
+| `src/handlers/machine.js` | Machine registration, heartbeat, commands |
+| `src/handlers/admin.js` | Admin actions (disable, enable, transfer) |
+| `src/handlers/dashboard.js` | User dashboard endpoints |
+| `satu-machine-tester.html` | Demo machine interface |
+| `satu-system-tester.html` | API system tester |
+
+## Secrets
+
+| Secret | Purpose |
+|--------|---------|
+| `PAYMENT_MODE` | `fake` or `live` - controls payment gateway |
+| `FAKE_OMISE_URL` | `https://fake-omise.csmittee.workers.dev` |
+| `OMISE_SECRET_KEY` | Required for live Omise mode |
+
+## Deploy
+
+Push to `main` branch. Cloudflare auto-deploys.
+```
+
+---
+
+Now anyone who reads your repo will understand how the payment switch works, even after I'm gone.
