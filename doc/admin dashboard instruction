@@ -1,0 +1,152 @@
+# Satu Admin Dashboard - Documentation
+
+## What It Is
+
+A hidden dashboard that shows you EVERYTHING in your database:
+- All orders from all temples
+- All machines (active, disabled, pending)
+- All users
+- All donor consent records
+- All admin logs
+- All connection logs
+
+**Your eyes only. No one else should know this URL.**
+
+---
+
+## The Secret URL
+
+```
+https://api.janishammer.com/xK9mP2nQ5rT8wY1z
+```
+
+**Bookmark this. Do not share it. Do not put it in emails.**
+
+---
+
+## What You Can See
+
+| Section | Shows |
+|---------|-------|
+| **Stats cards** | Total orders, devices, users, today's revenue |
+| **Recent Orders** | Last 10 donations (order_id, device, amount, status, time) |
+| **Recent Devices** | Last 10 machines (device_id, temple, status, last seen) |
+| **Database Browser** | Click any table → see ALL rows |
+
+---
+
+## Database Browser - Click Any Table
+
+| Table | What it shows |
+|-------|---------------|
+| `users` | Temple owners and admins |
+| `devices` | Every machine ever registered |
+| `orders` | Every donation (pending, paid, failed) |
+| `donor_consent` | PDPA consent records (encrypted IDs) |
+| `device_commands` | Command queue (what machines will execute) |
+| `admin_log` | Every admin action you took |
+| `connection_logs` | Machine heartbeat history |
+
+---
+
+## How to Use
+
+1. Open `https://api.janishammer.com/xK9mP2nQ5rT8wY1z`
+2. View stats at top
+3. Scroll to see recent orders and devices
+4. Click any table tab to browse its data
+5. Scroll within table (supports up to 200 rows)
+
+---
+
+## Security Notes
+
+| Risk | How to mitigate |
+|------|-----------------|
+| Someone finds the URL | Add IP restriction (see code in `index.js`) |
+| Someone guesses the URL | Change the path in `src/index.js` |
+| No password | Add basic auth (see code option below) |
+
+---
+
+## How to Add Password Protection (Optional)
+
+In `src/index.js`, find the admin dashboard route and add:
+
+```javascript
+if (path === '/xK9mP2nQ5rT8wY1z' && method === 'GET') {
+    // Add basic auth
+    const auth = request.headers.get('Authorization');
+    const expected = 'Basic ' + btoa('admin:YourPassword123');
+    
+    if (auth !== expected) {
+        return new Response('Unauthorized', { 
+            status: 401,
+            headers: { 'WWW-Authenticate': 'Basic' }
+        });
+    }
+    
+    return await handleAdminDashboard(env);
+}
+```
+
+Then push to GitHub.
+
+---
+
+## How to Change the Secret URL
+
+In `src/index.js`, find all instances of `/xK9mP2nQ5rT8wY1z` and replace with your own random string:
+
+```javascript
+// Change this:
+if (path === '/xK9mP2nQ5rT8wY1z' && method === 'GET')
+
+// To this:
+if (path === '/MyNewSecretPath123' && method === 'GET')
+```
+
+Do this for both:
+- The dashboard route
+- The API route (`/xK9mP2nQ5rT8wY1z/api/`)
+
+---
+
+## What the Admin Dashboard Looks Like
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  🔐 Satu Admin                                              │
+│  System Dashboard - Your Eyes Only                          │
+├─────────────────────────────────────────────────────────────┤
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐       │
+│  │  47      │ │  12      │ │  8       │ │  3,450   │       │
+│  │ Orders   │ │ Devices  │ │ Users    │ │ Today    │       │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘       │
+├─────────────────────────────────────────────────────────────┤
+│  📋 Recent Orders                                           │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ SATU-001 │ SATU-A1B2C3 │ 100 THB │ paid │ 2 min ago│   │
+│  └─────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────┤
+│  🗄️ Database Browser                                        │
+│  [users] [devices] [orders] [donor_consent] ...            │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ id │ email │ name │ role │ created_at               │   │
+│  │ 1  │ admin │ Admin│ admin│ 1734567890               │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Summary
+
+| What | Value |
+|------|-------|
+| URL | `https://api.janishammer.com/xK9mP2nQ5rT8wY1z` |
+| Purpose | View all database tables |
+| Security | Hidden URL (no password by default) |
+| Recommendation | Add password protection or IP restriction |
+
+**Save this URL. Don't lose it. Don't share it.**
