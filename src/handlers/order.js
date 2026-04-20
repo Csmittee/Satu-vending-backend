@@ -73,11 +73,12 @@ export async function handleCreateOrder(request, env) {
             `UPDATE orders SET qr_code_url = ?, omise_charge_id = ? WHERE order_id = ?`
         ).bind(qr_code_url, omise_charge_id, order_id).run();
         
-        return Response.json({
+         return Response.json({
             order_id: order_id,
             qr_code_url: qr_code_url,
             amount: amount,
-            payment_mode: env.PAYMENT_MODE || 'fake'
+            payment_mode: env.PAYMENT_MODE || 'fake',
+            omise_charge_id: omise_charge_id
         });
         
     } catch (error) {
