@@ -237,7 +237,7 @@
         // CONFIGURATION - CHANGE THIS TO YOUR WORKER URL
         // ============================================
         const API_URL = 'https://api.janishammer.com/v1';
-        const USE_REAL_API = true;  // SET TO true WHEN YOUR WORKER IS READY
+    
         
         // Product list
         const products = [
@@ -321,7 +321,7 @@
             }
         }
         
-        // Create order (fake or real)
+      // Create order - always calls real API
         async function createOrder() {
             if (!selectedProduct) {
                 addLog('Please select a product first', 'error');
@@ -345,43 +345,29 @@
                 addLog(`Donor: Anonymous`, 'info');
             }
             
-            if (USE_REAL_API) {
-                try {
-                    const response = await fetch(`${API_URL}/order`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            device_id: 'SATU-TEST001',
-                            product_id: selectedProduct.id,
-                            ...donorData
-                        })
-                    });
-                    
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    const data = await response.json();
-                    currentOrderId = data.order_id;
-                    addLog(`✅ Order created: ${currentOrderId}`, 'success');
-                    updateStatus('orderStatus', 'green', '● Created');
-                    return data;
-                } catch (error) {
-                    addLog(`❌ Order creation failed: ${error.message}`, 'error');
-                    updateStatus('orderStatus', 'red', '● Failed');
-                    return null;
-                }
-            } else {
-                // FAKE MODE - simulate successful order
-                await new Promise(r => setTimeout(r, 500));
-                currentOrderId = `FAKE-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-                addLog(`✅ [FAKE] Order created: ${currentOrderId}`, 'success');
-                updateStatus('orderStatus', 'green', '● Created (FAKE)');
-                return {
-                    order_id: currentOrderId,
-                    qr_code_url: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=FAKE_PAYMENT_${currentOrderId}`,
-                    amount: selectedProduct.price
-                };
+            try {
+                const response = await fetch(`${API_URL}/order`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        device_id: 'SATU-TEST001',
+                        product_id: selectedProduct.id,
+                        ...donorData
+                    })
+                });
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                currentOrderId = data.order_id;
+                addLog(`✅ Order created: ${currentOrderId}`, 'success');
+                updateStatus('orderStatus', 'green', '● Created');
+                return data;
+            } catch (error) {
+                addLog(`❌ Order creation failed: ${error.message}`, 'error');
+                updateStatus('orderStatus', 'red', '● Failed');
+                return null;
             }
         }
-        
         // Simulate payment (fake - no real gateway)
         async function simulatePayment(orderId) {
             addLog(`Processing payment for order: ${orderId}`, 'info');
