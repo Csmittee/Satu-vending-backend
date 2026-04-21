@@ -77,16 +77,22 @@ export async function handleMachineHello(request, env) {
             });
         }
 
-        // New device: generate setup code + device secret
+        // New device: generate device_id, setup code, and device secret
+        // device_id format: SATU-XXXXXX (6 random uppercase alphanumeric chars)
+        const deviceIdSuffix = Array.from(crypto.getRandomValues(new Uint8Array(4)))
+            .map(b => b.toString(36).toUpperCase().padStart(2, '0'))
+            .join('').substring(0, 6);
+        const deviceId = `SATU-${deviceIdSuffix}`;
+
         const setupCode    = generateSetupCode();
         const secretBuffer = new Uint8Array(32);
         crypto.getRandomValues(secretBuffer);
         const deviceSecret = Array.from(secretBuffer).map(b => b.toString(16).padStart(2, '0')).join('');
 
         await env.DB.prepare(
-            `INSERT INTO devices (mac, firmware_version, status, device_secret, first_seen, last_heartbeat)
-             VALUES (?, ?, 'pending', ?, ?, ?)`
-        ).bind(mac, firmware, deviceSecret, now, now).run();
+            `INSERT INTO devices (mac, device_id, firmware_version, status, device_secret, first_seen, last_heartbeat)
+             VALUES (?, ?, ?, 'pending', ?, ?, ?)`
+        ).bind(mac, deviceId, firmware, deviceSecret, now, now).run();
 
         await env.DB.prepare(
             `INSERT INTO setup_codes (code, assigned_mac, generated_at) VALUES (?, ?, ?)`
@@ -94,6 +100,7 @@ export async function handleMachineHello(request, env) {
 
         return Response.json({
             status:        'pending',
+            device_id:     deviceId,
             message:       'Device registered. Use setup code to claim.',
             setup_code:    setupCode,
             device_secret: deviceSecret
