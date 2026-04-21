@@ -5,49 +5,44 @@ import { authenticateJWT } from '../middleware/auth.js';
 // ════════════════════════════════════════════════════════════════════════════
 //  DEVICE AUTHENTICATION
 //
-//  Each registered machine gets a unique device_secret stored in the DB at
-//  registration time. The ESP32 must send it with every request as:
-//    Header: X-Device-Secret: <secret>
+//  FAKE mode  (PAYMENT_MODE=fake):  no X-Device-Secret required.
+//             System tester + machine tester work without ESP32 firmware.
+//             The Cloudflare env var is the gate — nothing in client files.
 //
-//  This prevents anyone who knows a device_id from reading its command queue
-//  or spoofing heartbeats.
-//
-//  NOTE: generateDeviceSecret() is a new utility — add to utils/setupCode.js:
-//    export function generateDeviceSecret() {
-//        const arr = new Uint8Array(32);
-//        crypto.getRandomValues(arr);
-//        return Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join('');
-//    }
-//
-//  DB migration needed:
-//    ALTER TABLE devices ADD COLUMN device_secret TEXT;
-//    UPDATE devices SET device_secret = hex(randomblob(32)) WHERE device_secret IS NULL;
+//  LIVE mode  (PAYMENT_MODE=live):  X-Device-Secret header required on every
+//             /heartbeat and /commands call. ESP32 stores secret in NVS.
 // ════════════════════════════════════════════════════════════════════════════
+async function authenticateDevice(request, env, deviceId) {
+    if ((env.PAYMENT_MODE || 'fake') === 'fake') {
+        // In fake mode: just confirm device exists in DB
+        const device = await env.DB.prepare(
+            `SELECT device_id, status FROM devices WHERE device_id = ?`
+        ).bind(deviceId).first();
+        if (!device)                        return { valid: false, reason: 'Device not found' };
+        if (device.status === 'disabled')   return { valid: false, reason: 'Device is disabled' };
+        return { valid: true, deviceId: device.device_id };
+    }
 
-async function authenticateDevice(request, env) {
+    // Live mode: require secret header
     const deviceSecret = request.headers.get('X-Device-Secret');
     if (!deviceSecret) return { valid: false, reason: 'Missing X-Device-Secret header' };
-
-    const url      = new URL(request.url);
-    const deviceId = url.searchParams.get('device_id')
-        || (await request.clone().json().catch(() => ({}))).device_id;
-
-    if (!deviceId) return { valid: false, reason: 'Missing device_id' };
 
     const device = await env.DB.prepare(
         `SELECT device_id, status FROM devices WHERE device_id = ? AND device_secret = ?`
     ).bind(deviceId, deviceSecret).first();
 
-    if (!device) return { valid: false, reason: 'Invalid device credentials' };
-    if (device.status === 'disabled') return { valid: false, reason: 'Device is disabled' };
-
+    if (!device)                        return { valid: false, reason: 'Invalid device credentials' };
+    if (device.status === 'disabled')   return { valid: false, reason: 'Device is disabled' };
     return { valid: true, deviceId: device.device_id };
 }
 
 // ════════════════════════════════════════════════════════════════════════════
 //  HANDLE MACHINE HELLO
 //  Called by ESP32 on boot. Registers device or returns existing status.
-//  Returns device_secret on first registration — ESP32 must store it in NVS.
+//
+//  MAC VALIDATION:
+//   - Fake mode: accept any non-empty string  (tester sends TEST:MAC:xxx)
+//   - Live mode: enforce real format          AA:BB:CC:DD:EE:FF
 // ════════════════════════════════════════════════════════════════════════════
 export async function handleMachineHello(request, env) {
     try {
@@ -57,8 +52,9 @@ export async function handleMachineHello(request, env) {
             return Response.json({ error: 'mac and firmware required' }, { status: 400 });
         }
 
-        // Validate MAC format (basic sanity check)
-        if (!/^([0-9A-Fa-f]{2}[:\-]){5}[0-9A-Fa-f]{2}$/.test(mac)) {
+        const isFakeMode = (env.PAYMENT_MODE || 'fake') === 'fake';
+        const isValidMac = /^([0-9A-Fa-f]{2}[:\-]){5}[0-9A-Fa-f]{2}$/.test(mac);
+        if (!isFakeMode && !isValidMac) {
             return Response.json({ error: 'Invalid MAC address format' }, { status: 400 });
         }
 
@@ -69,25 +65,23 @@ export async function handleMachineHello(request, env) {
         ).bind(mac).first();
 
         if (existing) {
-            // Update firmware version and last seen on every hello
             await env.DB.prepare(
                 `UPDATE devices SET firmware_version = ?, last_heartbeat = ? WHERE mac = ?`
             ).bind(firmware, now, mac).run();
 
             return Response.json({
-                status:    existing.status,
-                device_id: existing.device_id,
-                // Return secret again in case ESP32 lost NVS (rare but possible)
+                status:        existing.status,
+                device_id:     existing.device_id,
                 device_secret: existing.device_secret,
-                message: existing.status === 'active' ? 'Device active' : 'Device pending claim'
+                message:       existing.status === 'active' ? 'Device active' : 'Device pending claim'
             });
         }
 
-        // New device — generate setup code AND device secret
+        // New device: generate setup code + device secret
         const setupCode    = generateSetupCode();
         const secretBuffer = new Uint8Array(32);
         crypto.getRandomValues(secretBuffer);
-        const deviceSecret = Array.from(secretBuffer).map(b => b.toString(16).padStart(2,'0')).join('');
+        const deviceSecret = Array.from(secretBuffer).map(b => b.toString(16).padStart(2, '0')).join('');
 
         await env.DB.prepare(
             `INSERT INTO devices (mac, firmware_version, status, device_secret, first_seen, last_heartbeat)
@@ -102,7 +96,7 @@ export async function handleMachineHello(request, env) {
             status:        'pending',
             message:       'Device registered. Use setup code to claim.',
             setup_code:    setupCode,
-            device_secret: deviceSecret   // ESP32 must store this in NVS immediately
+            device_secret: deviceSecret
         });
 
     } catch (error) {
@@ -113,8 +107,6 @@ export async function handleMachineHello(request, env) {
 
 // ════════════════════════════════════════════════════════════════════════════
 //  HANDLE HEARTBEAT
-//  FIX: Now authenticated. Heartbeat table insert moved to connection_logs
-//  (not admin_log — admin_log is for human admin actions).
 // ════════════════════════════════════════════════════════════════════════════
 export async function handleHeartbeat(request, env) {
     try {
@@ -125,8 +117,7 @@ export async function handleHeartbeat(request, env) {
             return Response.json({ error: 'device_id required' }, { status: 400 });
         }
 
-        // Authenticate device
-        const auth = await authenticateDevice(request, env);
+        const auth = await authenticateDevice(request, env, device_id);
         if (!auth.valid) {
             return Response.json({ error: auth.reason }, { status: 401 });
         }
@@ -137,7 +128,6 @@ export async function handleHeartbeat(request, env) {
             `UPDATE devices SET last_heartbeat = ?, firmware_version = COALESCE(?, firmware_version) WHERE device_id = ?`
         ).bind(now, firmware || null, device_id).run();
 
-        // Log to connection_logs (correct table), not admin_log
         await env.DB.prepare(
             `INSERT INTO connection_logs (device_id, free_heap, uptime, logged_at) VALUES (?, ?, ?, ?)`
         ).bind(device_id, free_heap || null, uptime || null, now).run();
@@ -152,8 +142,6 @@ export async function handleHeartbeat(request, env) {
 
 // ════════════════════════════════════════════════════════════════════════════
 //  HANDLE GET COMMANDS
-//  FIX: Now authenticated — only the real device can dequeue its own commands.
-//  Commands are marked executed on read (dequeue model).
 // ════════════════════════════════════════════════════════════════════════════
 export async function handleGetCommands(request, env) {
     try {
@@ -164,8 +152,7 @@ export async function handleGetCommands(request, env) {
             return Response.json({ error: 'device_id required' }, { status: 400 });
         }
 
-        // FIX: Authenticate before returning any commands
-        const auth = await authenticateDevice(request, env);
+        const auth = await authenticateDevice(request, env, deviceId);
         if (!auth.valid) {
             return Response.json({ error: auth.reason }, { status: 401 });
         }
@@ -176,7 +163,6 @@ export async function handleGetCommands(request, env) {
              ORDER BY created_at ASC`
         ).bind(deviceId).all();
 
-        // Mark all returned commands as executed (dequeue)
         if (commands.results.length > 0) {
             const ids = commands.results.map(c => c.id).join(',');
             await env.DB.prepare(
@@ -199,8 +185,6 @@ export async function handleGetCommands(request, env) {
 
 // ════════════════════════════════════════════════════════════════════════════
 //  HANDLE CLAIM DEVICE
-//  Temple owner claims a machine using the setup code displayed on screen.
-//  Requires JWT (temple owner must be logged in).
 // ════════════════════════════════════════════════════════════════════════════
 export async function handleClaimDevice(request, env) {
     const auth = await authenticateJWT(request, env);
@@ -215,7 +199,6 @@ export async function handleClaimDevice(request, env) {
         return Response.json({ error: 'setup_code and temple_name required' }, { status: 400 });
     }
 
-    // Find the device assigned to this setup code
     const existingDevice = await env.DB.prepare(
         `SELECT device_id, owner_id, mac FROM devices WHERE mac =
             (SELECT assigned_mac FROM setup_codes WHERE code = ? AND used = 0)`
@@ -231,18 +214,15 @@ export async function handleClaimDevice(request, env) {
         }, { status: 403 });
     }
 
-    // Claim
     await env.DB.prepare(
         `UPDATE devices SET owner_id = ?, status = 'active', temple_name = ?, address = ?, contact_phone = ?
          WHERE device_id = ?`
     ).bind(owner_id, temple_name, address || null, contact_phone || null, existingDevice.device_id).run();
 
-    // Mark code used
     await env.DB.prepare(
         `UPDATE setup_codes SET used = 1, used_at = ? WHERE code = ?`
     ).bind(Date.now(), setup_code).run();
 
-    // Log ownership change
     await env.DB.prepare(
         `INSERT INTO ownership_log (device_id, new_owner_id, action, created_at) VALUES (?, ?, 'claimed', ?)`
     ).bind(existingDevice.device_id, owner_id, Date.now()).run();
