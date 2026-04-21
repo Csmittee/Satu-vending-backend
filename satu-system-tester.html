@@ -645,12 +645,16 @@
                         try { data = await res.json(); } catch (_) { data = { error: '(non-JSON body)' }; }
                         results.push({ id: badId, status: res.status, error: data.error });
                     }
-                    const allRejected = results.every(r => r.status === 400 || r.status === 404);
+                    // 400 = Worker rejected (invalid format)
+                    // 403 = Cloudflare edge blocked (e.g. path traversal like ../../)
+                    // 404 = Not found — also acceptable
+                    // All three mean "rejected". Only 500 is a real failure.
+                    const allRejected = results.every(r => r.status === 400 || r.status === 403 || r.status === 404);
                     const noServerErrors = results.every(r => r.status !== 500);
                     return {
                         passed: allRejected && noServerErrors,
                         message: allRejected
-                            ? `✅ All malformed IDs correctly rejected (no 500 errors)`
+                            ? `✅ All malformed IDs correctly rejected (400/403/404 — no 500 errors)`
                             : `❌ Some bad IDs returned unexpected status: ${JSON.stringify(results)}`,
                         data: results
                     };
