@@ -525,6 +525,7 @@
                 checkpoint: "Two webhook calls → exactly 1 payment_confirmed in queue",
                 isNew: true,
                 run: async (apiUrl, deviceId, mode) => {
+                    // 1. Create one order
                     const orderRes = await fetch(`${apiUrl}/v1/order`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -534,26 +535,45 @@
                     if (!order.order_id || !order.omise_charge_id) {
                         return { passed: false, message: 'Failed to create order', data: order };
                     }
-                    // Fire webhook twice with same charge_id
-                    for (let i = 0; i < 2; i++) {
-                        await fetch(`${FAKE_OMISE_URL}/simulate-payment`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ order_id: order.order_id, charge_id: order.omise_charge_id })
-                        });
-                        await new Promise(r => setTimeout(r, 600));
-                    }
-                    await new Promise(r => setTimeout(r, 1000));
+
+                    // 2. Build the exact webhook payload Omise/fake-Omise would send
+                    //    and POST it DIRECTLY to /v1/webhook/omise — twice, same charge_id.
+                    //    This bypasses fake-Omise (which creates a new order each time)
+                    //    and tests the backend idempotency guard directly.
+                    const webhookPayload = JSON.stringify({
+                        object: 'charge',
+                        id: order.omise_charge_id,
+                        status: 'successful',
+                        metadata: { order_id: order.order_id }
+                    });
+
+                    const fire = () => fetch(`${apiUrl}/v1/webhook/omise`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: webhookPayload
+                    });
+
+                    // Fire first webhook and wait for it to commit
+                    await fire();
+                    await new Promise(r => setTimeout(r, 1200));
+                    // Fire duplicate — idempotency guard should block this
+                    await fire();
+                    await new Promise(r => setTimeout(r, 1200));
+
+                    // Count payment_confirmed commands for this specific order
                     const cmdRes   = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
                     const commands = await cmdRes.json();
-                    const count    = (commands.commands || []).filter(c => c.command === 'payment_confirmed').length;
+                    const count    = (commands.commands || [])
+                        .filter(c => c.command === 'payment_confirmed' &&
+                                     c.data?.order_id === order.order_id)
+                        .length;
                     return {
                         passed: count === 1,
                         message: count === 1
-                            ? `✅ Idempotency PASS — exactly 1 command for 2 webhooks`
+                            ? `✅ Idempotency PASS — exactly 1 command for 2 webhooks (order ${order.order_id})`
                             : count === 0
-                                ? `❌ 0 commands — webhook not processing at all`
-                                : `❌ Idempotency FAIL — ${count} commands from 1 payment (duplicate!)`,
+                                ? `❌ 0 commands — webhook not firing at all`
+                                : `❌ Idempotency FAIL — ${count} commands for same order (duplicate!)`,
                         data: commands
                     };
                 }
