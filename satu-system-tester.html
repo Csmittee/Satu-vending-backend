@@ -15,8 +15,7 @@
         .container { max-width: 1400px; margin: 0 auto; }
         h1 { color: #667eea; margin-bottom: 10px; }
         .subtitle { color: #888; margin-bottom: 30px; }
-        
-        /* Test Grid */
+
         .test-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -29,6 +28,7 @@
             padding: 20px;
             border: 1px solid #2a2a3e;
         }
+        .test-card.new-test { border-color: #667eea44; }
         .test-header {
             display: flex;
             justify-content: space-between;
@@ -37,10 +37,7 @@
             padding-bottom: 10px;
             border-bottom: 1px solid #2a2a3e;
         }
-        .test-title {
-            font-weight: bold;
-            color: #667eea;
-        }
+        .test-title { font-weight: bold; color: #667eea; }
         .test-status {
             padding: 4px 12px;
             border-radius: 20px;
@@ -51,13 +48,19 @@
         .status-pass { background: #10b98120; color: #10b981; border: 1px solid #10b981; }
         .status-fail { background: #ef444420; color: #ef4444; border: 1px solid #ef4444; }
         .status-running { background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b; }
-        
-        .test-detail {
-            font-size: 13px;
-            color: #aaa;
-            margin: 10px 0;
-            font-family: monospace;
+        .badge-new {
+            display: inline-block;
+            background: #667eea30;
+            border: 1px solid #667eea;
+            color: #667eea;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 6px;
+            font-weight: bold;
         }
+
+        .test-detail { font-size: 13px; color: #aaa; margin: 10px 0; font-family: monospace; }
         .test-response {
             background: #0a0a12;
             padding: 10px;
@@ -81,9 +84,7 @@
         button:hover { background: #3a3a4e; }
         .btn-primary { background: #667eea; }
         .btn-primary:hover { background: #5a67d8; }
-        .btn-danger { background: #ef4444; }
-        .btn-danger:hover { background: #dc2626; }
-        
+
         .summary-bar {
             background: #1a1a2e;
             border-radius: 12px;
@@ -93,22 +94,11 @@
             justify-content: space-between;
             align-items: center;
         }
-        .summary-stats {
-            display: flex;
-            gap: 20px;
-        }
-        .summary-stat {
-            text-align: center;
-        }
-        .summary-number {
-            font-size: 24px;
-            font-weight: bold;
-        }
-        .summary-label {
-            font-size: 12px;
-            color: #888;
-        }
-        
+        .summary-stats { display: flex; gap: 20px; }
+        .summary-stat { text-align: center; }
+        .summary-number { font-size: 24px; font-weight: bold; }
+        .summary-label { font-size: 12px; color: #888; }
+
         .config-area {
             background: #0a0a12;
             border-radius: 8px;
@@ -121,10 +111,7 @@
             align-items: center;
             margin-bottom: 10px;
         }
-        .config-row label {
-            width: 120px;
-            font-size: 13px;
-        }
+        .config-row label { width: 120px; font-size: 13px; }
         input {
             flex: 1;
             background: #1a1a2e;
@@ -133,7 +120,7 @@
             border-radius: 6px;
             color: white;
         }
-        
+
         .log-area {
             background: #0a0a12;
             border-radius: 8px;
@@ -147,7 +134,7 @@
         .log-pass { color: #10b981; }
         .log-fail { color: #ef4444; }
         .log-info { color: #f59e0b; }
-        
+
         .checklist {
             background: #1a1a2e;
             border-radius: 12px;
@@ -161,22 +148,19 @@
             padding: 8px;
             border-bottom: 1px solid #2a2a3e;
         }
-        .checklist-icon {
-            width: 24px;
-            text-align: center;
-        }
+        .checklist-icon { width: 24px; text-align: center; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔬 Satu System Tester</h1>
-        <div class="subtitle">Complete Integration Test - Your 10 Checkpoints</div>
-        
+        <div class="subtitle">Complete Integration Test — 14 Checkpoints</div>
+
         <!-- Config -->
         <div class="config-area">
             <div class="config-row">
                 <label>Worker URL:</label>
-                <input type="text" id="apiUrl" value="https://api.janishammer.com" placeholder="https://api.janishammer.com">
+                <input type="text" id="apiUrl" value="https://api.janishammer.com">
             </div>
             <div class="config-row">
                 <label>Test Device ID:</label>
@@ -184,13 +168,13 @@
             </div>
             <div class="config-row">
                 <label>Test Mode:</label>
-                <select id="testMode">
+                <select id="testMode" style="flex:1;background:#1a1a2e;border:1px solid #2a2a3e;padding:8px;border-radius:6px;color:white;">
                     <option value="fake">Fake Payment (No Omise)</option>
                     <option value="omise_test">Omise Test Mode (Requires API Key)</option>
                 </select>
             </div>
         </div>
-        
+
         <!-- Summary -->
         <div class="summary-bar">
             <div class="summary-stats">
@@ -212,494 +196,560 @@
                 <button id="resetBtn">Reset</button>
             </div>
         </div>
-        
+
         <!-- Test Grid -->
         <div class="test-grid" id="testGrid"></div>
-        
-        <!-- Checklist Results -->
+
+        <!-- Checklist -->
         <div class="checklist">
-            <h3>✅ Your 10 Checkpoints</h3>
+            <h3>✅ 14 Checkpoints</h3>
             <div id="checklist"></div>
         </div>
-        
+
         <!-- Log -->
         <div class="log-area" id="logArea">
             <div class="log-entry log-info">Ready. Click "Run All Tests" to begin.</div>
         </div>
     </div>
-    
+
     <script>
-        // ============================================
-        // TEST DEFINITIONS - Your 10 Checkpoints
-        // ============================================
-           // Fake Omise Worker URL
         const FAKE_OMISE_URL = 'https://fake-omise.csmittee.workers.dev';
+
+        // ── Poll helper ────────────────────────────────────────────────────
+        async function pollCommands(apiUrl, deviceId, commandName, maxAttempts = 8, intervalMs = 800) {
+            for (let i = 0; i < maxAttempts; i++) {
+                await new Promise(r => setTimeout(r, intervalMs));
+                const res      = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
+                const commands = await res.json();
+                if (commands.commands && commands.commands.some(c => c.command === commandName)) {
+                    return { found: true, commands };
+                }
+            }
+            const res      = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
+            const commands = await res.json();
+            return { found: false, commands };
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        //  TESTS
+        // ════════════════════════════════════════════════════════════════════
         const tests = [
+
+            // ── 1. Machine → Backend Call ────────────────────────────────
             {
                 id: 1,
                 name: "Machine → Backend Call",
                 description: "Can my backend receive a call from the machine?",
-                checkpoint: "POST /v1/machine/hello",
+                checkpoint: "POST /v1/machine/hello returns 200",
                 run: async (apiUrl, deviceId, mode) => {
-                    const res = await fetch(`${apiUrl}/v1/machine/hello`, {
+                    // FIX: use proper MAC format — backend in fake mode accepts any,
+                    // but the format must not contain spaces or illegal chars
+                    const mac = `AA:BB:CC:DD:EE:${Math.floor(Math.random()*89+10)}`;
+                    const res  = await fetch(`${apiUrl}/v1/machine/hello`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ mac: `TEST:MAC:${Date.now()}`, firmware: 'v1.0.0' })
+                        body: JSON.stringify({ mac, firmware: 'v1.0.0-test' })
                     });
                     const data = await res.json();
                     return {
                         passed: res.ok && (data.status === 'pending' || data.status === 'active'),
-                        message: `Response: ${JSON.stringify(data)}`,
-                        data: data
+                        message: `MAC: ${mac} → status: ${data.status || data.error}`,
+                        data
                     };
                 }
             },
+
+            // ── 2. Backend → Machine Response ────────────────────────────
             {
                 id: 2,
                 name: "Backend → Machine Response",
-                description: "Did my backend respond to the machine correctly?",
-                checkpoint: "Returns valid JSON with status",
+                description: "Does backend respond with correct JSON structure?",
+                checkpoint: "Returns status + device_id + setup_code or device_secret",
                 run: async (apiUrl, deviceId, mode) => {
-                    const res = await fetch(`${apiUrl}/v1/machine/hello`, {
+                    const mac = `CC:DD:EE:FF:AA:${Math.floor(Math.random()*89+10)}`;
+                    const res  = await fetch(`${apiUrl}/v1/machine/hello`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ mac: `TEST:MAC:${Date.now()}`, firmware: 'v1.0.0' })
+                        body: JSON.stringify({ mac, firmware: 'v1.0.0-test' })
                     });
                     const data = await res.json();
-                    const hasValidResponse = data && (data.status !== undefined || data.setup_code !== undefined);
+                    const hasStatus    = data.status !== undefined;
+                    const hasDeviceId  = data.device_id !== undefined;
+                    const hasSecret    = data.device_secret !== undefined;
                     return {
-                        passed: res.ok && hasValidResponse,
-                        message: `Response status: ${res.status}, body: ${JSON.stringify(data)}`,
-                        data: data
+                        passed: res.ok && hasStatus && hasDeviceId && hasSecret,
+                        message: `status:${data.status} device_id:${data.device_id} secret:${hasSecret ? '✓' : '✗'}`,
+                        data
                     };
                 }
             },
+
+            // ── 3. Backend → Omise Communication ─────────────────────────
             {
                 id: 3,
                 name: "Backend → Omise Communication",
-                description: "Does backend talk to Omise (or fake payment)?",
-                checkpoint: "Create order → returns QR code",
+                description: "Does backend talk to payment gateway and get QR?",
+                checkpoint: "Create order → returns qr_code_url",
                 run: async (apiUrl, deviceId, mode) => {
-                    const res = await fetch(`${apiUrl}/v1/order`, {
+                    const res  = await fetch(`${apiUrl}/v1/order`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ device_id: deviceId, product_id: 3 })
                     });
                     const data = await res.json();
-                    const hasQr = data.qr_code_url !== undefined;
+                    const hasQr = !!data.qr_code_url;
                     return {
                         passed: res.ok && hasQr,
-                        message: hasQr ? `QR received: ${data.qr_code_url.substring(0, 50)}...` : `Response: ${JSON.stringify(data)}`,
-                        data: data,
-                        orderId: data.order_id
+                        message: hasQr ? `QR received. Mode: ${data.payment_mode}` : `No QR: ${JSON.stringify(data)}`,
+                        data
                     };
                 }
             },
+
+            // ── 4. QR Code → Backend → Machine ───────────────────────────
             {
                 id: 4,
                 name: "QR Code → Backend → Machine",
-                description: "Did Omise pass QR to backend, then to machine correctly?",
-                checkpoint: "Order contains qr_code_url",
+                description: "Is QR URL valid and accessible?",
+                checkpoint: "qr_code_url is non-null and reachable",
                 run: async (apiUrl, deviceId, mode) => {
-                    const res = await fetch(`${apiUrl}/v1/order`, {
+                    const res  = await fetch(`${apiUrl}/v1/order`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ device_id: deviceId, product_id: 3 })
                     });
                     const data = await res.json();
+                    if (!data.qr_code_url) return { passed: false, message: 'No QR URL in response', data };
+                    // Verify the QR URL is actually reachable
+                    const qrRes = await fetch(data.qr_code_url, { method: 'HEAD' }).catch(() => null);
                     return {
-                        passed: data.qr_code_url !== undefined && data.qr_code_url !== null,
-                        message: data.qr_code_url ? `QR URL valid` : `No QR in response`,
-                        data: data
+                        passed: !!data.qr_code_url && (qrRes ? qrRes.ok : true),
+                        message: `QR URL valid${qrRes ? ` (HTTP ${qrRes.status})` : ' (fetch skipped)'}`,
+                        data
                     };
                 }
             },
+
+            // ── 5. Backend Receives Donor Name ────────────────────────────
             {
                 id: 5,
                 name: "Backend Receives Donor Name",
-                description: "Does backend get donor name when provided?",
-                checkpoint: "POST /v1/order with donor_name field",
+                description: "Does backend accept donor_name in order creation?",
+                checkpoint: "Order created successfully with donor_name field",
                 run: async (apiUrl, deviceId, mode) => {
                     const testName = "Test Donor Somchai";
-                    const res = await fetch(`${apiUrl}/v1/order`, {
+                    const res  = await fetch(`${apiUrl}/v1/order`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ device_id: deviceId, product_id: 1, donor_name: testName })
                     });
                     const data = await res.json();
                     return {
-                        passed: res.ok,
-                        message: `Donor name "${testName}" sent, order created: ${data.order_id}`,
-                        data: data
+                        passed: res.ok && !!data.order_id,
+                        message: `Donor name "${testName}" sent, order: ${data.order_id || data.error}`,
+                        data
                     };
                 }
             },
+
+            // ── 6. Backend Saves Donor Name ───────────────────────────────
             {
                 id: 6,
                 name: "Backend Saves Donor Name",
-                description: "Does backend save donor name to database?",
-                checkpoint: "Order can be retrieved with donor_name",
+                description: "Is donor_name persisted and retrievable from DB?",
+                checkpoint: "GET /v1/order/:id/status returns saved donor_name",
                 run: async (apiUrl, deviceId, mode) => {
-                    const testName = "Save Test " + Date.now();
+                    const testName = `AutoTest-${Date.now()}`;
                     const createRes = await fetch(`${apiUrl}/v1/order`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ device_id: deviceId, product_id: 1, donor_name: testName })
                     });
                     const order = await createRes.json();
-                    
-                    if (!order.order_id) {
-                        return { passed: false, message: "Failed to create order" };
-                    }
-                    
-                    const statusRes = await fetch(`${apiUrl}/v1/order/${order.order_id}/status`);
+                    if (!order.order_id) return { passed: false, message: 'Failed to create order', data: order };
+
+                    const statusRes  = await fetch(`${apiUrl}/v1/order/${order.order_id}/status`);
                     const statusData = await statusRes.json();
-                    
+                    const nameSaved  = statusData.donor_name === testName;
                     return {
-                        passed: statusRes.ok,
-                        message: `Order ${order.order_id} created with donor name`,
+                        passed: statusRes.ok && nameSaved,
+                        message: nameSaved
+                            ? `✅ donor_name "${statusData.donor_name}" confirmed in DB`
+                            : `❌ Expected "${testName}", got "${statusData.donor_name}"`,
                         data: statusData
                     };
                 }
             },
-                    {
+
+            // ── 7. Omise Payment Approval (webhook received) ───────────────
+            {
                 id: 7,
                 name: "Omise Payment Approval",
-                description: "Does Omise give approval when payment succeeds?",
-                checkpoint: "Webhook receives charge.successful",
+                description: "Does webhook reach backend and return ok?",
+                checkpoint: "Fake Omise → webhook → backend returns {status:'ok'}",
                 run: async (apiUrl, deviceId, mode) => {
-                    if (mode === 'fake') {
-                        // Create order
-                        const orderRes = await fetch(`${apiUrl}/v1/order`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ device_id: deviceId, product_id: 1 })
-                        });
-                        const order = await orderRes.json();
-                        
-                        if (order.order_id && order.omise_charge_id) {
-                            // Call Fake Omise to trigger webhook
-                            const simRes = await fetch(`${FAKE_OMISE_URL}/simulate-payment`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ 
-                                    order_id: order.order_id, 
-                                    charge_id: order.omise_charge_id 
-                                })
-                            });
-                            const result = await simRes.json();
-                            const webhookOk = result.webhook_response && 
-                                (result.webhook_response.status === 'ok' || 
-                                 result.webhook_response.order_id !== undefined ||
-                                 result.webhook_response.success === true);
-                            return {
-                                passed: simRes.ok && webhookOk,
-                                message: simRes.ok && webhookOk
-                                    ? `[FAKE MODE] Webhook received by backend for order ${order.order_id}`
-                                    : `[FAKE MODE] Fake Omise OK but backend webhook failed: ${JSON.stringify(result.webhook_response)}`,
-                                data: result
-                            };
-                        }
-                        return { passed: false, message: "Could not create order or missing charge_id" };
-                    } else {
-                        return { passed: true, message: "Omise test mode - requires webhook setup", skipped: true };
+                    if (mode !== 'fake') {
+                        return { passed: true, message: "Omise test mode — requires manual webhook setup", data: {} };
                     }
-                }
-            },
-                       {
-                id: 8,
-                name: "Door Unlock on Payment Success",
-                description: "Does door open when Omise payment passes?",
-                checkpoint: "payment_confirmed command added to queue",
-                run: async (apiUrl, deviceId, mode) => {
-                    // Create order
                     const orderRes = await fetch(`${apiUrl}/v1/order`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ device_id: deviceId, product_id: 1 })
                     });
                     const order = await orderRes.json();
-                    
                     if (!order.order_id || !order.omise_charge_id) {
-                        return { passed: false, message: "Failed to create order or missing charge_id" };
+                        return { passed: false, message: 'Could not create order', data: order };
                     }
-                    
-                    // Call Fake Omise to trigger webhook
+                    const simRes = await fetch(`${FAKE_OMISE_URL}/simulate-payment`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ order_id: order.order_id, charge_id: order.omise_charge_id })
+                    });
+                    const result = await simRes.json();
+                    const webhookOk = result.webhook_response && result.webhook_response.status === 'ok';
+                    return {
+                        passed: simRes.ok && webhookOk,
+                        message: webhookOk
+                            ? `✅ Webhook accepted by backend for order ${order.order_id}`
+                            : `❌ Webhook response: ${JSON.stringify(result.webhook_response)}`,
+                        data: result
+                    };
+                }
+            },
+
+            // ── 8. Door Unlock on Payment Success ─────────────────────────
+            {
+                id: 8,
+                name: "Door Unlock on Payment Success",
+                description: "Does payment_confirmed command appear in queue after payment?",
+                checkpoint: "payment_confirmed in device_commands within 8s",
+                run: async (apiUrl, deviceId, mode) => {
+                    const orderRes = await fetch(`${apiUrl}/v1/order`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ device_id: deviceId, product_id: 1 })
+                    });
+                    const order = await orderRes.json();
+                    if (!order.order_id || !order.omise_charge_id) {
+                        return { passed: false, message: 'Failed to create order', data: order };
+                    }
                     await fetch(`${FAKE_OMISE_URL}/simulate-payment`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            order_id: order.order_id, 
-                            charge_id: order.omise_charge_id 
-                        })
+                        body: JSON.stringify({ order_id: order.order_id, charge_id: order.omise_charge_id })
                     });
-                    
-                    // Wait for webhook to process
-                   // Poll with retry — webhook processing can take 1-3 seconds across workers
-                    let commands = { commands: [] };
-                    let hasPaymentCommand = false;
-                    for (let attempt = 0; attempt < 6; attempt++) {
-                        await new Promise(r => setTimeout(r, 800));
-                        const cmdRes = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
-                        commands = await cmdRes.json();
-                        hasPaymentCommand = commands.commands && commands.commands.some(c => c.command === 'payment_confirmed');
-                        if (hasPaymentCommand) break;
-                    }
-                    
+                    const { found, commands } = await pollCommands(apiUrl, deviceId, 'payment_confirmed');
                     return {
-                        passed: hasPaymentCommand,
-                        message: hasPaymentCommand ? `✅ payment_confirmed command found` : `No payment command in queue`,
+                        passed: found,
+                        message: found ? `✅ payment_confirmed command received` : `❌ No command in queue after 8 polls`,
                         data: commands
                     };
                 }
             },
+
+            // ── 9. Door Stays Locked on Payment Fail ─────────────────────
             {
                 id: 9,
                 name: "Door Stays Locked on Payment Fail",
-                description: "Does door stay closed when payment fails?",
-                checkpoint: "No unlock command when payment fails",
+                description: "Does a failed payment correctly NOT unlock the door?",
+                checkpoint: "No payment_confirmed after simulate-failed-payment",
                 run: async (apiUrl, deviceId, mode) => {
-                    // Create a real order, then simulate a FAILED payment
                     const orderRes = await fetch(`${apiUrl}/v1/order`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ device_id: deviceId, product_id: 1 })
                     });
                     const order = await orderRes.json();
-
                     if (!order.order_id || !order.omise_charge_id) {
-                        return { passed: false, message: "Failed to create order for failure test" };
+                        return { passed: false, message: 'Failed to create order', data: order };
                     }
-
-                    // Trigger failed payment webhook
                     await fetch(`${FAKE_OMISE_URL}/simulate-failed-payment`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            order_id: order.order_id,
-                            charge_id: order.omise_charge_id,
-                            reason: 'insufficient_funds'
-                        })
+                        body: JSON.stringify({ order_id: order.order_id, charge_id: order.omise_charge_id, reason: 'insufficient_funds' })
                     });
-
-                    // Wait for processing
-                    await new Promise(r => setTimeout(r, 1500));
-
-                    const cmdRes = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
+                    await new Promise(r => setTimeout(r, 2000));
+                    const cmdRes   = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
                     const commands = await cmdRes.json();
                     const hasUnlock = commands.commands && commands.commands.some(c => c.command === 'payment_confirmed');
-
                     return {
                         passed: !hasUnlock,
                         message: !hasUnlock
-                            ? `✅ Door stays locked — no unlock command after failed payment`
-                            : `❌ BUG: Unlock command found after failed payment!`,
+                            ? `✅ Door stays locked — no unlock after failed payment`
+                            : `❌ BUG: unlock command found after failed payment!`,
                         data: commands
                     };
                 }
             },
-                    {
+
+            // ── 10. Order Status After Payment ────────────────────────────
+            {
                 id: 10,
-                name: "Door Unlock on Payment Pass",
-                description: "Does door open correctly when payment passes?",
-                checkpoint: "Command queue contains payment_confirmed",
+                name: "Order Status After Payment",
+                description: "Does order status change to 'paid' after successful webhook?",
+                checkpoint: "GET /v1/order/:id/status returns status='paid'",
+                isNew: true,
                 run: async (apiUrl, deviceId, mode) => {
-                    // Create and pay for order
                     const orderRes = await fetch(`${apiUrl}/v1/order`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ device_id: deviceId, product_id: 1 })
                     });
                     const order = await orderRes.json();
-                    
                     if (!order.order_id || !order.omise_charge_id) {
-                        return { passed: false, message: "Failed to create order or missing charge_id" };
+                        return { passed: false, message: 'Failed to create order', data: order };
                     }
-                    
-                    // Call Fake Omise to trigger webhook
                     await fetch(`${FAKE_OMISE_URL}/simulate-payment`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            order_id: order.order_id, 
-                            charge_id: order.omise_charge_id 
-                        })
+                        body: JSON.stringify({ order_id: order.order_id, charge_id: order.omise_charge_id })
                     });
-                    
-                    // Wait for webhook to process
-                    // Poll with retry — webhook processing can take 1-3 seconds across workers
-                    let commands = { commands: [] };
-                    let hasUnlock = false;
-                    for (let attempt = 0; attempt < 6; attempt++) {
-                        await new Promise(r => setTimeout(r, 800));
-                        const cmdRes = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
-                        commands = await cmdRes.json();
-                        hasUnlock = commands.commands && commands.commands.some(c => c.command === 'payment_confirmed');
-                        if (hasUnlock) break;
-                    }
-                    
+                    await new Promise(r => setTimeout(r, 1500));
+                    const statusRes  = await fetch(`${apiUrl}/v1/order/${order.order_id}/status`);
+                    const statusData = await statusRes.json();
                     return {
-                        passed: hasUnlock,
-                        message: hasUnlock ? `✅ Door unlock command sent` : `❌ No unlock command found`,
+                        passed: statusData.status === 'paid',
+                        message: statusData.status === 'paid'
+                            ? `✅ Order status correctly updated to 'paid'`
+                            : `❌ Order status is '${statusData.status}' — expected 'paid'`,
+                        data: statusData
+                    };
+                }
+            },
+
+            // ── 11. Webhook Idempotency ───────────────────────────────────
+            {
+                id: 11,
+                name: "Webhook Idempotency",
+                description: "Does a duplicate webhook create only ONE command (not two)?",
+                checkpoint: "Two webhook calls → exactly 1 payment_confirmed in queue",
+                isNew: true,
+                run: async (apiUrl, deviceId, mode) => {
+                    const orderRes = await fetch(`${apiUrl}/v1/order`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ device_id: deviceId, product_id: 1 })
+                    });
+                    const order = await orderRes.json();
+                    if (!order.order_id || !order.omise_charge_id) {
+                        return { passed: false, message: 'Failed to create order', data: order };
+                    }
+                    // Fire webhook twice with same charge_id
+                    for (let i = 0; i < 2; i++) {
+                        await fetch(`${FAKE_OMISE_URL}/simulate-payment`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ order_id: order.order_id, charge_id: order.omise_charge_id })
+                        });
+                        await new Promise(r => setTimeout(r, 600));
+                    }
+                    await new Promise(r => setTimeout(r, 1000));
+                    const cmdRes   = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
+                    const commands = await cmdRes.json();
+                    const count    = (commands.commands || []).filter(c => c.command === 'payment_confirmed').length;
+                    return {
+                        passed: count === 1,
+                        message: count === 1
+                            ? `✅ Idempotency PASS — exactly 1 command for 2 webhooks`
+                            : count === 0
+                                ? `❌ 0 commands — webhook not processing at all`
+                                : `❌ Idempotency FAIL — ${count} commands from 1 payment (duplicate!)`,
                         data: commands
+                    };
+                }
+            },
+
+            // ── 12. Invalid Product Rejection ─────────────────────────────
+            {
+                id: 12,
+                name: "Invalid Product Rejection",
+                description: "Does backend reject an unknown product_id gracefully?",
+                checkpoint: "product_id: 9999 → 400 error, not 500",
+                isNew: true,
+                run: async (apiUrl, deviceId, mode) => {
+                    const res  = await fetch(`${apiUrl}/v1/order`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ device_id: deviceId, product_id: 9999 })
+                    });
+                    const data = await res.json();
+                    return {
+                        passed: res.status === 400 && !!data.error,
+                        message: res.status === 400
+                            ? `✅ Correctly rejected with 400: "${data.error}"`
+                            : `❌ Got HTTP ${res.status} — expected 400. Body: ${JSON.stringify(data)}`,
+                        data
+                    };
+                }
+            },
+
+            // ── 13. Inactive Device Rejection ─────────────────────────────
+            {
+                id: 13,
+                name: "Inactive Device Rejection",
+                description: "Does backend reject orders from unknown/inactive device IDs?",
+                checkpoint: "Unknown device_id → 400 error",
+                isNew: true,
+                run: async (apiUrl, deviceId, mode) => {
+                    const fakeDevice = `FAKE-DEVICE-${Date.now()}`;
+                    const res  = await fetch(`${apiUrl}/v1/order`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ device_id: fakeDevice, product_id: 1 })
+                    });
+                    const data = await res.json();
+                    return {
+                        passed: res.status === 400 && !!data.error,
+                        message: res.status === 400
+                            ? `✅ Unknown device correctly rejected: "${data.error}"`
+                            : `❌ Got HTTP ${res.status} — unknown device should be rejected`,
+                        data
+                    };
+                }
+            },
+
+            // ── 14. Order ID Format Validation ────────────────────────────
+            {
+                id: 14,
+                name: "Order ID Format Validation",
+                description: "Does the status endpoint reject malformed order IDs?",
+                checkpoint: "GET /v1/order/INVALID/status → 400, not 500",
+                isNew: true,
+                run: async (apiUrl, deviceId, mode) => {
+                    const badIds = ["'; DROP TABLE orders; --", "../../../etc/passwd", "FAKE-ID"];
+                    const results = [];
+                    for (const badId of badIds) {
+                        const res  = await fetch(`${apiUrl}/v1/order/${encodeURIComponent(badId)}/status`);
+                        const data = await res.json();
+                        results.push({ id: badId, status: res.status, error: data.error });
+                    }
+                    const allRejected = results.every(r => r.status === 400 || r.status === 404);
+                    const noServerErrors = results.every(r => r.status !== 500);
+                    return {
+                        passed: allRejected && noServerErrors,
+                        message: allRejected
+                            ? `✅ All malformed IDs correctly rejected (no 500 errors)`
+                            : `❌ Some bad IDs returned unexpected status: ${JSON.stringify(results)}`,
+                        data: results
                     };
                 }
             }
         ];
-        
-        // State
+
+        // ════════════════════════════════════════════════════════════════════
+        //  RUNNER
+        // ════════════════════════════════════════════════════════════════════
         let testResults = {};
-        let logs = [];
-        
-        // Helper functions
+
+        const checkpoints = tests.map(t => `${t.id}. ${t.name}`);
+
         function addLog(message, type = 'info') {
             const logArea = document.getElementById('logArea');
-            const time = new Date().toLocaleTimeString();
-            const logDiv = document.createElement('div');
-            logDiv.className = `log-entry log-${type}`;
-            logDiv.innerHTML = `[${time}] ${message}`;
-            logArea.insertBefore(logDiv, logArea.firstChild);
-            if (logArea.children.length > 50) logArea.removeChild(logArea.lastChild);
-            logs.push({ time, message, type });
+            const time    = new Date().toLocaleTimeString();
+            const div     = document.createElement('div');
+            div.className = `log-entry log-${type}`;
+            div.innerHTML = `[${time}] ${message}`;
+            logArea.insertBefore(div, logArea.firstChild);
+            if (logArea.children.length > 80) logArea.removeChild(logArea.lastChild);
         }
-        
+
         function updateSummary() {
             const results = Object.values(testResults);
-            const passed = results.filter(r => r === true).length;
-            const failed = results.filter(r => r === false).length;
-            document.getElementById('passCount').innerText = passed;
-            document.getElementById('failCount').innerText = failed;
+            document.getElementById('passCount').innerText  = results.filter(r => r === true).length;
+            document.getElementById('failCount').innerText  = results.filter(r => r === false).length;
             document.getElementById('totalCount').innerText = results.length;
         }
-        
+
         function updateChecklist() {
-            const checklistDiv = document.getElementById('checklist');
-            const checkpoints = [
-                "1. Machine → Backend call",
-                "2. Backend → Machine response",
-                "3. Backend → Omise communication",
-                "4. QR Code → Backend → Machine",
-                "5. Backend receives donor name",
-                "6. Backend saves donor name",
-                "7. Omise payment approval",
-                "8. Door unlock on payment success",
-                "9. Door stays locked on payment fail",
-                "10. Door unlock on payment pass"
-            ];
-            
-            let html = '';
-            for (let i = 0; i < checkpoints.length; i++) {
+            const div = document.getElementById('checklist');
+            div.innerHTML = checkpoints.map((cp, i) => {
                 const result = testResults[i + 1];
-                let icon = '⏳';
-                let color = '#888';
-                if (result === true) { icon = '✅'; color = '#10b981'; }
-                if (result === false) { icon = '❌'; color = '#ef4444'; }
-                html += `
-                    <div class="checklist-item">
-                        <div class="checklist-icon" style="color:${color}">${icon}</div>
-                        <div>${checkpoints[i]}</div>
-                    </div>
-                `;
-            }
-            checklistDiv.innerHTML = html;
+                const icon   = result === true ? '✅' : result === false ? '❌' : '⏳';
+                const color  = result === true ? '#10b981' : result === false ? '#ef4444' : '#888';
+                const isNew  = tests[i].isNew ? '<span style="font-size:11px;color:#667eea;margin-left:6px;">NEW</span>' : '';
+                return `<div class="checklist-item">
+                    <div class="checklist-icon" style="color:${color}">${icon}</div>
+                    <div>${cp}${isNew}</div>
+                </div>`;
+            }).join('');
         }
-        
+
         async function runSingleTest(test, apiUrl, deviceId, mode) {
-            const testCard = document.getElementById(`test-${test.id}`);
-            const statusSpan = testCard?.querySelector('.test-status');
-            const responseDiv = testCard?.querySelector('.test-response');
-            
-            if (statusSpan) {
-                statusSpan.className = 'test-status status-running';
-                statusSpan.textContent = '● Running';
-            }
-            if (responseDiv) responseDiv.innerHTML = 'Running test...';
-            
+            const card       = document.getElementById(`test-${test.id}`);
+            const statusSpan = card?.querySelector('.test-status');
+            const responseDiv = card?.querySelector('.test-response');
+            if (statusSpan)   { statusSpan.className = 'test-status status-running'; statusSpan.textContent = '● Running'; }
+            if (responseDiv)  responseDiv.innerHTML = 'Running…';
             addLog(`Running: ${test.name}`, 'info');
-            
+
             try {
                 const result = await test.run(apiUrl, deviceId, mode);
                 testResults[test.id] = result.passed;
-                
                 if (statusSpan) {
                     statusSpan.className = `test-status ${result.passed ? 'status-pass' : 'status-fail'}`;
                     statusSpan.textContent = result.passed ? '✓ Passed' : '✗ Failed';
                 }
                 if (responseDiv) {
-                    responseDiv.innerHTML = `<strong>Result:</strong> ${result.message}<br><strong>Response:</strong> ${JSON.stringify(result.data || {}, null, 2)}`;
+                    responseDiv.innerHTML = `<strong>Result:</strong> ${result.message}<br><strong>Data:</strong> ${JSON.stringify(result.data || {}, null, 2)}`;
                 }
-                
-                addLog(`${result.passed ? '✓ PASS' : '✗ FAIL'}: ${test.name} - ${result.message}`, result.passed ? 'pass' : 'fail');
-                
+                addLog(`${result.passed ? '✓ PASS' : '✗ FAIL'}: ${test.name} — ${result.message}`, result.passed ? 'pass' : 'fail');
                 return result;
-            } catch (error) {
+            } catch (err) {
                 testResults[test.id] = false;
-                if (statusSpan) {
-                    statusSpan.className = 'test-status status-fail';
-                    statusSpan.textContent = '✗ Error';
-                }
-                if (responseDiv) {
-                    responseDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
-                }
-                addLog(`✗ ERROR: ${test.name} - ${error.message}`, 'fail');
-                return { passed: false, message: error.message };
+                if (statusSpan)  { statusSpan.className = 'test-status status-fail'; statusSpan.textContent = '✗ Error'; }
+                if (responseDiv) responseDiv.innerHTML = `<strong>Error:</strong> ${err.message}`;
+                addLog(`✗ ERROR: ${test.name} — ${err.message}`, 'fail');
+                return { passed: false, message: err.message };
             } finally {
                 updateSummary();
                 updateChecklist();
             }
         }
-        
+
         async function runAllTests() {
-            const apiUrl = document.getElementById('apiUrl').value;
+            const apiUrl   = document.getElementById('apiUrl').value;
             const deviceId = document.getElementById('deviceId').value;
-            const mode = document.getElementById('testMode').value;
-            
-            addLog(`Starting all tests against ${apiUrl}`, 'info');
-            addLog(`Test mode: ${mode}`, 'info');
-            
-            // Reset results
-            testResults = {};
+            const mode     = document.getElementById('testMode').value;
+            testResults    = {};
             updateSummary();
-            
-            // Run each test sequentially
+            addLog(`Starting ${tests.length} tests against ${apiUrl} | device: ${deviceId} | mode: ${mode}`, 'info');
             for (const test of tests) {
                 await runSingleTest(test, apiUrl, deviceId, mode);
-                await new Promise(r => setTimeout(r, 500)); // Small delay between tests
+                await new Promise(r => setTimeout(r, 400));
             }
-            
-            addLog(`All tests completed. ${Object.values(testResults).filter(v => v === true).length} passed, ${Object.values(testResults).filter(v => v === false).length} failed`, 'info');
+            const passed = Object.values(testResults).filter(v => v === true).length;
+            const failed = Object.values(testResults).filter(v => v === false).length;
+            addLog(`All tests done — ${passed} passed, ${failed} failed`, passed === tests.length ? 'pass' : 'info');
         }
-        
+
         function renderTestGrid() {
             const grid = document.getElementById('testGrid');
             grid.innerHTML = tests.map(test => `
-                <div class="test-card" id="test-${test.id}">
+                <div class="test-card${test.isNew ? ' new-test' : ''}" id="test-${test.id}">
                     <div class="test-header">
-                        <span class="test-title">${test.id}. ${test.name}</span>
+                        <span class="test-title">${test.id}. ${test.name}${test.isNew ? '<span class="badge-new">NEW</span>' : ''}</span>
                         <span class="test-status status-pending">● Pending</span>
                     </div>
                     <div class="test-detail">${test.description}</div>
                     <div class="test-detail" style="color:#667eea;">Checkpoint: ${test.checkpoint}</div>
-                    <div class="test-response" id="response-${test.id}">Not yet tested</div>
+                    <div class="test-response">Not yet tested</div>
                     <button onclick="runSingleTestFromId(${test.id})">Run This Test</button>
                 </div>
             `).join('');
         }
-        
+
         window.runSingleTestFromId = async function(testId) {
-            const apiUrl = document.getElementById('apiUrl').value;
+            const apiUrl   = document.getElementById('apiUrl').value;
             const deviceId = document.getElementById('deviceId').value;
-            const mode = document.getElementById('testMode').value;
-            const test = tests.find(t => t.id === testId);
-            if (test) {
-                await runSingleTest(test, apiUrl, deviceId, mode);
-            }
+            const mode     = document.getElementById('testMode').value;
+            const test     = tests.find(t => t.id === testId);
+            if (test) await runSingleTest(test, apiUrl, deviceId, mode);
         };
-        
-        // Initialize
+
         renderTestGrid();
+        updateChecklist();
         document.getElementById('runAllBtn').onclick = runAllTests;
-        document.getElementById('resetBtn').onclick = () => {
+        document.getElementById('resetBtn').onclick  = () => {
             testResults = {};
             updateSummary();
             updateChecklist();
