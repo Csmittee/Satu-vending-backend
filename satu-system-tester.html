@@ -619,8 +619,10 @@
                     const badIds = ["'; DROP TABLE orders; --", "../../../etc/passwd", "FAKE-ID"];
                     const results = [];
                     for (const badId of badIds) {
-                        const res  = await fetch(`${apiUrl}/v1/order/${encodeURIComponent(badId)}/status`);
-                        const data = await res.json();
+                        const res = await fetch(`${apiUrl}/v1/order/${encodeURIComponent(badId)}/status`);
+                        // Some edge proxies return empty body on 4xx — guard against crash
+                        let data = {};
+                        try { data = await res.json(); } catch (_) { data = { error: '(non-JSON body)' }; }
                         results.push({ id: badId, status: res.status, error: data.error });
                     }
                     const allRejected = results.every(r => r.status === 400 || r.status === 404);
