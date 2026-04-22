@@ -24,23 +24,35 @@
         }
         .login-container h1 {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 0.5rem;
             color: #333;
+            font-size: 2rem;
         }
-        .form-group {
-            margin-bottom: 1rem;
+        .login-container h2 {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 1.5rem;
+            font-weight: normal;
         }
+        .form-group { margin-bottom: 1rem; }
         label {
             display: block;
             margin-bottom: 0.5rem;
             color: #555;
+            font-size: 0.9rem;
         }
         input {
             width: 100%;
             padding: 0.75rem;
             border: 1px solid #ddd;
-            border-radius: 0.25rem;
+            border-radius: 0.5rem;
             font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
         }
         button {
             width: 100%;
@@ -48,69 +60,129 @@
             background: #667eea;
             color: white;
             border: none;
-            border-radius: 0.25rem;
+            border-radius: 0.5rem;
             font-size: 1rem;
             cursor: pointer;
             margin-top: 1rem;
+            transition: background 0.2s;
         }
         button:hover { background: #5a67d8; }
+        button:disabled { background: #a0aec0; cursor: not-allowed; }
         .error {
-            background: #fee;
-            color: #c33;
-            padding: 0.5rem;
-            border-radius: 0.25rem;
+            background: #fff5f5;
+            color: #c53030;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
             margin-bottom: 1rem;
             text-align: center;
+            border: 1px solid #fed7d7;
+            font-size: 0.9rem;
         }
+        .register-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .register-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .register-link a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
     <div class="login-container">
         <h1>🙏 Satu</h1>
-        <h2 style="text-align: center; font-size: 1.2rem; margin-bottom: 1.5rem;">เข้าสู่ระบบ</h2>
+        <h2>เข้าสู่ระบบ</h2>
         <div id="error" class="error" style="display: none;"></div>
-        <form id="loginForm">
-            <div class="form-group">
-                <label>อีเมล</label>
-                <input type="email" id="email" required>
-            </div>
-            <div class="form-group">
-                <label>รหัสผ่าน</label>
-                <input type="password" id="password" required>
-            </div>
-            <button type="submit">เข้าสู่ระบบ</button>
-        </form>
+        <div class="form-group">
+            <label>อีเมล</label>
+            <input type="email" id="email" placeholder="admin@wat.com" required>
+        </div>
+        <div class="form-group">
+            <label>รหัสผ่าน</label>
+            <input type="password" id="password" placeholder="••••••••" required>
+        </div>
+        <button id="loginBtn" onclick="doLogin()">เข้าสู่ระบบ</button>
+        <div class="register-link">
+            ยังไม่มีบัญชี? <a href="/register.html">สมัครสมาชิก</a>
+        </div>
     </div>
-    
+
     <script>
-        const API_URL = 'https://api.satu-th.com/v1';
-        
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const email = document.getElementById('email').value;
+        // ── CORRECT API URL ───────────────────────────────────────────────────
+        // Previous version pointed at api.satu-th.com (wrong domain).
+        // Correct domain is api.janishammer.com.
+        const API_URL = 'https://api.janishammer.com/v1';
+
+        // Redirect if already logged in
+        const existingToken = localStorage.getItem('jwt_token');
+        if (existingToken) {
+            window.location.href = '/dashboard/index.html';
+        }
+
+        async function doLogin() {
+            const email    = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
-            
+            const btn      = document.getElementById('loginBtn');
+            const errorDiv = document.getElementById('error');
+
+            errorDiv.style.display = 'none';
+
+            if (!email || !password) {
+                showError('กรุณากรอกอีเมลและรหัสผ่าน');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'กำลังเข้าสู่ระบบ...';
+
             try {
                 const response = await fetch(`${API_URL}/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
                 });
-                
-                if (!response.ok) {
-                    throw new Error('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
-                }
-                
+
                 const data = await response.json();
+
+                if (!response.ok) {
+                    // 401 = wrong credentials, 429 = too many attempts
+                    if (response.status === 429) {
+                        showError('พยายามเข้าสู่ระบบบ่อยเกินไป กรุณารอสักครู่');
+                    } else {
+                        showError('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+                    }
+                    return;
+                }
+
+                // Store token and user info
                 localStorage.setItem('jwt_token', data.token);
-                window.location.href = '/';
-                
-            } catch (error) {
-                const errorDiv = document.getElementById('error');
-                errorDiv.textContent = error.message;
-                errorDiv.style.display = 'block';
+                localStorage.setItem('satu_user', JSON.stringify(data.user));
+
+                // Redirect to dashboard
+                window.location.href = '/dashboard/index.html';
+
+            } catch (err) {
+                showError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่');
+                console.error('[login]', err);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'เข้าสู่ระบบ';
             }
+        }
+
+        function showError(msg) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = msg;
+            errorDiv.style.display = 'block';
+        }
+
+        // Allow Enter key to submit
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') doLogin();
         });
     </script>
 </body>
