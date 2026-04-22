@@ -246,12 +246,23 @@
                     card.style.opacity = '1';
                     card.style.pointerEvents = 'auto';
                     card.style.border = '1px solid #2a2a3e';
+                    // Reset status span to pending — do NOT touch inline style
+                    const status = card.querySelector('.test-status');
+                    if (status) {
+                        status.className = 'test-status status-pending';
+                        status.textContent = '● Pending';
+                        status.removeAttribute('style');  // clear any inline overrides
+                    }
                 } else {
                     card.style.opacity = '0.35';
                     card.style.pointerEvents = 'none';
                     card.style.border = '1px solid #ef444440';
                     const status = card.querySelector('.test-status');
-                    if (status) { status.className = 'test-status'; status.textContent = '⊘ N/A — True Omise'; status.style.cssText = 'background:#ef444415;color:#ef4444;border:1px solid #ef444440;padding:4px 12px;border-radius:20px;font-size:11px;'; }
+                    if (status) {
+                        status.className = 'test-status';
+                        status.textContent = '⊘ N/A — True Omise';
+                        status.style.cssText = 'background:#ef444415;color:#ef4444;border:1px solid #ef444440;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:bold;';
+                    }
                 }
             });
         }
@@ -823,6 +834,7 @@
                 const result = await test.run(apiUrl, deviceId, mode);
                 testResults[test.id] = result.passed;
                 if (statusSpan) {
+                    statusSpan.removeAttribute('style');  // clear any inline overrides from mode switcher
                     statusSpan.className = `test-status ${result.passed ? 'status-pass' : 'status-fail'}`;
                     statusSpan.textContent = result.passed ? '✓ Passed' : '✗ Failed';
                 }
