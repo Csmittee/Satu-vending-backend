@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1038,11 +1038,20 @@ canvas#qr-canvas { display: block; }
 <div class="sim-controls">
   <button class="sim-btn" onclick="simReboot()">⟳ Reboot</button>
   <button class="sim-btn" onclick="openService()">🔧 Service</button>
-  <button class="sim-btn" onclick="simPayment()">💳 Simulate Payment</button>
   <button class="sim-btn" onclick="simHeartbeat()">♥ Heartbeat</button>
   <button class="sim-btn" onclick="pollCmds()">📡 Poll Commands</button>
-  <button class="sim-btn danger" onclick="simDisable()">🚫 Disable Cmd</button>
+  <button class="sim-btn danger" onclick="simDisable()">🚫 Disable</button>
   <button class="sim-btn danger" onclick="simRebootCmd()">💥 Reboot Cmd</button>
+</div>
+<!-- Gesture row — context-sensitive buttons shown by state -->
+<div class="sim-controls" id="gesture-row" style="margin-top:4px; border-top:1px solid #1a1a2e; padding-top:8px;">
+  <span style="font-size:10px; color:#444; letter-spacing:1px; white-space:nowrap;">GESTURES:</span>
+  <button class="sim-btn active" id="gest-scan" onclick="gestScan()" style="display:none;">📱 Scanned QR</button>
+  <button class="sim-btn" id="gest-idcard" onclick="gestIdCard()" style="display:none;">🪪 Insert Thai ID Card</button>
+  <button class="sim-btn active" id="gest-pickup" onclick="gestPickup()" style="display:none;">✋ Item Picked Up</button>
+  <button class="sim-btn danger" id="gest-doorstuck" onclick="gestDoorStuck()" style="display:none;">🚪 Door Stuck</button>
+  <button class="sim-btn danger" id="gest-handblock" onclick="gestHandBlock()" style="display:none;">🖐 Hand Blocking Exit</button>
+  <span id="gest-hint" style="font-size:10px; color:#333; margin-left:8px;">— tap a product to begin —</span>
 </div>
 
 <div class="api-row" style="opacity:0.55; pointer-events:none;">
@@ -1085,6 +1094,8 @@ const STATE = {
   currentProductName: '',
   paymentTimer: null,
   paymentSeconds: 120,
+  paymentConfirmedFired: false,   // guard against double payment_confirmed
+  vendingTimer: null,             // auto-advance timer in vending state
   heartbeatTimer: null,
   cmdPollTimer: null,
   uptimeTimer: null,
@@ -1224,6 +1235,7 @@ async function sendHello() {
       buildProductGrid();
       await delay(600);
       showScreen('idle', 'เลือกสิ่งที่ต้องการ');
+      updateGestureButtons('idle');
     } else {
       log(`[NET] Hello FAILED: ${status} ${JSON.stringify(data)}`, 'err');
       document.getElementById('api-status').textContent = 'Error';
@@ -1324,6 +1336,8 @@ async function createOrder() {
   log(`[NET] POST /v1/order  device=${STATE.deviceId} product=${STATE.selectedProduct} donor="${STATE.donorName}"`, 'net');
 
   showScreen('qr', 'ชำระเงิน');
+  STATE.paymentConfirmedFired = false;  // reset guard for new transaction
+  updateGestureButtons('qr');           // show scan + ID card buttons
   document.getElementById('qr-amount-display').innerHTML = `<span>฿</span>${totalAmount.toLocaleString()}`;
   document.getElementById('qr-product-display').textContent = `${p.icon} ${p.nameTH} (${p.name})`;
   document.getElementById('qr-donor-display').textContent = STATE.donorName ? `Donor: ${STATE.donorName}` : '';
@@ -1443,35 +1457,49 @@ async function checkPaymentStatus() {
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  PAYMENT CONFIRMED → VEND FLOW
+//  Guard prevents double-fire from command poll + local inject racing.
 // ═══════════════════════════════════════════════════════════════════════════
 function onPaymentConfirmed() {
+  // Guard: only fire once per transaction
+  if (STATE.paymentConfirmedFired) {
+    log('[PAY] payment_confirmed already handled — ignoring duplicate', 'state');
+    return;
+  }
+  STATE.paymentConfirmedFired = true;
+  clearInterval(STATE.paymentTimer);
+
   log('[PAY] Payment confirmed!', 'ok');
   const p = PRODUCTS[STATE.selectedProduct];
   showScreen('vending');
 
-  // Simulated status bar for vending screen
-  document.querySelector('#scr-vending .status-bar')?.remove?.();
-
   document.getElementById('vend-title').textContent = `กำลังจ่าย: ${p.nameTH}`;
   document.getElementById('vend-icon').textContent = p.icon;
 
-  // Water pump simulation
   if (STATE.wantWater) {
     setTimeout(() => log('[HW] Water pump relay FIRED (Relay 11)', 'ok'), 1200);
   }
 
-  setTimeout(() => showScreen('lucky'), 3500);
+  // Show gesture buttons for vending phase
+  updateGestureButtons('vending');
+
+  // Auto-advance after 4s if user doesn't tap gesture buttons
+  // (real machine waits for IR sensor — simulator waits for user gesture OR timeout)
+  STATE.vendingTimer = setTimeout(() => {
+    log('[SIM] Auto-advance: item dropped (no IR sensor in browser)', 'state');
+    gestPickup();
+  }, 8000);
 }
 
 function showLuckyScreen() {
-  const lucky = Math.floor(Math.random() * 90) + 10; // 10-99
+  const lucky = Math.floor(Math.random() * 90) + 10;
   document.getElementById('lucky-number').textContent = lucky;
-  log(`[UI] Lucky number generated: ${lucky}`);
+  log(`[UI] Lucky number: ${lucky}`);
   if (STATE.wantWater) {
     document.getElementById('lucky-water-note').style.display = 'block';
   } else {
     document.getElementById('lucky-water-note').style.display = 'none';
   }
+  updateGestureButtons('lucky');
   setTimeout(() => showThanksScreen(), 5000);
 }
 
@@ -1480,14 +1508,112 @@ function showThanksScreen() {
   const donor = STATE.donorName ? `— ${STATE.donorName} —` : '';
   document.getElementById('thanks-donor').textContent = donor;
   log('[UI] Transaction complete');
+  updateGestureButtons('thanks');
   setTimeout(() => {
-    STATE.selectedProduct = -1;
-    STATE.donorName = '';
-    STATE.wantWater = false;
-    STATE.currentOrderId = '';
+    STATE.selectedProduct    = -1;
+    STATE.donorName          = '';
+    STATE.wantWater          = false;
+    STATE.currentOrderId     = '';
+    STATE.paymentConfirmedFired = false;
     buildProductGrid();
     showScreen('idle', 'เลือกสิ่งที่ต้องการ');
+    updateGestureButtons('idle');
   }, 6000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  GESTURE BUTTONS — context-sensitive per state
+// ═══════════════════════════════════════════════════════════════════════════
+function updateGestureButtons(screenName) {
+  const all = ['gest-scan','gest-idcard','gest-pickup','gest-doorstuck','gest-handblock'];
+  all.forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+
+  const hint = document.getElementById('gest-hint');
+
+  const show = (...ids) => ids.forEach(id => {
+    const el = document.getElementById(id); if(el) el.style.display = 'inline-flex';
+  });
+
+  if (screenName === 'qr') {
+    show('gest-scan', 'gest-idcard');
+    if(hint) hint.textContent = '← simulate donor actions on QR screen';
+  } else if (screenName === 'vending') {
+    show('gest-pickup', 'gest-doorstuck', 'gest-handblock');
+    if(hint) hint.textContent = '← simulate physical machine events';
+  } else if (screenName === 'lucky' || screenName === 'thanks') {
+    if(hint) hint.textContent = '— transaction completing —';
+  } else {
+    if(hint) hint.textContent = '— tap a product to begin —';
+  }
+}
+
+// ── QR GESTURES ─────────────────────────────────────────────────────────────
+
+function gestScan() {
+  // "I scanned the QR" — triggers payment simulation
+  log('[GESTURE] Donor scanned QR code — simulating payment...', 'state');
+  updateGestureButtons(''); // hide buttons while processing
+  simPayment();
+}
+
+function gestIdCard() {
+  // Thai ID card insert — pre-fill donor name field (future: RFID/barcode reader)
+  const thaiNames = ['สมชาย ใจดี','สมศรี วงศ์กระจ่าง','วิชัย ทองประเสริฐ','นงนุช สุขสม','ชัยวัฒน์ ขำสิงห์'];
+  const randomName = thaiNames[Math.floor(Math.random() * thaiNames.length)];
+  STATE.donorName = randomName;
+  log(`[GESTURE] Thai ID card inserted — donor: ${randomName}`, 'ok');
+  // Update QR screen donor display
+  const el = document.getElementById('qr-donor-display');
+  if(el) el.textContent = `Donor: ${randomName}`;
+}
+
+// ── VENDING GESTURES ─────────────────────────────────────────────────────────
+
+function gestPickup() {
+  // User picked up item — IR sensor clears — door closes
+  clearTimeout(STATE.vendingTimer);
+  if (STATE.screen !== 'vending') return;
+  log('[GESTURE] Item picked up — IR sensor clear — door closing', 'ok');
+  log('[HW] Door lock relay OFF — door locked', 'ok');
+  showScreen('lucky');
+}
+
+function gestDoorStuck() {
+  // Door solenoid failed to open — mechanical jam
+  clearTimeout(STATE.vendingTimer);
+  log('[GESTURE] ⚠️ Door stuck — solenoid not responding', 'err');
+  log('[HW] Door lock relay ON but IR sensor still blocked — jam detected', 'err');
+  // In real machine: increment error count, alert backend, show error screen
+  // For now: show error, log to backend, return to idle after delay
+  showError('Door Error / ประตูติด', 'Mechanical jam detected.\nPlease contact temple staff.\nกรุณาติดต่อเจ้าหน้าที่');
+  // TODO: POST error event to backend
+  log('[NET] TODO: POST /v1/machine/error door_stuck to backend', 'state');
+  setTimeout(() => {
+    STATE.paymentConfirmedFired = false;
+    showScreen('idle', 'เลือกสิ่งที่ต้องการ');
+    updateGestureButtons('idle');
+  }, 5000);
+}
+
+function gestHandBlock() {
+  // Child/person blocking exit door — safety hold
+  clearTimeout(STATE.vendingTimer);
+  log('[GESTURE] 🖐 Object blocking exit door — safety hold active', 'err');
+  log('[HW] IR sensor triggered continuously — possible hand/object in door', 'err');
+  // Real machine behavior:
+  // 1. Keep door open (don't crush)
+  // 2. Play audio warning
+  // 3. Wait for clearance
+  // 4. Retry close after 10s
+  // 5. If still blocked → alert staff
+  showError('Safety Hold / หยุดเพื่อความปลอดภัย',
+    'Object detected in exit area.\nDoor held open for safety.\nPlease clear the area.\nประตูค้างเปิดเพื่อความปลอดภัย');
+  log('[DESIGN NOTE] Door safety: needs physical reed switch + IR timeout logic in hardware.h', 'state');
+  // Auto-retry after 10s
+  setTimeout(() => {
+    log('[HW] Safety hold cleared — retrying door close', 'state');
+    gestPickup();
+  }, 10000);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
