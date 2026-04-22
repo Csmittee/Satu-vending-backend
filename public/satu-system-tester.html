@@ -214,6 +214,9 @@
 
     <script>
         const FAKE_OMISE_URL = 'https://fake-omise.csmittee.workers.dev';
+        // NOTE: All order tests use product_id: 2 (Small Amulet, 20 THB minimum).
+        // Omise rejects charges below 20 THB — product_id: 1 (10 THB) will 502.
+        // Do not change test product_id to 1 without also raising the product price.
 
         // ── Poll helper ────────────────────────────────────────────────────
         async function pollCommands(apiUrl, deviceId, commandName, maxAttempts = 8, intervalMs = 800) {
@@ -341,7 +344,7 @@
                     const res  = await fetch(`${apiUrl}/v1/order`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ device_id: deviceId, product_id: 1, donor_name: testName })
+                        body: JSON.stringify({ device_id: deviceId, product_id: 2, donor_name: testName })
                     });
                     const data = await res.json();
                     return {
@@ -363,7 +366,7 @@
                     const createRes = await fetch(`${apiUrl}/v1/order`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ device_id: deviceId, product_id: 1, donor_name: testName })
+                        body: JSON.stringify({ device_id: deviceId, product_id: 2, donor_name: testName })
                     });
                     const order = await createRes.json();
                     if (!order.order_id) return { passed: false, message: 'Failed to create order', data: order };
@@ -394,7 +397,7 @@
                     const orderRes = await fetch(`${apiUrl}/v1/order`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ device_id: deviceId, product_id: 1 })
+                        body: JSON.stringify({ device_id: deviceId, product_id: 2 })
                     });
                     const order = await orderRes.json();
                     if (!order.order_id || !order.omise_charge_id) {
@@ -427,7 +430,7 @@
                     const orderRes = await fetch(`${apiUrl}/v1/order`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ device_id: deviceId, product_id: 1 })
+                        body: JSON.stringify({ device_id: deviceId, product_id: 2 })
                     });
                     const order = await orderRes.json();
                     if (!order.order_id || !order.omise_charge_id) {
@@ -457,7 +460,7 @@
                     const orderRes = await fetch(`${apiUrl}/v1/order`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ device_id: deviceId, product_id: 1 })
+                        body: JSON.stringify({ device_id: deviceId, product_id: 2 })
                     });
                     const order = await orderRes.json();
                     if (!order.order_id || !order.omise_charge_id) {
@@ -493,7 +496,7 @@
                     const orderRes = await fetch(`${apiUrl}/v1/order`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ device_id: deviceId, product_id: 1 })
+                        body: JSON.stringify({ device_id: deviceId, product_id: 2 })
                     });
                     const order = await orderRes.json();
                     if (!order.order_id || !order.omise_charge_id) {
@@ -529,7 +532,7 @@
                     const orderRes = await fetch(`${apiUrl}/v1/order`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ device_id: deviceId, product_id: 1 })
+                        body: JSON.stringify({ device_id: deviceId, product_id: 2 })
                     });
                     const order = await orderRes.json();
                     if (!order.order_id || !order.omise_charge_id) {
@@ -615,7 +618,7 @@
                     const res  = await fetch(`${apiUrl}/v1/order`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ device_id: fakeDevice, product_id: 1 })
+                        body: JSON.stringify({ device_id: fakeDevice, product_id: 2 })
                     });
                     const data = await res.json();
                     return {
