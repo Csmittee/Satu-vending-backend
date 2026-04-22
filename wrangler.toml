@@ -3,10 +3,15 @@
 #  File: wrangler.toml
 #
 #  CHANGES IN THIS VERSION:
-#    - Added [triggers] crons for order expiry + rate limit cleanup
-#      Fires every 30 minutes. Handled by the `scheduled` export in index.js.
+#    - Added [assets] block: serves public/ folder as static files
+#      HTML pages are now bundled with the Worker deploy — no GitHub fetch,
+#      no CORS issues, no supply-chain risk.
+#      Files in public/ are served at their path:
+#        public/simulator.html          → api.janishammer.com/simulator.html
+#        public/satu-system-tester.html → api.janishammer.com/satu-system-tester.html
+#        public/satu-machine-tester.html → api.janishammer.com/satu-machine-tester.html
 #
-#  SECRETS (set via `npx wrangler secret put <NAME>` — never commit these):
+#  SECRETS (set via `npx wrangler secret put <n>` — never commit these):
 #    JWT_SECRET           — signs temple owner JWTs (random 32+ char string)
 #    ADMIN_SECRET         — X-Admin-Token for admin dashboard access
 #    ADMIN_PATH           — custom path for admin dashboard (default: /admin)
@@ -22,6 +27,15 @@ compatibility_date   = "2024-04-01"
 compatibility_flags  = ["nodejs_compat"]
 workers_dev          = true
 
+# ── Static Assets ─────────────────────────────────────────────────────────────
+# HTML files in ./public/ are served at their filename path automatically.
+# The Worker fetch() handler handles /v1/* API routes.
+# Cloudflare serves static assets first; if no match, falls through to Worker.
+# This eliminates all GitHub raw fetches and CORS issues for HTML test pages.
+[assets]
+directory = "./public"
+binding   = "ASSETS"
+
 # ── D1 Database ──────────────────────────────────────────────────────────────
 [[d1_databases]]
 binding       = "DB"
@@ -34,16 +48,6 @@ routes = [
 ]
 
 # ── Cron Triggers ─────────────────────────────────────────────────────────────
-# Fires the `scheduled` export in index.js every 30 minutes.
-# Jobs run:
-#   1. expire_orders       — marks pending orders >30min old as 'expired'
-#   2. cleanup_rate_limits — deletes stale rate_limit_counters rows
-#
-# Cron syntax: minute hour day-of-month month day-of-week
-# "*/30 * * * *" = every 30 minutes, every hour, every day
-#
-# To verify cron is firing: check cron_log table in admin dashboard
-# To test manually:         wrangler dev --test-scheduled
 [triggers]
 crons = ["*/30 * * * *"]
 
