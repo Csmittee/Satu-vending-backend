@@ -181,7 +181,7 @@
             background:#10b98115; border:1px solid #10b981; border-radius:8px;
             padding:10px 16px; margin-bottom:16px; font-size:12px; color:#10b981;">
             ✅ <b>Fake Omise mode</b> — All 14 tests run fully.
-            Backend PAYMENT_MODE must be set to <code>fake</code> in Cloudflare secrets.
+            Backend PAYMENT_GATEWAY must be set to <code>fake_omise</code> in Cloudflare secrets.
             Tests 8, 10, 11 use the fake Omise worker to simulate webhook callbacks.
         </div>
         <div id="mode-banner-true" style="
@@ -375,7 +375,7 @@
                     const hasQr = !!data.qr_code_url;
                     return {
                         passed: res.ok && hasQr,
-                        message: hasQr ? `QR received. Mode: ${data.payment_mode}` : `No QR: ${JSON.stringify(data)}`,
+                        message: hasQr ? `QR received. Mode: ${data.payment_gateway || data.payment_mode}` : `No QR: ${JSON.stringify(data)}`,
                         data
                     };
                 }
