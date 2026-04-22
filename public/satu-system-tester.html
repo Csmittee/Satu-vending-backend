@@ -218,17 +218,41 @@
         // Omise rejects charges below 20 THB — product_id: 1 (10 THB) will 502.
         // Do not change test product_id to 1 without also raising the product price.
 
+        // ── Device secret cache ────────────────────────────────────────────
+        // Retrieved from /hello on first use. Required for /commands in live mode.
+        let cachedDeviceSecret = null;
+
+        async function getDeviceSecret(apiUrl, deviceId) {
+            if (cachedDeviceSecret) return cachedDeviceSecret;
+            // Call /hello with the fixed test MAC to retrieve the stored secret
+            try {
+                const res = await fetch(`${apiUrl}/v1/machine/hello`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mac: 'TEST:00:00:00:00:01', firmware: 'v1.0.0-test' })
+                });
+                const data = await res.json();
+                if (data.device_secret) {
+                    cachedDeviceSecret = data.device_secret;
+                }
+            } catch(e) { /* proceed without secret — fake mode will still work */ }
+            return cachedDeviceSecret;
+        }
+
         // ── Poll helper ────────────────────────────────────────────────────
         async function pollCommands(apiUrl, deviceId, commandName, maxAttempts = 8, intervalMs = 800) {
+            const secret = await getDeviceSecret(apiUrl, deviceId);
+            const headers = secret ? { 'X-Device-Secret': secret } : {};
+
             for (let i = 0; i < maxAttempts; i++) {
                 await new Promise(r => setTimeout(r, intervalMs));
-                const res      = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
+                const res      = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`, { headers });
                 const commands = await res.json();
                 if (commands.commands && commands.commands.some(c => c.command === commandName)) {
                     return { found: true, commands };
                 }
             }
-            const res      = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
+            const res      = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`, { headers });
             const commands = await res.json();
             return { found: false, commands };
         }
@@ -245,15 +269,17 @@
                 description: "Can my backend receive a call from the machine?",
                 checkpoint: "POST /v1/machine/hello returns 200",
                 run: async (apiUrl, deviceId, mode) => {
-                    // FIX: use proper MAC format — backend in fake mode accepts any,
-                    // but the format must not contain spaces or illegal chars
-                    const mac = `AA:BB:CC:DD:EE:${Math.floor(Math.random()*89+10)}`;
+                    // Always use fixed test MAC — never random. Random MACs create
+                    // ghost device rows in DB that pollute the device registry.
+                    const mac = 'TEST:00:00:00:00:01';
                     const res  = await fetch(`${apiUrl}/v1/machine/hello`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ mac, firmware: 'v1.0.0-test' })
                     });
                     const data = await res.json();
+                    // Cache the secret for subsequent tests
+                    if (data.device_secret) cachedDeviceSecret = data.device_secret;
                     return {
                         passed: res.ok && (data.status === 'pending' || data.status === 'active'),
                         message: `MAC: ${mac} → status: ${data.status || data.error}`,
@@ -269,7 +295,8 @@
                 description: "Does backend respond with correct JSON structure?",
                 checkpoint: "Returns status + device_id + setup_code or device_secret",
                 run: async (apiUrl, deviceId, mode) => {
-                    const mac = `CC:DD:EE:FF:AA:${Math.floor(Math.random()*89+10)}`;
+                    // Use fixed test MAC — same device, confirm response structure
+                    const mac = 'TEST:00:00:00:00:01';
                     const res  = await fetch(`${apiUrl}/v1/machine/hello`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
