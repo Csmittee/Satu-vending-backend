@@ -920,88 +920,175 @@ canvas#qr-canvas { display: block; }
       <div class="error-retry-btn" onclick="resetToIdle()">Try Again / ลองใหม่</div>
     </div>
 
+
     <!-- SERVICE MODE -->
     <div id="scr-service" style="display:none; flex-direction:column;">
       <div class="service-header">
         🔧 SERVICE MODE
-        <span style="color:#ff8c00;" id="svc-device-id">—</span>
-        <span style="margin-left:auto; cursor:pointer; color:#ff4444;" onclick="exitService()">✕ EXIT</span>
+        <span style="color:#ff8c00; font-size:10px;" id="svc-device-id">—</span>
+        <span style="margin-left:6px; font-size:9px; color:#333; font-family:Share Tech Mono,monospace;">v1.0.0-sim</span>
+        <span style="margin-left:auto; cursor:pointer; color:#ff4444; font-size:12px;" onclick="exitService()">✕ EXIT</span>
       </div>
       <div class="service-tabs">
-        <div class="service-tab active" onclick="svcTab('diag')">DIAGNOSTICS</div>
-        <div class="service-tab" onclick="svcTab('lanes')">LANES</div>
-        <div class="service-tab" onclick="svcTab('leds')">LEDS</div>
+        <div class="service-tab active" onclick="svcTab('diag')">SELF TEST</div>
+        <div class="service-tab" onclick="svcTab('freeplay')">FREE PLAY</div>
+        <div class="service-tab" onclick="svcTab('devices')">DEVICES</div>
         <div class="service-tab" onclick="svcTab('settings')">SETTINGS</div>
         <div class="service-tab" onclick="svcTab('firmware')">FIRMWARE</div>
       </div>
 
-      <!-- DIAGNOSTICS TAB -->
+      <!-- ══ SELF TEST TAB ══ -->
       <div class="service-body active" id="svc-diag">
-        <div class="svc-section-title">System Info</div>
-        <div class="svc-row"><span class="svc-label">Device ID</span><span class="svc-val" id="d-deviceid">—</span></div>
-        <div class="svc-row"><span class="svc-label">WiFi SSID</span><span class="svc-val" id="d-wifi">Simulator</span></div>
-        <div class="svc-row"><span class="svc-label">IP Address</span><span class="svc-val" id="d-ip">192.168.1.100</span></div>
-        <div class="svc-row"><span class="svc-label">Free Heap</span><span class="svc-val" id="d-heap">8,192 KB</span></div>
-        <div class="svc-row"><span class="svc-label">Uptime</span><span class="svc-val" id="d-uptime">0s</span></div>
-        <div class="svc-row"><span class="svc-label">Backend API</span><span class="svc-val" id="d-api">—</span></div>
-        <div class="svc-row"><span class="svc-label">Last Heartbeat</span><span class="svc-val" id="d-hb">Never</span></div>
-        <div class="svc-row"><span class="svc-label">Payment Mode</span><span class="svc-val" id="d-mode">—</span></div>
-        <div class="svc-section-title" style="margin-top:14px;">Self Test</div>
-        <div class="svc-row">
-          <span class="svc-label">Run hardware self-test</span>
-          <button class="svc-selftest-btn" onclick="runSelfTest()">▶ RUN TEST</button>
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+          <div class="svc-section-title" style="margin:0;">System Info</div>
         </div>
-        <div id="self-test-results" style="font-size:11px; color:#555; margin-top:8px; font-family:Share Tech Mono,monospace; line-height:1.8;"></div>
+        <div class="svc-row"><span class="svc-label">Device ID</span><span class="svc-val" id="d-deviceid">—</span></div>
+        <div class="svc-row"><span class="svc-label">Backend API</span><span class="svc-val" id="d-api">—</span></div>
+        <div class="svc-row"><span class="svc-label">WiFi</span><span class="svc-val" id="d-wifi">Simulator</span></div>
+        <div class="svc-row"><span class="svc-label">Free Heap</span><span class="svc-val" id="d-heap">—</span></div>
+        <div class="svc-row"><span class="svc-label">Uptime</span><span class="svc-val" id="d-uptime">0s</span></div>
+        <div class="svc-row"><span class="svc-label">Last Heartbeat</span><span class="svc-val" id="d-hb">Never</span></div>
+        <div class="svc-row"><span class="svc-label">Temperature</span><span class="svc-val" id="d-temp">—°C</span></div>
+        <div class="svc-section-title" style="margin-top:10px;">Automated Self Test — Run on every boot</div>
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <button class="svc-selftest-btn" onclick="runSelfTest()">▶ RUN ALL TESTS</button>
+          <button class="svc-selftest-btn" onclick="clearTestResults()">✕ Clear</button>
+        </div>
+        <div id="self-test-results" style="font-size:10px; color:#555; font-family:Share Tech Mono,monospace; line-height:2;
+          background:#020204; border:1px solid #111; border-radius:4px; padding:8px; max-height:160px; overflow-y:auto;"></div>
+        <div class="svc-section-title" style="margin-top:10px;">Backend Status</div>
+        <div class="svc-row">
+          <span class="svc-label">Ping backend + check payment mode</span>
+          <button class="svc-selftest-btn" onclick="pingBackend()">🌐 PING</button>
+        </div>
+        <div id="ping-result" style="font-size:10px; color:#555; margin-top:4px; font-family:Share Tech Mono,monospace;"></div>
       </div>
 
-      <!-- LANES TAB -->
-      <div class="service-body" id="svc-lanes">
-        <div class="svc-section-title">Lane Status &amp; Price Override</div>
-        <div class="lane-grid" id="svc-lane-grid"></div>
-        <div style="margin-top:14px;">
-          <div class="svc-section-title">Test Fire Lane</div>
-          <div class="svc-row">
-            <span class="svc-label">Fire relay for selected lane (SIMULATE)</span>
-            <button class="svc-selftest-btn" onclick="testFireLane()">⚡ FIRE RELAY</button>
+      <!-- ══ FREE PLAY TAB ══ -->
+      <div class="service-body" id="svc-freeplay">
+        <div class="svc-section-title">⚡ Free Play — Motor Control (No Payment Required)</div>
+        <div style="font-size:10px; color:#ff8c00; margin-bottom:8px; font-family:Share Tech Mono,monospace;">
+          ⚠️ Operates relays directly. Ensure lanes are loaded before testing.
+        </div>
+
+        <!-- Lane motor grid -->
+        <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-bottom:10px;" id="fp-lane-grid">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Motor control mode -->
+        <div class="svc-section-title">Motor Mode</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+          <button class="svc-selftest-btn" id="fp-mode-pulse" onclick="fpSetMode('pulse')"
+            style="border-color:#C9A84C; color:#C9A84C;">● PULSE (one drop)</button>
+          <button class="svc-selftest-btn" id="fp-mode-hold" onclick="fpSetMode('hold')">
+            HOLD (run until release)</button>
+          <button class="svc-selftest-btn" id="fp-mode-slow" onclick="fpSetMode('slow')">
+            SLOW (3 pulses, wait)</button>
+        </div>
+        <div style="font-size:10px; color:#444; font-family:Share Tech Mono,monospace;" id="fp-mode-hint">
+          PULSE mode: one relay pulse (800ms). Drops one item. Sensor checks if item dropped.
+        </div>
+
+        <!-- Special devices -->
+        <div class="svc-section-title" style="margin-top:10px;">Special Devices</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="svc-selftest-btn" id="fp-water-btn" onmousedown="fpDeviceOn('water')" onmouseup="fpDeviceOff('water')" ontouchstart="fpDeviceOn('water')" ontouchend="fpDeviceOff('water')">
+            💦 Water Pump (hold)
+          </button>
+          <button class="svc-selftest-btn" onclick="fpDoorToggle()">
+            🚪 Door Lock Toggle
+          </button>
+          <button class="svc-selftest-btn" onclick="fpRunAll()">
+            🔄 Run All Lanes (seq)
+          </button>
+        </div>
+
+        <!-- Freeplay log -->
+        <div class="svc-section-title" style="margin-top:10px;">Free Play Log</div>
+        <div id="fp-log" style="font-size:10px; color:#4fc3f7; font-family:Share Tech Mono,monospace;
+          background:#020408; border:1px solid #0a1a2e; border-radius:4px; padding:8px;
+          max-height:80px; overflow-y:auto; line-height:1.8;"></div>
+      </div>
+
+      <!-- ══ DEVICES TAB ══ -->
+      <div class="service-body" id="svc-devices">
+        <div class="svc-section-title">Manual Device Control — All On/Off</div>
+        <div style="font-size:10px; color:#555; margin-bottom:8px; font-family:Share Tech Mono,monospace;">
+          Toggle any device independently. Green = ON. For diagnosis only.
+        </div>
+
+        <!-- Relay bank -->
+        <div class="svc-section-title">Relay Bank (10 Lanes + Pump + Door)</div>
+        <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:5px; margin-bottom:10px;" id="dev-relay-grid">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Sensor bank -->
+        <div class="svc-section-title">IR Sensors (read-only live)</div>
+        <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px; margin-bottom:10px;" id="dev-sensor-grid">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- LED control -->
+        <div class="svc-section-title">LED Zones</div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-bottom:8px;">
+          <div class="led-zone">
+            <div class="led-zone-name">TOP (0-9)</div>
+            <div class="led-preview" id="led-top" style="background:#C9A84C;" onclick="cycleLEDColor('led-top')"></div>
+          </div>
+          <div class="led-zone">
+            <div class="led-zone-name">FLOOR 1 (10-19)</div>
+            <div class="led-preview" id="led-fl1" style="background:#C9A84C;" onclick="cycleLEDColor('led-fl1')"></div>
+          </div>
+          <div class="led-zone">
+            <div class="led-zone-name">FLOOR 2 (20-29)</div>
+            <div class="led-preview" id="led-fl2" style="background:#C9A84C;" onclick="cycleLEDColor('led-fl2')"></div>
+          </div>
+          <div class="led-zone">
+            <div class="led-zone-name">DOOR (30-39)</div>
+            <div class="led-preview" id="led-door" style="background:#4caf50;" onclick="cycleLEDColor('led-door')"></div>
           </div>
         </div>
-      </div>
-
-      <!-- LEDS TAB -->
-      <div class="service-body" id="svc-leds">
-        <div class="svc-section-title">LED Zone Control</div>
-        <div class="led-zone-grid" id="led-zone-grid"></div>
-        <div class="svc-section-title" style="margin-top:14px;">Quick Effects</div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="svc-selftest-btn" onclick="ledEffect('idle')">Idle Gold</button>
+        <div class="svc-section-title">LED Brightness</div>
+        <div class="svc-row">
+          <span class="svc-label">Brightness (0–255)</span>
+          <input class="svc-input" type="range" min="0" max="255" value="128" id="led-brightness"
+            oninput="document.getElementById('led-bval').textContent=this.value" style="width:120px;">
+          <span class="svc-val" id="led-bval" style="margin-left:8px;">128</span>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:6px;">
+          <button class="svc-selftest-btn" onclick="ledEffect('idle')">Gold Idle</button>
           <button class="svc-selftest-btn" onclick="ledEffect('celebrate')">Celebrate</button>
-          <button class="svc-selftest-btn" onclick="ledEffect('error')">Error</button>
+          <button class="svc-selftest-btn" onclick="ledEffect('error')">Error Red</button>
           <button class="svc-selftest-btn" onclick="ledEffect('off')">All Off</button>
         </div>
-        <div class="svc-section-title" style="margin-top:14px;">Brightness</div>
-        <div class="svc-row">
-          <span class="svc-label">LED Brightness (0-255)</span>
-          <input class="svc-input" type="number" min="0" max="255" value="128" id="led-brightness">
-        </div>
       </div>
 
-      <!-- SETTINGS TAB -->
+      <!-- ══ SETTINGS TAB ══ -->
       <div class="service-body" id="svc-settings">
         <div class="svc-section-title">Network</div>
         <div class="svc-row"><span class="svc-label">WiFi SSID</span><input class="svc-input" value="Temple_WiFi" id="cfg-ssid"></div>
-        <div class="svc-row"><span class="svc-label">WiFi Password</span><input class="svc-input" type="password" value="••••••••" id="cfg-pass"></div>
+        <div class="svc-row"><span class="svc-label">WiFi Password</span><input class="svc-input" type="password" placeholder="••••••••" id="cfg-pass"></div>
+        <div class="svc-section-title">Service Access</div>
+        <div class="svc-row"><span class="svc-label">Service Password</span><input class="svc-input" type="password" placeholder="4 digits" maxlength="4" id="cfg-pw"></div>
+        <div class="svc-row">
+          <span class="svc-label">Require password on service entry</span>
+          <div class="svc-toggle on" id="toggle-pw" onclick="this.classList.toggle('on')"></div>
+        </div>
         <div class="svc-section-title">Display</div>
         <div class="svc-row">
           <span class="svc-label">Screen Theme</span>
-          <select class="svc-input" id="cfg-theme" onchange="applyTheme(this.value)">
+          <select class="svc-input" id="cfg-theme">
             <option>Dark Gold</option>
             <option>Temple Blue</option>
-            <option>Classic</option>
+            <option>Classic White</option>
           </select>
         </div>
         <div class="svc-row">
-          <span class="svc-label">Screen Timeout</span>
-          <input class="svc-input" type="number" value="30" id="cfg-timeout"> <span style="color:#555;font-size:10px;margin-left:6px;">sec</span>
+          <span class="svc-label">Idle Timeout</span>
+          <input class="svc-input" type="number" value="60" id="cfg-timeout" style="width:70px;">
+          <span style="color:#555;font-size:10px;margin-left:6px;">seconds</span>
         </div>
         <div class="svc-section-title">Sound</div>
         <div class="svc-row">
@@ -1010,9 +1097,11 @@ canvas#qr-canvas { display: block; }
         </div>
         <div class="svc-row">
           <span class="svc-label">Volume</span>
-          <input class="svc-input" type="range" min="0" max="100" value="70" style="width:120px;">
+          <input class="svc-input" type="range" min="0" max="100" value="70" style="width:120px;"
+            oninput="document.getElementById('vol-val').textContent=this.value+'%'">
+          <span class="svc-val" id="vol-val" style="margin-left:8px;">70%</span>
         </div>
-        <div class="svc-section-title">Machine</div>
+        <div class="svc-section-title">Features</div>
         <div class="svc-row">
           <span class="svc-label">Sacred Water Feature</span>
           <div class="svc-toggle on" id="toggle-water" onclick="this.classList.toggle('on')"></div>
@@ -1021,38 +1110,56 @@ canvas#qr-canvas { display: block; }
           <span class="svc-label">Lucky Number Feature</span>
           <div class="svc-toggle on" id="toggle-lucky" onclick="this.classList.toggle('on')"></div>
         </div>
-        <div style="margin-top:16px; display:flex; gap:8px;">
-          <button class="svc-selftest-btn" onclick="saveSettings()">💾 Save Settings</button>
+        <div class="svc-row">
+          <span class="svc-label">ID Card Reader</span>
+          <div class="svc-toggle on" id="toggle-idcard" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="svc-section-title">Lane Prices (THB)</div>
+        <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:4px; margin-bottom:10px;" id="svc-price-grid"></div>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="svc-selftest-btn" onclick="saveSettings()">💾 Save to NVS</button>
           <button class="svc-selftest-btn" style="color:#ff6b6b;border-color:#8b0000;" onclick="factoryReset()">🔄 Factory Reset</button>
         </div>
       </div>
 
-      <!-- FIRMWARE TAB -->
+      <!-- ══ FIRMWARE TAB ══ -->
       <div class="service-body" id="svc-firmware">
         <div class="svc-section-title">Current Firmware</div>
         <div class="svc-row"><span class="svc-label">Version</span><span class="svc-val">v1.0.0-sim</span></div>
-        <div class="svc-row"><span class="svc-label">Build Date</span><span class="svc-val">2025-04-22</span></div>
+        <div class="svc-row"><span class="svc-label">Build Date</span><span class="svc-val">2026-04-23</span></div>
         <div class="svc-row"><span class="svc-label">Board</span><span class="svc-val">ESP32-8048S070C</span></div>
-        <div class="svc-section-title">Remote OTA</div>
+        <div class="svc-row"><span class="svc-label">Flash Size</span><span class="svc-val">16MB</span></div>
+        <div class="svc-row"><span class="svc-label">PSRAM</span><span class="svc-val">8MB</span></div>
+        <div class="svc-section-title">Remote OTA Update</div>
         <div class="svc-row">
-          <span class="svc-label">Check for update from backend</span>
+          <span class="svc-label">Check backend for new firmware</span>
           <button class="svc-selftest-btn" onclick="checkOTA()">🔄 CHECK UPDATE</button>
         </div>
-        <div id="ota-status" style="font-size:11px;color:#555;margin-top:8px;font-family:Share Tech Mono,monospace;"></div>
-        <div class="svc-section-title">Security</div>
+        <div id="ota-status" style="font-size:10px;color:#555;margin-top:4px;font-family:Share Tech Mono,monospace;"></div>
+        <div class="svc-row" style="margin-top:4px;">
+          <span class="svc-label">Force update from URL</span>
+          <button class="svc-selftest-btn" onclick="forceOTA()" style="color:#ff8c00;border-color:#8b4000;">⚡ FORCE OTA</button>
+        </div>
+        <div class="svc-section-title">Security (Production)</div>
         <div class="svc-row"><span class="svc-label">Flash Encryption</span><span class="svc-val" style="color:#ff8c00;">DISABLED (dev mode)</span></div>
-        <div class="svc-row"><span class="svc-label">Secure Boot</span><span class="svc-val" style="color:#ff8c00;">DISABLED (dev mode)</span></div>
+        <div class="svc-row"><span class="svc-label">Secure Boot V2</span><span class="svc-val" style="color:#ff8c00;">DISABLED (dev mode)</span></div>
         <div class="svc-row"><span class="svc-label">JTAG</span><span class="svc-val" style="color:#4caf50;">ENABLED</span></div>
+        <div class="svc-row"><span class="svc-label">UART Download</span><span class="svc-val" style="color:#4caf50;">ENABLED</span></div>
+        <div style="font-size:9px; color:#333; margin-top:6px; font-family:Share Tech Mono,monospace; line-height:1.6;">
+          Production boards: burn eFuses after final flash.<br>
+          See Security_Protocol.txt for burn commands.
+        </div>
       </div>
     </div>
 
     <!-- SERVICE PASSWORD OVERLAY -->
     <div id="svc-pw-overlay" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.95); z-index:200; flex-direction:column; align-items:center; justify-content:center; gap:16px;">
       <div class="pw-title">🔐 Service Access</div>
+      <div style="font-size:10px; color:#555; margin-top:-8px;">Enter 4-digit password</div>
       <div class="pw-dots" id="pw-dots"></div>
       <div class="pw-numpad" id="pw-numpad"></div>
       <div class="pw-err" id="pw-err"></div>
-      <div style="font-size:10px;color:#333;">Default: 1234</div>
+      <div style="font-size:9px;color:#222; margin-top:4px;">Default: 1234 &nbsp;|&nbsp; Secret gesture: tap top-right corner 3×</div>
     </div>
 
   </div><!-- end #screen -->
@@ -1800,8 +1907,26 @@ function checkPassword() {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  SERVICE MODE
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Secret gesture: tap top-right corner of screen 3× within 2s
+let secretTapCount = 0, secretTapTimer = null;
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('screen').addEventListener('click', (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const inCorner = x > rect.width * 0.85 && y < rect.height * 0.15;
+    if (!inCorner || STATE.screen === 'service') return;
+    secretTapCount++;
+    clearTimeout(secretTapTimer);
+    if (secretTapCount >= 3) { secretTapCount = 0; openService(); return; }
+    secretTapTimer = setTimeout(() => secretTapCount = 0, 2000);
+  });
+});
+
 function showServiceScreen() {
-  // Show service screen directly (no status-bar overlay)
   SCREENS.forEach(s => {
     const el = document.getElementById(`scr-${s}`);
     if (el) el.style.display = 'none';
@@ -1810,129 +1935,315 @@ function showServiceScreen() {
   document.getElementById('status-bar').style.display = 'none';
   STATE.screen = 'service';
   document.getElementById('state-status').textContent = 'SERVICE';
-
-  // Populate lane grid
-  buildServiceLaneGrid();
-  buildLEDGrid();
+  document.getElementById('svc-device-id').textContent = STATE.deviceId;
+  document.getElementById('d-deviceid').textContent = STATE.deviceId;
+  document.getElementById('d-api').textContent = apiUrl();
+  document.getElementById('d-heap').textContent = `${Math.floor(Math.random()*4096+4096)} KB`;
+  document.getElementById('d-temp').textContent = `${Math.floor(Math.random()*10+35)}°C`;
+  buildFreeplayGrid();
+  buildRelayGrid();
+  buildSensorGrid();
+  buildPriceGrid();
+  svcTab('diag');
+  runSelfTest();   // auto-run on entry
 }
 
-function exitService() { buildProductGrid(); showScreen('idle', 'เลือกสิ่งที่ต้องการ'); }
+function exitService() {
+  updateGestureButtons('idle');
+  buildProductGrid();
+  showScreen('idle', 'เลือกสิ่งที่ต้องการ');
+}
 
 function svcTab(tab) {
-  document.querySelectorAll('.service-tab').forEach((t,i) => t.classList.remove('active'));
+  document.querySelectorAll('.service-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.service-body').forEach(b => b.classList.remove('active'));
-  const tabs = ['diag','lanes','leds','settings','firmware'];
+  const tabs = ['diag','freeplay','devices','settings','firmware'];
   const idx = tabs.indexOf(tab);
   document.querySelectorAll('.service-tab')[idx]?.classList.add('active');
   document.getElementById(`svc-${tab}`)?.classList.add('active');
 }
 
-function buildServiceLaneGrid() {
-  const grid = document.getElementById('svc-lane-grid');
-  grid.innerHTML = '';
-  for (let i = 1; i <= 10; i++) {
-    const p = PRODUCTS[i];
-    const cell = document.createElement('div');
-    cell.className = 'lane-cell ok';
-    cell.dataset.lane = i;
-    cell.innerHTML = `
-      <div class="l-num">${i}</div>
-      <div class="l-price"><input type="number" value="${p.price}" style="width:60px;background:#0d0d14;border:1px solid #222;color:#C9A84C;padding:2px 4px;border-radius:3px;font-size:10px;" onchange="updatePrice(${i},this.value)"></div>
-      <div class="l-status">✓ OK</div>
-    `;
-    cell.onclick = (e) => { if (e.target.tagName !== 'INPUT') { STATE.svcSelectedLane = i; document.querySelectorAll('.lane-cell').forEach(c=>c.style.outline=''); cell.style.outline='2px solid #C9A84C'; } };
-    grid.appendChild(cell);
+// ── SELF TEST ────────────────────────────────────────────────────────────────
+function clearTestResults() { document.getElementById('self-test-results').innerHTML = ''; }
+
+function runSelfTest() {
+  const results = document.getElementById('self-test-results');
+  results.innerHTML = '';
+  const fakeTemp = Math.floor(Math.random()*10+35);
+  const tests = [
+    ['MCP23017 #1 (0x20)',    true,  'I2C OK'],
+    ['MCP23017 #2 (0x21)',    true,  'I2C OK'],
+    ['IR Sensors 1–8',        true,  'All CLEAR'],
+    ['IR Sensors 9–10',       true,  'All CLEAR'],
+    ['Relay Bank 1–10',       true,  'Continuity OK'],
+    ['Door Lock Relay (R12)', true,  'Solenoid OK'],
+    ['Water Pump (R11)',       true,  'Flow OK'],
+    ['WS2812B LEDs (40px)',   true,  'All respond'],
+    ['EK9716 Display',        true,  '800×480 OK'],
+    ['GT911 Touch',           true,  '10-point cap'],
+    ['NVS Flash Storage',     true,  'device_secret OK'],
+    ['WiFi Link',             !!STATE.deviceId, STATE.deviceId ? 'Connected' : 'NO LINK'],
+    ['Backend Reachable',     !!STATE.deviceId, STATE.deviceId ? 'API OK' : 'FAIL'],
+    ['Temperature',           fakeTemp < 60,  `${fakeTemp}°C ${fakeTemp<60?'Normal':'⚠️ HOT'}`],
+    ['Door Reed Switch',      true,  'Closed/locked'],
+    ['Tamper Sensor',         true,  'No tamper'],
+  ];
+  let d = 0;
+  tests.forEach(([label, ok, extra]) => {
+    setTimeout(() => {
+      const line = document.createElement('div');
+      line.style.color = ok ? '#4caf50' : '#ff4444';
+      line.textContent = `${(ok?'✓ PASS':'✗ FAIL').padEnd(8)} ${label}${extra?' — '+extra:''}`;
+      results.appendChild(line);
+      results.scrollTop = results.scrollHeight;
+    }, d);
+    d += 120;
+  });
+  setTimeout(() => {
+    const summary = document.createElement('div');
+    const fails = tests.filter(t=>!t[1]).length;
+    summary.style.color = fails === 0 ? '#4caf50' : '#ff4444';
+    summary.style.marginTop = '4px';
+    summary.style.borderTop = '1px solid #1a1a2e';
+    summary.style.paddingTop = '4px';
+    summary.textContent = fails === 0
+      ? `✓ ALL ${tests.length} TESTS PASSED — Machine ready`
+      : `✗ ${fails} FAILURE(S) — Check hardware before operating`;
+    results.appendChild(summary);
+  }, d + 100);
+}
+
+async function pingBackend() {
+  const el = document.getElementById('ping-result');
+  el.textContent = 'Pinging...';
+  el.style.color = '#C9A84C';
+  try {
+    const r = await fetch(`${apiUrl()}/health`);
+    const d = await r.json();
+    el.textContent = `✓ Backend OK — payment_mode: ${d.payment_mode} — ${Date.now()-performance.now()|0}ms`;
+    el.style.color = '#4caf50';
+  } catch(e) {
+    el.textContent = `✗ Backend unreachable: ${e.message}`;
+    el.style.color = '#ff4444';
   }
 }
 
-function updatePrice(lane, val) {
-  if (PRODUCTS[lane]) PRODUCTS[lane].price = parseInt(val);
-  buildProductGrid();
-  log(`[SVC] Lane ${lane} price updated to ${val} THB`);
+// ── FREE PLAY ─────────────────────────────────────────────────────────────────
+let fpMode = 'pulse';
+const fpState = { doorOpen: false, waterOn: false };
+
+function fpLog(msg, color='#4fc3f7') {
+  const el = document.getElementById('fp-log');
+  if (!el) return;
+  const line = document.createElement('div');
+  line.style.color = color;
+  line.textContent = `[${new Date().toTimeString().slice(0,8)}] ${msg}`;
+  el.insertBefore(line, el.firstChild);
 }
 
-function buildLEDGrid() {
-  const grid = document.getElementById('led-zone-grid');
+function fpSetMode(mode) {
+  fpMode = mode;
+  ['pulse','hold','slow'].forEach(m => {
+    const btn = document.getElementById(`fp-mode-${m}`);
+    if (btn) { btn.style.borderColor = m===mode?'#C9A84C':'#2a2a3e'; btn.style.color = m===mode?'#C9A84C':'#888'; }
+  });
+  const hints = {
+    pulse: 'PULSE: One 800ms relay pulse — drops one item. Sensor confirms drop.',
+    hold:  'HOLD: Relay stays ON while button held. Release to stop motor.',
+    slow:  'SLOW: 3 short pulses with pause. Useful for partial jams.',
+  };
+  document.getElementById('fp-mode-hint').textContent = hints[mode];
+}
+
+function buildFreeplayGrid() {
+  const grid = document.getElementById('fp-lane-grid');
+  if (!grid) return;
   grid.innerHTML = '';
-  const zones = [
-    {name:'TOP (0-9)',    color:'#C9A84C'},
-    {name:'FLOOR 1 (10-19)', color:'#4caf50'},
-    {name:'FLOOR 2 (20-29)', color:'#4fc3f7'},
-    {name:'DOOR (30-39)',    color:'#ff8c00'},
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'svc-selftest-btn';
+    btn.id = `fp-lane-${i}`;
+    btn.style.cssText = 'padding:10px 4px; font-size:12px; text-align:center; width:100%;';
+    btn.innerHTML = `<div style="font-size:18px;font-family:Kanit,sans-serif;color:#C9A84C;">${i}</div><div style="font-size:9px;color:#555;">${PRODUCTS[i].nameTH}</div>`;
+    btn.addEventListener('mousedown', () => fpFireLane(i, true));
+    btn.addEventListener('mouseup',   () => fpFireLane(i, false));
+    btn.addEventListener('touchstart', (e) => { e.preventDefault(); fpFireLane(i, true); });
+    btn.addEventListener('touchend',   (e) => { e.preventDefault(); fpFireLane(i, false); });
+    btn.addEventListener('click', () => { if (fpMode !== 'hold') fpFireLane(i, 'click'); });
+    grid.appendChild(btn);
+  }
+}
+
+function fpFireLane(lane, action) {
+  const btn = document.getElementById(`fp-lane-${lane}`);
+  if (fpMode === 'pulse' && action === 'click') {
+    fpLog(`⚡ RELAY ${lane} PULSE 800ms — ${PRODUCTS[lane].nameTH}`, '#C9A84C');
+    if (btn) { btn.style.background='#1f1500'; setTimeout(()=>btn.style.background='',900); }
+    setTimeout(() => fpLog(`✓ Lane ${lane} — check IR sensor for drop`, '#4caf50'), 850);
+  } else if (fpMode === 'hold') {
+    if (action === true) {
+      fpLog(`⚡ RELAY ${lane} ON (hold)`, '#ff8c00');
+      if (btn) btn.style.background = '#1f1500';
+    } else if (action === false) {
+      fpLog(`■ RELAY ${lane} OFF`, '#555');
+      if (btn) btn.style.background = '';
+    }
+  } else if (fpMode === 'slow' && action === 'click') {
+    fpLog(`⚡ RELAY ${lane} SLOW — 3 pulses`, '#C9A84C');
+    [0, 600, 1200].forEach(t => {
+      setTimeout(() => { if(btn) btn.style.background='#1f1500'; fpLog(`  pulse ${t/600+1}/3`, '#888'); }, t);
+      setTimeout(() => { if(btn) btn.style.background=''; }, t+300);
+    });
+    setTimeout(() => fpLog(`✓ Lane ${lane} slow sequence done`, '#4caf50'), 1600);
+  }
+}
+
+async function fpRunAll() {
+  fpLog('🔄 Running all lanes in sequence...', '#C9A84C');
+  for (let i = 1; i <= 10; i++) {
+    await new Promise(r => setTimeout(r, 1200));
+    fpLog(`⚡ Lane ${i} — ${PRODUCTS[i].nameTH}`, '#4fc3f7');
+    const btn = document.getElementById(`fp-lane-${i}`);
+    if (btn) { btn.style.background='#1f1500'; setTimeout(()=>btn.style.background='',900); }
+  }
+  setTimeout(() => fpLog('✓ All lanes complete', '#4caf50'), 12500);
+}
+
+function fpDeviceOn(dev) {
+  if (dev === 'water') {
+    fpState.waterOn = true;
+    fpLog('💦 Water pump ON (holding)', '#4fc3f7');
+  }
+}
+function fpDeviceOff(dev) {
+  if (dev === 'water' && fpState.waterOn) {
+    fpState.waterOn = false;
+    fpLog('■ Water pump OFF', '#555');
+  }
+}
+function fpDoorToggle() {
+  fpState.doorOpen = !fpState.doorOpen;
+  fpLog(`🚪 Door ${fpState.doorOpen ? 'UNLOCKED (open)' : 'LOCKED (closed)'}`,
+    fpState.doorOpen ? '#4caf50' : '#888');
+}
+
+// ── DEVICE GRID ───────────────────────────────────────────────────────────────
+const relayStates = {};
+const LED_COLORS = ['#C9A84C','#4caf50','#4fc3f7','#ff4444','#ff8c00','#ffffff','#000000'];
+let ledColorIdx = {};
+
+function buildRelayGrid() {
+  const grid = document.getElementById('dev-relay-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const relays = [
+    ...Array.from({length:10},(_, i)=>`Lane ${i+1}`),
+    'Pump', 'Door'
   ];
-  const colors = ['#C9A84C','#ff4444','#4caf50','#4fc3f7','#ff8c00','#ffffff','#ff00ff','#000000'];
-  zones.forEach(z => {
+  relays.forEach((name, i) => {
+    const n = i + 1;
+    relayStates[n] = false;
     const div = document.createElement('div');
-    div.className = 'led-zone';
-    div.innerHTML = `
-      <div class="led-zone-name">${z.name}</div>
-      <div class="led-preview" style="background:${z.color};"></div>
-      <div class="color-row">${colors.map(c=>`<div class="color-dot" style="background:${c};" onclick="setLEDZone(this,'${c}')"></div>`).join('')}</div>
-    `;
+    div.id = `dev-relay-${n}`;
+    div.style.cssText = `background:#0a0a14;border:1px solid #1a1a2e;border-radius:4px;padding:6px 4px;text-align:center;cursor:pointer;transition:all 0.1s;`;
+    div.innerHTML = `<div style="font-size:9px;color:#555;font-family:Share Tech Mono,monospace;">R${n}</div>
+      <div style="font-size:11px;color:#888;margin:2px 0;">${name}</div>
+      <div style="font-size:9px;color:#333;" id="dev-relay-status-${n}">OFF</div>`;
+    div.onclick = () => {
+      relayStates[n] = !relayStates[n];
+      const on = relayStates[n];
+      div.style.background = on ? '#0a1a0a' : '#0a0a14';
+      div.style.borderColor = on ? '#4caf50' : '#1a1a2e';
+      document.getElementById(`dev-relay-status-${n}`).textContent = on ? 'ON' : 'OFF';
+      document.getElementById(`dev-relay-status-${n}`).style.color = on ? '#4caf50' : '#333';
+      log(`[HW] Relay ${n} (${name}): ${on?'ON':'OFF'}`, on?'ok':'state');
+    };
     grid.appendChild(div);
   });
 }
 
-function setLEDZone(dot, color) {
-  const preview = dot.closest('.led-zone').querySelector('.led-preview');
-  preview.style.background = color;
-  log(`[LED] Zone color set to ${color}`);
+function buildSensorGrid() {
+  const grid = document.getElementById('dev-sensor-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  for (let i = 1; i <= 10; i++) {
+    const div = document.createElement('div');
+    div.style.cssText = 'background:#0a0a14;border:1px solid #1a1a2e;border-radius:4px;padding:6px 4px;text-align:center;';
+    // Randomize sensor state for simulation realism
+    const triggered = Math.random() < 0.15;
+    div.innerHTML = `
+      <div style="font-size:9px;color:#555;font-family:Share Tech Mono,monospace;">IR${i}</div>
+      <div style="font-size:16px;">${triggered?'🔴':'⚫'}</div>
+      <div style="font-size:9px;color:${triggered?'#ff4444':'#333'};">${triggered?'BLOCK':'CLEAR'}</div>`;
+    grid.appendChild(div);
+  }
+}
+
+function buildPriceGrid() {
+  const grid = document.getElementById('svc-price-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  for (let i = 1; i <= 10; i++) {
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <div style="font-size:9px;color:#555;text-align:center;margin-bottom:2px;">Lane ${i}</div>
+      <input type="number" value="${PRODUCTS[i].price}"
+        style="width:100%;background:#0a0a14;border:1px solid #222;color:#C9A84C;padding:3px;border-radius:3px;font-size:11px;text-align:center;"
+        onchange="PRODUCTS[${i}].price=parseInt(this.value);buildProductGrid();log('[SVC] Lane ${i} price → '+this.value+' THB');">`;
+    grid.appendChild(div);
+  }
+}
+
+function cycleLEDColor(zoneId) {
+  if (!ledColorIdx[zoneId]) ledColorIdx[zoneId] = 0;
+  ledColorIdx[zoneId] = (ledColorIdx[zoneId] + 1) % LED_COLORS.length;
+  document.getElementById(zoneId).style.background = LED_COLORS[ledColorIdx[zoneId]];
+  log(`[LED] ${zoneId} → ${LED_COLORS[ledColorIdx[zoneId]]}`);
 }
 
 function ledEffect(name) {
-  log(`[LED] Effect: ${name}`);
   const colors = { idle:'#C9A84C', celebrate:'#4caf50', error:'#ff4444', off:'#000000' };
-  document.querySelectorAll('.led-preview').forEach(p => p.style.background = colors[name]||'#000');
-}
-
-function runSelfTest() {
-  const results = document.getElementById('self-test-results');
-  results.textContent = '';
-  const tests = [
-    ['MCP23017 #1 (0x20)', true],
-    ['MCP23017 #2 (0x21)', true],
-    ['IR Sensor 1-8', true],
-    ['IR Sensor 9-10', true],
-    ['Relay 1-10', true],
-    ['Door Lock Relay', true],
-    ['Water Pump Relay', true],
-    ['WS2812B LEDs (40px)', true],
-    ['EK9716 Display', true],
-    ['GT911 Touch', true],
-    ['WiFi Link', !!STATE.deviceId],
-    ['Backend API', !!STATE.deviceId],
-    ['NVS Storage', true],
-    ['Temperature', true, '38°C'],
-  ];
-  let delay = 0;
-  tests.forEach(([label, ok, extra]) => {
-    setTimeout(() => {
-      const status = ok ? '✓ PASS' : '✗ FAIL';
-      const color = ok ? '#4caf50' : '#ff4444';
-      const line = document.createElement('div');
-      line.style.color = ok ? '#4caf50' : '#ff4444';
-      line.textContent = `${status.padEnd(8)} ${label}${extra?' — '+extra:''}`;
-      results.appendChild(line);
-      log(`[TEST] ${label}: ${ok ? 'PASS' : 'FAIL'}`, ok ? 'ok' : 'err');
-    }, delay);
-    delay += 150;
+  const c = colors[name] || '#000';
+  ['led-top','led-fl1','led-fl2','led-door'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.background = c;
   });
+  log(`[LED] Effect: ${name}`);
 }
 
-function testFireLane() {
-  const lane = STATE.svcSelectedLane;
-  if (lane < 0) { log('[SVC] No lane selected', 'err'); return; }
-  log(`[HW] FIRING relay ${lane} for lane ${lane} (800ms pulse) — SIMULATED`, 'ok');
-  const cell = document.querySelector(`[data-lane="${lane}"]`);
-  if (cell) { cell.style.background='#1f1500'; setTimeout(()=>cell.style.background='',1000); }
+// ── SETTINGS ──────────────────────────────────────────────────────────────────
+function saveSettings() {
+  log('[SVC] Settings saved to NVS (simulated)', 'ok');
+  const ssid = document.getElementById('cfg-ssid')?.value;
+  if (ssid) log(`[NVS] WiFi SSID: ${ssid}`);
+}
+function factoryReset() {
+  if (confirm('Factory reset? This clears NVS including device_secret and WiFi.')) {
+    log('[SVC] Factory reset — clearing NVS...', 'err');
+    setTimeout(() => simReboot(), 1000);
+  }
 }
 
-function saveSettings() { log('[SVC] Settings saved (simulated)', 'ok'); }
-function factoryReset() { if(confirm('Factory reset?')) simReboot(); }
+// ── FIRMWARE ──────────────────────────────────────────────────────────────────
 function checkOTA() {
-  document.getElementById('ota-status').textContent = 'Checking backend for firmware updates...';
-  setTimeout(()=>{ document.getElementById('ota-status').textContent = '✓ v1.0.0-sim is up to date'; }, 1500);
+  const el = document.getElementById('ota-status');
+  el.style.color = '#C9A84C';
+  el.textContent = 'Checking backend...';
+  setTimeout(() => {
+    el.style.color = '#4caf50';
+    el.textContent = '✓ v1.0.0-sim — up to date (no update available)';
+  }, 1500);
 }
+function forceOTA() {
+  log('[OTA] Force OTA requested — in simulator mode this is a no-op', 'state');
+  alert('Force OTA: not available in simulator. On real hardware, this downloads firmware.bin from backend and reboots.');
+}
+
+// Legacy stubs (referenced from old code)
+function buildServiceLaneGrid() { buildFreeplayGrid(); }
+function buildLEDGrid() {}
+function testFireLane() { fpFireLane(STATE.svcSelectedLane || 1, 'click'); }
+function updatePrice(lane, val) { PRODUCTS[lane].price = parseInt(val); buildProductGrid(); }
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  SIMULATOR CONTROL BUTTONS
