@@ -3,6 +3,7 @@ import { handleCreateOrder, handleGetOrderStatus } from './handlers/order.js';
 import { handleOmiseWebhook } from './handlers/webhook.js';
 import { handleDisableDevice, handleEnableDevice, handleReassignDevice, handleGetAllDevices } from './handlers/admin.js';
 import { handleGetUserDevices } from './handlers/dashboard.js';
+import { handleLogin, handleRegister, handleAdminResetPassword } from './handlers/authHandler.js';
 import { authenticateJWT, requireAdmin } from './middleware/auth.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import { logRequest } from './middleware/logging.js';
@@ -82,6 +83,20 @@ export default {
 
         if (path === '/v1/machine/commands' && method === 'GET') {
             return handleGetCommands(request, env);
+        }
+
+        // ── Auth (rate limited — prevents brute force login) ─────────────────
+        if (path === '/v1/auth/login' && method === 'POST') {
+            return rateLimit(request, env, async () => handleLogin(request, env));
+        }
+
+        if (path === '/v1/auth/register' && method === 'POST') {
+            return rateLimit(request, env, async () => handleRegister(request, env));
+        }
+
+        // Admin-only password reset — requires X-Admin-Token header
+        if (path === '/v1/auth/reset-password' && method === 'POST') {
+            return handleAdminResetPassword(request, env);
         }
 
         // ── Order (D1-backed rate limited — 20 req/min per IP) ──────────────
