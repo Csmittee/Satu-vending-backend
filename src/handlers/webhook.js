@@ -17,8 +17,9 @@ import { addCommand } from '../commands/queue.js';
 // ════════════════════════════════════════════════════════════════════════════
 
 async function verifyOmiseSignature(request, bodyText, env) {
-    // Skip signature check in fake mode — fake Omise doesn't sign
-    if ((env.PAYMENT_MODE || 'fake') === 'fake') return true;
+    // Skip signature check when using fake_omise gateway — it doesn't sign requests
+    const gateway = env.PAYMENT_GATEWAY || 'fake_omise';
+    if (gateway === 'fake_omise') return true;
 
     const signature = request.headers.get('omise-signature');
     if (!signature) return false;

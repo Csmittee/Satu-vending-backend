@@ -40,12 +40,28 @@ const PRODUCTS = {
 //  keep parity between modes.
 // ════════════════════════════════════════════════════════════════════════════
 async function createPayment(amountTHB, orderId, env) {
-    const paymentMode = env.PAYMENT_MODE || 'fake';
-    const amountSatangs = amountTHB * 100;   // ← FIX: convert to satangs for Omise
+    // ════════════════════════════════════════════════════════════════════════
+    //  PAYMENT GATEWAY SELECTION
+    //
+    //  PAYMENT_GATEWAY secret (set via wrangler secret put PAYMENT_GATEWAY):
+    //    'fake_omise'  — uses fake-omise worker (dev/testing, no real money)
+    //    'omise_test'  — uses real Omise API with test keys (test money)
+    //    'omise_live'  — uses real Omise API with live keys (real money)
+    //
+    //  omise_test and omise_live use identical code — only the API key differs.
+    //  Switch between them by changing OMISE_SECRET_KEY secret only.
+    //  No code change needed to go from test to live.
+    //
+    //  SYSTEM_MODE secret:
+    //    'online'   — accepting transactions (default)
+    //    'offline'  — maintenance mode (future use)
+    // ════════════════════════════════════════════════════════════════════════
+    const gateway      = env.PAYMENT_GATEWAY || 'fake_omise';
+    const amountSatangs = amountTHB * 100;   // Omise requires satangs (THB × 100)
 
-    if (paymentMode === 'live') {
+    if (gateway === 'omise_test' || gateway === 'omise_live') {
         if (!env.OMISE_SECRET_KEY) {
-            throw new Error('OMISE_SECRET_KEY secret is not set — cannot process live payment');
+            throw new Error('OMISE_SECRET_KEY secret is not set — cannot process payment');
         }
 
         const response = await fetch('https://api.omise.co/charges', {
@@ -70,7 +86,7 @@ async function createPayment(amountTHB, orderId, env) {
         return await response.json();
 
     } else {
-        // Fake Omise — for testing
+        // fake_omise — permanent dev/test gateway stub (not a temporary hack)
         const fakeUrl  = env.FAKE_OMISE_URL || 'https://fake-omise.csmittee.workers.dev';
         const response = await fetch(`${fakeUrl}/charges`, {
             method: 'POST',
@@ -83,7 +99,7 @@ async function createPayment(amountTHB, orderId, env) {
         });
 
         if (!response.ok) {
-            throw new Error(`Fake Omise error ${response.status}`);
+            throw new Error(`Fake Omise gateway error ${response.status}`);
         }
 
         return await response.json();
@@ -166,7 +182,7 @@ export async function handleCreateOrder(request, env) {
             qr_code_url:     qr_code_url,
             amount:          product.price,
             product_name:    product.name,
-            payment_mode:    env.PAYMENT_MODE || 'fake',
+            payment_gateway: env.PAYMENT_GATEWAY || 'fake_omise',
             omise_charge_id: omise_charge_id
         });
 
