@@ -1,17 +1,52 @@
-name = "satu-api"
-main = "src/index.js"
-compatibility_date = "2024-04-01"
-compatibility_flags = ["nodejs_compat"]
-workers_dev = true
+# ════════════════════════════════════════════════════════════════════════════
+#  SATU — Cloudflare Workers Configuration
+#  File: wrangler.toml
+#
+#  CHANGES IN THIS VERSION:
+#    - Added [triggers] crons for order expiry + rate limit cleanup
+#      Fires every 30 minutes. Handled by the `scheduled` export in index.js.
+#
+#  SECRETS (set via `npx wrangler secret put <NAME>` — never commit these):
+#    JWT_SECRET           — signs temple owner JWTs (random 32+ char string)
+#    ADMIN_SECRET         — X-Admin-Token for admin dashboard access
+#    ADMIN_PATH           — custom path for admin dashboard (default: /admin)
+#    OMISE_SECRET_KEY     — Omise API key (pkey_test_... for test mode)
+#    OMISE_WEBHOOK_SECRET — Omise webhook signing secret (from Omise dashboard)
+#    PAYMENT_MODE         — 'fake' for dev/test, 'live' for real hardware only
+#    ENVIRONMENT          — 'production' or 'development'
+# ════════════════════════════════════════════════════════════════════════════
 
+name                 = "satu-api"
+main                 = "src/index.js"
+compatibility_date   = "2024-04-01"
+compatibility_flags  = ["nodejs_compat"]
+workers_dev          = true
+
+# ── D1 Database ──────────────────────────────────────────────────────────────
 [[d1_databases]]
-binding = "DB"
+binding       = "DB"
 database_name = "satu_db"
-database_id = "be41fa29-3310-423f-bb18-1e4c6f8480c8"
+database_id   = "be41fa29-3310-423f-bb18-1e4c6f8480c8"
 
+# ── Custom Domain Route ───────────────────────────────────────────────────────
 routes = [
-  { pattern = "janishammer.com/api/*", zone_name = "janishammer.com" }
+  { pattern = "api.janishammer.com/*", zone_name = "janishammer.com" }
 ]
 
+# ── Cron Triggers ─────────────────────────────────────────────────────────────
+# Fires the `scheduled` export in index.js every 30 minutes.
+# Jobs run:
+#   1. expire_orders       — marks pending orders >30min old as 'expired'
+#   2. cleanup_rate_limits — deletes stale rate_limit_counters rows
+#
+# Cron syntax: minute hour day-of-month month day-of-week
+# "*/30 * * * *" = every 30 minutes, every hour, every day
+#
+# To verify cron is firing: check cron_log table in admin dashboard
+# To test manually:         wrangler dev --test-scheduled
+[triggers]
+crons = ["*/30 * * * *"]
+
+# ── Observability ─────────────────────────────────────────────────────────────
 [observability]
 enabled = true
