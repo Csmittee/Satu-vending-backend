@@ -785,18 +785,25 @@ canvas#qr-canvas { display: block; }
       </div>
     </div>
 
-    <!-- DONOR NAME INPUT -->
+    <!-- DONOR / ID CARD SCREEN -->
     <div id="scr-donor" style="display:none; flex-direction:column;">
       <div class="donor-content">
         <div class="donor-title">บันทึกชื่อผู้ทำบุญ</div>
-        <div class="donor-sub">Enter donor name (optional) — ไม่บังคับ</div>
-        <div class="donor-input-row">
-          <div class="donor-input-display" id="donor-display">_</div>
+        <div class="donor-sub">Insert your Thai ID card to record your merit donation</div>
+        <div style="font-size:60px; margin: 10px 0;">🪪</div>
+        <div style="
+          background:#0a1a0a; border:2px dashed #4caf50; border-radius:12px;
+          padding:20px 40px; text-align:center; font-size:14px; color:#4caf50;
+          animation: idPulse 1.5s ease-in-out infinite;
+        " id="id-insert-prompt">
+          ➜ Insert ID card here / สอดบัตรประชาชน
         </div>
-        <div class="kb-hint">💡 Type on your keyboard — or tap Skip to continue anonymously</div>
-        <div class="donor-btns">
-          <div class="donor-btn skip" onclick="skipDonor()">Skip / ข้าม</div>
-          <div class="donor-btn confirm" onclick="confirmDonor()">Confirm ✓</div>
+        <div id="id-reading" style="display:none; font-size:13px; color:#C9A84C; text-align:center;">
+          <span style="animation: blink 0.5s step-end infinite;">●</span> Reading card...
+        </div>
+        <div id="id-confirmed" style="display:none; font-size:13px; color:#4caf50; text-align:center;"></div>
+        <div class="donor-btns" style="margin-top:10px;">
+          <div class="donor-btn skip" onclick="skipDonor()">Anonymous / ไม่ระบุชื่อ</div>
         </div>
       </div>
     </div>
@@ -845,47 +852,64 @@ canvas#qr-canvas { display: block; }
       <div class="payment-bar"><div class="payment-bar-fill" id="payment-bar-fill" style="width:100%"></div></div>
     </div>
 
-    <!-- VENDING -->
-    <div id="scr-vending" style="display:none; flex-direction:column; align-items:center; justify-content:center; gap:24px; padding-top:44px;">
+    <!-- SACRED WATER COUNTDOWN -->
+    <div id="scr-water" style="display:none; flex-direction:column; align-items:center; justify-content:center; gap:20px; background:#050a14;">
       <div class="status-bar">
         <div class="logo">SATU</div>
-        <div class="status-center">กำลังจ่ายของ</div>
-        <div class="status-right" id="vend-sb-right"></div>
+        <div class="status-center" style="color:#4a2e00;">น้ำมนต์มงคล</div>
+        <div class="status-right"></div>
       </div>
-      <div class="vend-icon">📿</div>
-      <div class="vend-title" id="vend-title">กำลังจ่ายของ...</div>
-      <div class="vend-sub">Please wait — รอสักครู่</div>
-      <div class="vend-bar"><div class="vend-bar-fill"></div></div>
+      <div style="font-size:20px; color:#4fc3f7; letter-spacing:2px; text-transform:uppercase; margin-top:30px;">Sacred Water Blessing</div>
+      <div style="font-size:14px; color:#555; text-align:center;">Stand still and face forward<br>ยืนนิ่งและหันหน้ามาข้างหน้า</div>
+      <div style="font-size:110px; animation: waterPulse 0.8s ease-in-out infinite alternate;">💦</div>
+      <div id="water-countdown" style="
+        font-family:'Kanit',sans-serif; font-size:80px; font-weight:900;
+        color:#4fc3f7; text-shadow: 0 0 40px rgba(79,195,247,0.8);
+        animation: luckyReveal 0.3s ease both;
+      ">3</div>
+      <div style="font-size:13px; color:#4fc3f7; opacity:0.6;">Spray activating / กำลังพ่นน้ำมนต์</div>
+      <style>
+        @keyframes waterPulse { from { transform: scale(1); } to { transform: scale(1.15); } }
+      </style>
     </div>
 
-    <!-- LUCKY NUMBER -->
+    <!-- VENDING — door open/close states -->
+    <div id="scr-vending" style="display:none; flex-direction:column; align-items:center; justify-content:center; gap:20px; background:#0a0812;">
+      <div class="status-bar">
+        <div class="logo">SATU</div>
+        <div class="status-center" id="vend-sb-label">กำลังจ่ายของ</div>
+        <div class="status-right"></div>
+      </div>
+      <div class="vend-icon" id="vend-icon">📿</div>
+      <div class="vend-title" id="vend-title">กำลังจ่ายของ...</div>
+      <div id="vend-sub" style="font-size:14px; color:#666;">Please wait — รอสักครู่</div>
+      <div class="vend-bar"><div class="vend-bar-fill" id="vend-bar-fill"></div></div>
+      <!-- Door state display -->
+      <div id="door-status" style="
+        margin-top:10px; padding:12px 28px; border-radius:8px;
+        font-size:14px; font-weight:600; text-align:center;
+        background:#0a1a0a; border:2px solid #4caf50; color:#4caf50;
+        display:none;
+      ">🚪 Door Open — Please take your item<br>เปิดประตูแล้ว กรุณาหยิบของ</div>
+      <!-- Beep indicator -->
+      <div id="beep-indicator" style="font-size:11px; color:#C9A84C; display:none; font-family:'Share Tech Mono',monospace;"></div>
+    </div>
+
+    <!-- LUCKY NUMBER + THANK YOU (combined) -->
     <div id="scr-lucky">
       <div class="status-bar">
         <div class="logo">SATU</div>
-        <div class="status-center">เลขมงคล</div>
+        <div class="status-center">ขอบคุณ • เลขมงคล</div>
         <div class="status-right"></div>
       </div>
-      <div class="lucky-label">Your Merit Lucky Number</div>
-      <div class="lucky-number" id="lucky-number">—</div>
-      <div class="lucky-sub">Compare this with the temple fortune sticks<br>เปรียบเทียบกับไม้พยากรณ์ของวัด</div>
-      <div class="lucky-water" id="lucky-water-note" style="display:none;">
-        💦 Sacred water spray has been activated<br>น้ำมนต์มงคลถูกพรม
-      </div>
-    </div>
-
-    <!-- THANK YOU -->
-    <div id="scr-thanks">
-      <div class="status-bar">
-        <div class="logo">SATU</div>
-        <div class="status-center">ขอบคุณ</div>
-        <div class="status-right"></div>
-      </div>
-      <div class="thanks-check">✅</div>
+      <div class="thanks-check">🙏</div>
       <div class="thanks-title">Thank You!</div>
       <div class="thanks-th">ขอบคุณที่ทำบุญ</div>
       <div class="thanks-donor" id="thanks-donor"></div>
-      <div class="thanks-sub">Your merit has been recorded.<br>May your generosity bring you happiness, health, and prosperity.</div>
-      <div class="thanks-merit">"ทำดีได้ดี" — Good deeds bring good returns</div>
+      <div class="lucky-label" style="margin-top:10px;">Your Merit Lucky Number for Today</div>
+      <div class="lucky-number" id="lucky-number">—</div>
+      <div class="lucky-sub">Compare with the temple fortune sticks<br>เปรียบเทียบกับไม้พยากรณ์ของวัด</div>
+      <div class="thanks-merit">"ทำดีได้ดี" — Good deeds bring good returns • ขอให้โชคดีมีสุข</div>
     </div>
 
     <!-- ERROR -->
@@ -1135,7 +1159,7 @@ function log(msg, type = '') {
 // ═══════════════════════════════════════════════════════════════════════════
 //  SCREEN MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════
-const SCREENS = ['boot','idle','donor','gift','qr','vending','lucky','thanks','error','service'];
+const SCREENS = ['boot','idle','donor','gift','qr','water','vending','lucky','error','service'];
 
 function showScreen(name, label = '', opts = {}) {
   SCREENS.forEach(s => {
@@ -1145,11 +1169,11 @@ function showScreen(name, label = '', opts = {}) {
 
   const target = document.getElementById(`scr-${name}`);
   if (!target) return;
-  const isCol = ['idle','donor','gift','qr','vending','lucky','thanks','error','service'].includes(name);
+  const isCol = ['idle','donor','gift','qr','water','vending','lucky','error','service'].includes(name);
   target.style.display = isCol ? 'flex' : 'block';
 
   const sb = document.getElementById('status-bar');
-  if (sb) sb.style.display = ['idle','donor','gift','qr'].includes(name) ? 'flex' : 'none';
+  if (sb) sb.style.display = ['idle','donor','gift','qr','water'].includes(name) ? 'flex' : 'none';
 
   if (label) document.getElementById('sb-label').textContent = label;
   STATE.screen = name;
@@ -1280,37 +1304,26 @@ function onProductTap(productIndex) {
   document.querySelectorAll('.product-cell').forEach(c => c.classList.remove('selected'));
   document.querySelector(`[data-product="${productIndex}"]`)?.classList.add('selected');
 
-  // Short delay then go to donor name screen
-  setTimeout(() => showScreen('donor', 'ใส่ชื่อผู้ทำบุญ'), 300);
-
-  // Set up keyboard for donor name
-  STATE.donorName = '';
-  document.getElementById('donor-display').textContent = '_';
-  setupDonorKeyboard();
+  // Short delay then go to donor screen
+  setTimeout(() => {
+    showScreen('donor', 'ใส่ชื่อผู้ทำบุญ');
+    updateGestureButtons('donor');
+  }, 300);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  DONOR NAME
 // ═══════════════════════════════════════════════════════════════════════════
-function setupDonorKeyboard() {
-  const el = document.getElementById('donor-display');
-  const handler = (e) => {
-    if (STATE.screen !== 'donor') { document.removeEventListener('keydown', handler); return; }
-    if (e.key === 'Enter') { confirmDonor(); return; }
-    if (e.key === 'Escape') { skipDonor(); return; }
-    if (e.key === 'Backspace') {
-      STATE.donorName = STATE.donorName.slice(0,-1);
-    } else if (e.key.length === 1 && STATE.donorName.length < 50) {
-      STATE.donorName += e.key;
-    }
-    el.textContent = STATE.donorName + '_' || '_';
-  };
-  document.addEventListener('keydown', handler);
+function setupDonorKeyboard() { /* no keyboard in new flow */ }
+
+function skipDonor() {
+  STATE.donorName = '';
+  log('[UI] Donor: Anonymous');
+  showScreen('gift', 'เลือกของขวัญเสริม');
 }
 
-function skipDonor() { STATE.donorName = ''; log('[UI] Donor name skipped'); showScreen('gift', 'เลือกของขวัญเสริม'); }
 function confirmDonor() {
-  log(`[UI] Donor name: "${STATE.donorName}"`);
+  log(`[UI] Donor ID recorded: "${STATE.donorName}"`);
   showScreen('gift', 'เลือกของขวัญเสริม');
 }
 
@@ -1319,15 +1332,131 @@ function confirmDonor() {
 // ═══════════════════════════════════════════════════════════════════════════
 function selectGift(wantWater) {
   STATE.wantWater = wantWater;
-  log(`[UI] Gift: ${wantWater ? 'Sacred water selected' : 'No gift'}`);
+  log(`[UI] Gift: ${wantWater ? 'Sacred water selected' : 'Item only'}`);
   document.getElementById('gift-none').classList.toggle('selected', !wantWater);
   document.getElementById('gift-water').classList.toggle('selected', wantWater);
   setTimeout(() => createOrder(), 300);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  CREATE ORDER
+//  PAYMENT CONFIRMED → FLOW
 // ═══════════════════════════════════════════════════════════════════════════
+function onPaymentConfirmed() {
+  if (STATE.paymentConfirmedFired) {
+    log('[PAY] Duplicate payment_confirmed — ignored', 'state');
+    return;
+  }
+  STATE.paymentConfirmedFired = true;
+  clearInterval(STATE.paymentTimer);
+  log('[PAY] Payment confirmed! 🎉', 'ok');
+
+  if (STATE.wantWater) {
+    startWaterCountdown();
+  } else {
+    startVending();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SACRED WATER COUNTDOWN  3-2-1 spray
+// ═══════════════════════════════════════════════════════════════════════════
+function startWaterCountdown() {
+  showScreen('water', 'น้ำมนต์มงคล');
+  log('[HW] Water pump relay ON', 'ok');
+  let count = 3;
+  document.getElementById('water-countdown').textContent = count;
+  const interval = setInterval(() => {
+    count--;
+    if (count > 0) {
+      document.getElementById('water-countdown').textContent = count;
+      log(`[HW] Spraying... ${count}`, 'ok');
+    } else {
+      clearInterval(interval);
+      document.getElementById('water-countdown').textContent = '🙏';
+      log('[HW] Water pump OFF — spray complete', 'ok');
+      setTimeout(() => startVending(), 1500);
+    }
+  }, 1000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  VENDING — relay fires, door opens, beep until pickup
+// ═══════════════════════════════════════════════════════════════════════════
+function startVending() {
+  const p = PRODUCTS[STATE.selectedProduct];
+  showScreen('vending');
+  document.getElementById('vend-title').textContent = `กำลังจ่าย: ${p.nameTH}`;
+  document.getElementById('vend-icon').textContent = p.icon;
+  document.getElementById('vend-sub').textContent = 'Dispensing... กำลังจ่ายของ';
+  document.getElementById('door-status').style.display = 'none';
+  document.getElementById('beep-indicator').style.display = 'none';
+  document.getElementById('vend-sb-label').textContent = 'กำลังจ่ายของ';
+  updateGestureButtons('vending');
+  log(`[HW] Relay ${STATE.selectedProduct} FIRED — motor pulse 800ms`, 'ok');
+
+  setTimeout(() => {
+    log('[HW] Item dropped — IR sensor triggered', 'ok');
+    log('[HW] Door lock relay ON — door OPEN', 'ok');
+    openDoor();
+  }, 1500);
+
+  STATE.vendingTimer = setTimeout(() => {
+    log('[SIM] Pickup timeout 30s — auto-advancing', 'state');
+    gestPickup();
+  }, 30000);
+}
+
+function openDoor() {
+  document.getElementById('door-status').style.display = 'block';
+  document.getElementById('vend-sub').textContent = 'Please take your item — กรุณาหยิบของ';
+  document.getElementById('vend-sb-label').textContent = 'หยิบของของคุณ';
+  startBeep();
+}
+
+let beepInterval = null;
+function startBeep() {
+  let on = true;
+  const el = document.getElementById('beep-indicator');
+  el.style.display = 'block';
+  clearInterval(beepInterval);
+  beepInterval = setInterval(() => {
+    on = !on;
+    el.textContent = on ? '🔔 BEEP — กรุณาหยิบของ' : '';
+  }, 800);
+}
+function stopBeep() {
+  clearInterval(beepInterval);
+  const el = document.getElementById('beep-indicator');
+  if (el) el.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  LUCKY + THANK YOU (combined screen)
+// ═══════════════════════════════════════════════════════════════════════════
+function showLuckyScreen() {
+  const lucky = Math.floor(Math.random() * 90) + 10;
+  document.getElementById('lucky-number').textContent = lucky;
+  const donor = STATE.donorName ? `— ${STATE.donorName} —` : '';
+  document.getElementById('thanks-donor').textContent = donor;
+  log(`[UI] Lucky number: ${lucky} 🎯`);
+  updateGestureButtons('lucky');
+  setTimeout(() => resetToIdle(), 8000);
+}
+
+function showThanksScreen() { showLuckyScreen(); }
+
+function resetToIdle() {
+  STATE.selectedProduct       = -1;
+  STATE.donorName             = '';
+  STATE.wantWater             = false;
+  STATE.currentOrderId        = '';
+  STATE.paymentConfirmedFired = false;
+  clearTimeout(STATE.vendingTimer);
+  stopBeep();
+  buildProductGrid();
+  showScreen('idle', 'เลือกสิ่งที่ต้องการ');
+  updateGestureButtons('idle');
+}
 async function createOrder() {
   if (!STATE.deviceId) { showError('Not Registered', 'Device not registered with backend.'); return; }
 
@@ -1455,71 +1584,6 @@ async function checkPaymentStatus() {
   } catch { return 'pending'; }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  PAYMENT CONFIRMED → VEND FLOW
-//  Guard prevents double-fire from command poll + local inject racing.
-// ═══════════════════════════════════════════════════════════════════════════
-function onPaymentConfirmed() {
-  // Guard: only fire once per transaction
-  if (STATE.paymentConfirmedFired) {
-    log('[PAY] payment_confirmed already handled — ignoring duplicate', 'state');
-    return;
-  }
-  STATE.paymentConfirmedFired = true;
-  clearInterval(STATE.paymentTimer);
-
-  log('[PAY] Payment confirmed!', 'ok');
-  const p = PRODUCTS[STATE.selectedProduct];
-  showScreen('vending');
-
-  document.getElementById('vend-title').textContent = `กำลังจ่าย: ${p.nameTH}`;
-  document.getElementById('vend-icon').textContent = p.icon;
-
-  if (STATE.wantWater) {
-    setTimeout(() => log('[HW] Water pump relay FIRED (Relay 11)', 'ok'), 1200);
-  }
-
-  // Show gesture buttons for vending phase
-  updateGestureButtons('vending');
-
-  // Auto-advance after 4s if user doesn't tap gesture buttons
-  // (real machine waits for IR sensor — simulator waits for user gesture OR timeout)
-  STATE.vendingTimer = setTimeout(() => {
-    log('[SIM] Auto-advance: item dropped (no IR sensor in browser)', 'state');
-    gestPickup();
-  }, 8000);
-}
-
-function showLuckyScreen() {
-  const lucky = Math.floor(Math.random() * 90) + 10;
-  document.getElementById('lucky-number').textContent = lucky;
-  log(`[UI] Lucky number: ${lucky}`);
-  if (STATE.wantWater) {
-    document.getElementById('lucky-water-note').style.display = 'block';
-  } else {
-    document.getElementById('lucky-water-note').style.display = 'none';
-  }
-  updateGestureButtons('lucky');
-  setTimeout(() => showThanksScreen(), 5000);
-}
-
-function showThanksScreen() {
-  showScreen('thanks');
-  const donor = STATE.donorName ? `— ${STATE.donorName} —` : '';
-  document.getElementById('thanks-donor').textContent = donor;
-  log('[UI] Transaction complete');
-  updateGestureButtons('thanks');
-  setTimeout(() => {
-    STATE.selectedProduct    = -1;
-    STATE.donorName          = '';
-    STATE.wantWater          = false;
-    STATE.currentOrderId     = '';
-    STATE.paymentConfirmedFired = false;
-    buildProductGrid();
-    showScreen('idle', 'เลือกสิ่งที่ต้องการ');
-    updateGestureButtons('idle');
-  }, 6000);
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  GESTURE BUTTONS — context-sensitive per state
@@ -1527,67 +1591,68 @@ function showThanksScreen() {
 function updateGestureButtons(screenName) {
   const all = ['gest-scan','gest-idcard','gest-pickup','gest-doorstuck','gest-handblock'];
   all.forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
-
   const hint = document.getElementById('gest-hint');
-
   const show = (...ids) => ids.forEach(id => {
     const el = document.getElementById(id); if(el) el.style.display = 'inline-flex';
   });
-
-  if (screenName === 'qr') {
-    show('gest-scan', 'gest-idcard');
-    if(hint) hint.textContent = '← simulate donor actions on QR screen';
+  if (screenName === 'donor') {
+    show('gest-idcard');
+    if(hint) hint.textContent = '← simulate ID card insert';
+  } else if (screenName === 'qr') {
+    show('gest-scan');
+    if(hint) hint.textContent = '← simulate donor scanning QR';
   } else if (screenName === 'vending') {
     show('gest-pickup', 'gest-doorstuck', 'gest-handblock');
     if(hint) hint.textContent = '← simulate physical machine events';
-  } else if (screenName === 'lucky' || screenName === 'thanks') {
-    if(hint) hint.textContent = '— transaction completing —';
+  } else if (screenName === 'lucky') {
+    if(hint) hint.textContent = '— transaction completing in 8s —';
   } else {
     if(hint) hint.textContent = '— tap a product to begin —';
   }
 }
 
-// ── QR GESTURES ─────────────────────────────────────────────────────────────
-
+// ── QR GESTURES ──────────────────────────────────────────────────────────────
 function gestScan() {
-  // "I scanned the QR" — triggers payment simulation
-  log('[GESTURE] Donor scanned QR code — simulating payment...', 'state');
-  updateGestureButtons(''); // hide buttons while processing
+  log('[GESTURE] Donor scanned QR — simulating payment...', 'state');
+  updateGestureButtons('');
   simPayment();
 }
 
 function gestIdCard() {
-  // Thai ID card insert — pre-fill donor name field (future: RFID/barcode reader)
-  const thaiNames = ['สมชาย ใจดี','สมศรี วงศ์กระจ่าง','วิชัย ทองประเสริฐ','นงนุช สุขสม','ชัยวัฒน์ ขำสิงห์'];
-  const randomName = thaiNames[Math.floor(Math.random() * thaiNames.length)];
-  STATE.donorName = randomName;
-  log(`[GESTURE] Thai ID card inserted — donor: ${randomName}`, 'ok');
-  // Update QR screen donor display
-  const el = document.getElementById('qr-donor-display');
-  if(el) el.textContent = `Donor: ${randomName}`;
+  if (STATE.screen !== 'donor') return;
+  const thaiNames = ['สมชาย ใจดี','สมศรี วงศ์กระจ่าง','วิชัย ทองประเสริฐ','นงนุช สุขสม','ชัยวัฒน์ ขำสิงห์','พิมพ์ใจ แสงทอง'];
+  STATE.donorName = thaiNames[Math.floor(Math.random() * thaiNames.length)];
+  log(`[HW] ID card read — donor: ${STATE.donorName}`, 'ok');
+  log(`[SEC] National ID hashed (PDPA) — name stored only`, 'state');
+  document.getElementById('id-insert-prompt').style.display = 'none';
+  document.getElementById('id-reading').style.display = 'block';
+  setTimeout(() => {
+    document.getElementById('id-reading').style.display = 'none';
+    const confirmed = document.getElementById('id-confirmed');
+    confirmed.style.display = 'block';
+    confirmed.textContent = `✓ ${STATE.donorName} — บันทึกแล้ว`;
+    setTimeout(() => confirmDonor(), 1500);
+  }, 1200);
 }
 
 // ── VENDING GESTURES ─────────────────────────────────────────────────────────
-
 function gestPickup() {
-  // User picked up item — IR sensor clears — door closes
   clearTimeout(STATE.vendingTimer);
+  stopBeep();
   if (STATE.screen !== 'vending') return;
-  log('[GESTURE] Item picked up — IR sensor clear — door closing', 'ok');
-  log('[HW] Door lock relay OFF — door locked', 'ok');
+  log('[GESTURE] Item picked up — IR clear', 'ok');
+  log('[HW] Door lock relay OFF — door LOCKED', 'ok');
+  document.getElementById('door-status').style.display = 'none';
   showScreen('lucky');
+  showLuckyScreen();
 }
 
 function gestDoorStuck() {
-  // Door solenoid failed to open — mechanical jam
   clearTimeout(STATE.vendingTimer);
-  log('[GESTURE] ⚠️ Door stuck — solenoid not responding', 'err');
-  log('[HW] Door lock relay ON but IR sensor still blocked — jam detected', 'err');
-  // In real machine: increment error count, alert backend, show error screen
-  // For now: show error, log to backend, return to idle after delay
+  stopBeep();
+  log('[GESTURE] ⚠️ Door stuck — mechanical jam', 'err');
   showError('Door Error / ประตูติด', 'Mechanical jam detected.\nPlease contact temple staff.\nกรุณาติดต่อเจ้าหน้าที่');
-  // TODO: POST error event to backend
-  log('[NET] TODO: POST /v1/machine/error door_stuck to backend', 'state');
+  log('[NET] TODO: POST /v1/machine/error door_stuck', 'state');
   setTimeout(() => {
     STATE.paymentConfirmedFired = false;
     showScreen('idle', 'เลือกสิ่งที่ต้องการ');
@@ -1596,25 +1661,18 @@ function gestDoorStuck() {
 }
 
 function gestHandBlock() {
-  // Child/person blocking exit door — safety hold
   clearTimeout(STATE.vendingTimer);
-  log('[GESTURE] 🖐 Object blocking exit door — safety hold active', 'err');
-  log('[HW] IR sensor triggered continuously — possible hand/object in door', 'err');
-  // Real machine behavior:
-  // 1. Keep door open (don't crush)
-  // 2. Play audio warning
-  // 3. Wait for clearance
-  // 4. Retry close after 10s
-  // 5. If still blocked → alert staff
+  log('[GESTURE] 🖐 Hand/object blocking exit — safety hold', 'err');
   showError('Safety Hold / หยุดเพื่อความปลอดภัย',
-    'Object detected in exit area.\nDoor held open for safety.\nPlease clear the area.\nประตูค้างเปิดเพื่อความปลอดภัย');
-  log('[DESIGN NOTE] Door safety: needs physical reed switch + IR timeout logic in hardware.h', 'state');
-  // Auto-retry after 10s
+    'Object in exit area — door held open.\nPlease clear the area.\nประตูค้างเปิดเพื่อความปลอดภัย\n\nAuto-retry in 10 seconds...');
+  log('[DESIGN] Door safety: IR timeout + reed switch needed in hardware.h', 'state');
   setTimeout(() => {
-    log('[HW] Safety hold cleared — retrying door close', 'state');
+    log('[HW] Retrying door close...', 'state');
     gestPickup();
   }, 10000);
 }
+
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  ERROR SCREEN
@@ -1939,15 +1997,6 @@ function formatTime(s) {
   if (s >= 60) return `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
   return `0:${s.toString().padStart(2,'0')}`;
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-//  Wire up screen transitions that use showLuckyScreen
-// ═══════════════════════════════════════════════════════════════════════════
-const _origShowScreen = showScreen;
-window.showScreen = function(name, label, opts) {
-  _origShowScreen(name, label, opts);
-  if (name === 'lucky') showLuckyScreen();
-};
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  BOOT ON LOAD
