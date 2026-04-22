@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SATU Machine Simulator — ESP32-8048S070C</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Kanit:wght@400;600;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════
+   SIMULATOR SHELL (browser chrome around the machine)
+═══════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0a0a0f;
+  background-image: radial-gradient(ellipse at 20% 50%, #1a0a2e 0%, transparent 50%),
+                    radial-gradient(ellipse at 80% 20%, #0a1a2e 0%, transparent 50%);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  font-family: 'Share Tech Mono', monospace;
+  color: #aaa;
+}
+
+.sim-header {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0 14px;
+  border-bottom: 1px solid #222;
+  margin-bottom: 16px;
+}
+.sim-title { font-size: 11px; letter-spacing: 3px; color: #c9a84c; text-transform: uppercase; }
+.sim-status { font-size: 10px; color: #555; }
+.sim-status span { color: #4caf50; }
+
+/* The machine bezel */
+.machine-bezel {
+  background: linear-gradient(135deg, #1c1c1e 0%, #111114 100%);
+  border: 2px solid #2a2a2e;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 0 60px rgba(201,168,76,0.08), 0 20px 80px rgba(0,0,0,0.8);
+  position: relative;
+}
+.machine-bezel::before {
+  content: 'ESP32-8048S070C  800×480  GT911 TOUCH';
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  color: #333;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+/* The screen itself — 800×480 */
+#screen {
+  width: 800px;
+  height: 480px;
+  background: #000;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Simulator controls below screen */
+.sim-controls {
+  width: 800px;
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.sim-btn {
+  background: #1a1a1e;
+  border: 1px solid #333;
+  color: #aaa;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.15s;
+}
+.sim-btn:hover { border-color: #c9a84c; color: #c9a84c; }
+.sim-btn.danger { border-color: #8b0000; color: #ff6b6b; }
+.sim-btn.danger:hover { background: #1a0000; }
+.sim-btn.active { border-color: #4caf50; color: #4caf50; }
+
+.sim-log {
+  width: 800px;
+  margin-top: 10px;
+  background: #050508;
+  border: 1px solid #1a1a1e;
+  border-radius: 4px;
+  padding: 10px;
+  height: 120px;
+  overflow-y: auto;
+  font-size: 10px;
+  line-height: 1.6;
+}
+.log-line { color: #555; }
+.log-line.ok  { color: #4caf50; }
+.log-line.err { color: #ff4444; }
+.log-line.net { color: #4fc3f7; }
+.log-line.state { color: #c9a84c; }
+
+/* API config row */
+.api-row {
+  width: 800px;
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 10px;
+}
+.api-row input {
+  flex: 1;
+  background: #0d0d10;
+  border: 1px solid #2a2a2e;
+  color: #4fc3f7;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+}
+.api-row label { color: #555; white-space: nowrap; }
+
+/* ═══════════════════════════════════════════════════
+   SCREEN CONTENTS — all screens rendered here
+═══════════════════════════════════════════════════ */
+
+/* Global screen typography */
+#screen * { font-family: 'Sarabun', sans-serif; }
+#screen .mono { font-family: 'Share Tech Mono', monospace; }
+
+/* ── Status bar (always present) ── */
+.status-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 44px;
+  background: linear-gradient(90deg, #8B6914 0%, #C9A84C 50%, #8B6914 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 100;
+}
+.status-bar .logo {
+  font-family: 'Kanit', sans-serif;
+  font-weight: 900;
+  font-size: 20px;
+  color: #1a0a00;
+  letter-spacing: 4px;
+}
+.status-bar .status-center {
+  font-size: 12px;
+  color: #4a2e00;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+.status-bar .status-right {
+  font-size: 10px;
+  color: #4a2e00;
+  text-align: right;
+  line-height: 1.4;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* ── SCREEN: BOOT ── */
+#scr-boot {
+  width: 100%; height: 100%;
+  background: radial-gradient(ellipse at center, #1a0a2e 0%, #050510 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+.boot-logo {
+  font-family: 'Kanit', sans-serif;
+  font-weight: 900;
+  font-size: 72px;
+  color: #C9A84C;
+  letter-spacing: 12px;
+  text-shadow: 0 0 60px rgba(201,168,76,0.5), 0 0 120px rgba(201,168,76,0.2);
+  animation: bootPulse 2s ease-in-out infinite;
+}
+@keyframes bootPulse {
+  0%, 100% { opacity: 1; text-shadow: 0 0 60px rgba(201,168,76,0.5); }
+  50% { opacity: 0.8; text-shadow: 0 0 100px rgba(201,168,76,0.8); }
+}
+.boot-sub {
+  font-size: 13px;
+  color: #8B6914;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+.boot-status {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: #4fc3f7;
+  margin-top: 10px;
+  letter-spacing: 1px;
+}
+.boot-progress {
+  width: 280px;
+  height: 2px;
+  background: #1a1a2e;
+  border-radius: 1px;
+  overflow: hidden;
+}
+.boot-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #C9A84C, #FFD700);
+  border-radius: 1px;
+  transition: width 0.3s ease;
+}
+
+/* ── SCREEN: IDLE / PRODUCT GRID ── */
+#scr-idle {
+  width: 100%; height: 100%;
+  background: #0a0812;
+  display: flex;
+  flex-direction: column;
+  padding-top: 44px;
+}
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 6px;
+  padding: 8px;
+  flex: 1;
+}
+.product-cell {
+  background: linear-gradient(135deg, #0f0e1a 0%, #0a0812 100%);
+  border: 1px solid #2a1f4a;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  padding: 8px 4px;
+  position: relative;
+  overflow: hidden;
+}
+.product-cell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(201,168,76,0.05), transparent);
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.product-cell:hover { border-color: #C9A84C; transform: scale(1.02); }
+.product-cell:hover::before { opacity: 1; }
+.product-cell.selected {
+  border-color: #FFD700;
+  background: linear-gradient(135deg, #1f1500 0%, #120e00 100%);
+  box-shadow: 0 0 20px rgba(201,168,76,0.3);
+}
+.product-cell.disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+.cell-num {
+  font-family: 'Kanit', sans-serif;
+  font-weight: 900;
+  font-size: 28px;
+  color: #C9A84C;
+  line-height: 1;
+}
+.cell-name {
+  font-size: 9px;
+  color: #888;
+  text-align: center;
+  margin-top: 3px;
+  line-height: 1.2;
+}
+.cell-price {
+  font-family: 'Kanit', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #FF8C00;
+  margin-top: 4px;
+}
+.cell-price span { font-size: 9px; color: #555; }
+
+/* ── SCREEN: DONOR NAME ── */
+#scr-donor {
+  width: 100%; height: 100%;
+  background: #0a0812;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 44px;
+}
+.donor-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 0 60px;
+}
+.donor-title {
+  font-family: 'Kanit', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #C9A84C;
+  text-align: center;
+}
+.donor-sub { font-size: 13px; color: #666; text-align: center; }
+.donor-input-row {
+  display: flex;
+  gap: 0;
+  width: 100%;
+  border: 1px solid #C9A84C;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.donor-input-display {
+  flex: 1;
+  background: #050508;
+  color: #fff;
+  padding: 12px 16px;
+  font-size: 16px;
+  font-family: 'Sarabun', sans-serif;
+  min-height: 48px;
+}
+.donor-btns { display: flex; gap: 12px; }
+.donor-btn {
+  padding: 12px 28px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s;
+  border: 1px solid;
+  font-family: 'Kanit', sans-serif;
+}
+.donor-btn.skip { background: #111; border-color: #333; color: #888; }
+.donor-btn.skip:hover { border-color: #555; }
+.donor-btn.confirm { background: #C9A84C; border-color: #C9A84C; color: #1a0a00; }
+.donor-btn.confirm:hover { background: #FFD700; }
+.kb-hint { font-size: 11px; color: #444; text-align: center; }
+
+/* ── SCREEN: GIFT OPTION (sacred water spray) ── */
+#scr-gift {
+  width: 100%; height: 100%;
+  background: #0a0812;
+  display: none;
+  flex-direction: column;
+  padding-top: 44px;
+}
+.gift-content {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+.gift-opt {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 2px solid transparent;
+  margin: 12px;
+  border-radius: 12px;
+  transition: all 0.15s;
+  padding: 20px 16px;
+  background: #0d0b18;
+}
+.gift-opt:hover { border-color: #C9A84C; background: #12101f; }
+.gift-opt.selected { border-color: #FFD700; background: #1a1500; box-shadow: 0 0 30px rgba(201,168,76,0.2); }
+.gift-icon { font-size: 52px; margin-bottom: 12px; }
+.gift-name { font-family: 'Kanit', sans-serif; font-size: 18px; font-weight: 700; color: #C9A84C; text-align: center; }
+.gift-desc { font-size: 12px; color: #666; text-align: center; margin-top: 6px; line-height: 1.5; }
+.gift-add { font-size: 11px; color: #FF8C00; margin-top: 8px; }
+
+/* ── SCREEN: QR PAYMENT ── */
+#scr-qr {
+  width: 100%; height: 100%;
+  background: #0a0812;
+  display: none;
+  flex-direction: column;
+  padding-top: 44px;
+}
+.qr-layout {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+}
+.qr-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px 24px;
+  gap: 14px;
+}
+.qr-amount {
+  font-family: 'Kanit', sans-serif;
+  font-size: 52px;
+  font-weight: 900;
+  color: #C9A84C;
+  line-height: 1;
+}
+.qr-amount span { font-size: 18px; color: #8B6914; }
+.qr-product-name { font-size: 15px; color: #aaa; }
+.qr-donor { font-size: 12px; color: #666; }
+.qr-instructions { font-size: 13px; color: #888; line-height: 1.7; border-left: 2px solid #C9A84C44; padding-left: 12px; }
+.qr-timer { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: #ff8c00; }
+.qr-right {
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  gap: 10px;
+}
+#qr-canvas-wrap {
+  background: #fff;
+  padding: 10px;
+  border-radius: 8px;
+}
+canvas#qr-canvas { display: block; }
+.qr-scan-label { font-size: 11px; color: #555; text-align: center; }
+.qr-promptpay { font-size: 12px; color: #4fc3f7; }
+.qr-order-id { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: #333; }
+
+/* Payment progress bar */
+.payment-bar {
+  height: 4px;
+  background: #1a1a2e;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+.payment-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #C9A84C, #FFD700);
+  transition: width 1s linear;
+}
+
+/* ── SCREEN: VENDING ── */
+#scr-vending {
+  width: 100%; height: 100%;
+  background: #0a0812;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 44px;
+  gap: 24px;
+}
+.vend-icon { font-size: 64px; animation: vendBounce 0.6s ease-in-out infinite alternate; }
+@keyframes vendBounce { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+.vend-title {
+  font-family: 'Kanit', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #C9A84C;
+}
+.vend-sub { font-size: 14px; color: #666; }
+.vend-bar { width: 400px; height: 6px; background: #1a1a2e; border-radius: 3px; overflow: hidden; }
+.vend-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #8bc34a);
+  border-radius: 3px;
+  animation: vendFill 3s ease forwards;
+}
+@keyframes vendFill { from { width: 0; } to { width: 100%; } }
+
+/* ── SCREEN: LUCKY NUMBER ── */
+#scr-lucky {
+  width: 100%; height: 100%;
+  background: radial-gradient(ellipse at center, #1a0a2e 0%, #0a0812 100%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 44px;
+  gap: 16px;
+}
+.lucky-label { font-size: 14px; color: #8B6914; letter-spacing: 2px; text-transform: uppercase; }
+.lucky-number {
+  font-family: 'Kanit', sans-serif;
+  font-size: 120px;
+  font-weight: 900;
+  color: #C9A84C;
+  text-shadow: 0 0 80px rgba(201,168,76,0.6);
+  animation: luckyReveal 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes luckyReveal {
+  from { transform: scale(0.3) rotate(-20deg); opacity: 0; }
+  to   { transform: scale(1) rotate(0); opacity: 1; }
+}
+.lucky-sub { font-size: 13px; color: #666; text-align: center; }
+.lucky-water {
+  background: linear-gradient(135deg, #0a2a4a, #0a1a3a);
+  border: 1px solid #1a4a7a;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 12px;
+  color: #4fc3f7;
+  text-align: center;
+}
+
+/* ── SCREEN: THANK YOU ── */
+#scr-thanks {
+  width: 100%; height: 100%;
+  background: radial-gradient(ellipse at center, #1a0a2e 0%, #050510 100%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 44px;
+  gap: 18px;
+}
+.thanks-check { font-size: 72px; animation: checkPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes checkPop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.thanks-title {
+  font-family: 'Kanit', sans-serif;
+  font-size: 36px;
+  font-weight: 900;
+  color: #4caf50;
+}
+.thanks-th { font-size: 22px; color: #C9A84C; }
+.thanks-donor { font-size: 14px; color: #888; }
+.thanks-sub { font-size: 13px; color: #555; text-align: center; max-width: 500px; line-height: 1.6; }
+.thanks-merit { font-size: 12px; color: #8B6914; font-style: italic; text-align: center; max-width: 500px; }
+
+/* ── SCREEN: ERROR ── */
+#scr-error {
+  width: 100%; height: 100%;
+  background: #0a0005;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 44px;
+  gap: 16px;
+}
+.error-icon { font-size: 64px; animation: errShake 0.5s ease; }
+@keyframes errShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+.error-title { font-family: 'Kanit', sans-serif; font-size: 24px; color: #ff4444; }
+.error-msg { font-size: 14px; color: #888; text-align: center; max-width: 500px; line-height: 1.6; }
+.error-retry-btn {
+  margin-top: 10px;
+  padding: 12px 36px;
+  background: #8b0000;
+  border: 1px solid #ff4444;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: 'Kanit', sans-serif;
+  transition: all 0.12s;
+}
+.error-retry-btn:hover { background: #cc0000; }
+
+/* ── SCREEN: SERVICE MODE ── */
+#scr-service {
+  width: 100%; height: 100%;
+  background: #050810;
+  display: none;
+  flex-direction: column;
+}
+.service-header {
+  height: 44px;
+  background: #0a1020;
+  border-bottom: 1px solid #1a2a3a;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 16px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: #4fc3f7;
+}
+.service-tabs {
+  display: flex;
+  background: #080a14;
+  border-bottom: 1px solid #1a1a2e;
+}
+.service-tab {
+  padding: 10px 20px;
+  font-size: 11px;
+  font-family: 'Share Tech Mono', monospace;
+  color: #444;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  letter-spacing: 1px;
+  transition: all 0.12s;
+}
+.service-tab:hover { color: #aaa; }
+.service-tab.active { color: #4fc3f7; border-bottom-color: #4fc3f7; }
+.service-body { flex: 1; overflow-y: auto; padding: 16px; display: none; }
+.service-body.active { display: block; }
+.svc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #0d0d14;
+}
+.svc-label { font-size: 12px; color: #888; }
+.svc-val { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: #4fc3f7; }
+.svc-input {
+  background: #0a0a14;
+  border: 1px solid #222;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  width: 120px;
+}
+.svc-toggle {
+  width: 48px; height: 24px;
+  background: #222;
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.svc-toggle.on { background: #4caf50; }
+.svc-toggle::after {
+  content: '';
+  position: absolute;
+  width: 20px; height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  top: 2px; left: 2px;
+  transition: left 0.2s;
+}
+.svc-toggle.on::after { left: 26px; }
+.svc-section-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: #4fc3f7;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 14px 0 6px;
+  border-bottom: 1px solid #1a2a3a;
+  padding-bottom: 4px;
+}
+.svc-selftest-btn {
+  padding: 8px 20px;
+  background: #0a1a2e;
+  border: 1px solid #1a3a5e;
+  color: #4fc3f7;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: 'Share Tech Mono', monospace;
+  transition: all 0.12s;
+}
+.svc-selftest-btn:hover { background: #0a2a4e; }
+.lane-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 8px; }
+.lane-cell {
+  background: #0a0a14;
+  border: 1px solid #1a1a2e;
+  border-radius: 4px;
+  padding: 8px 4px;
+  text-align: center;
+  cursor: pointer;
+}
+.lane-cell .l-num { font-size: 16px; font-family: 'Kanit', sans-serif; color: #C9A84C; }
+.lane-cell .l-price { font-size: 10px; color: #555; margin-top: 2px; }
+.lane-cell .l-status { font-size: 9px; margin-top: 2px; }
+.lane-cell.ok .l-status { color: #4caf50; }
+.lane-cell.err .l-status { color: #ff4444; }
+.led-zone-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
+.led-zone {
+  background: #0a0a14;
+  border: 1px solid #1a1a2e;
+  border-radius: 4px;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+}
+.led-zone-name { font-size: 10px; color: #666; margin-bottom: 6px; }
+.led-preview { height: 20px; border-radius: 3px; transition: background 0.3s; }
+.color-row { display: flex; gap: 6px; margin-top: 6px; }
+.color-dot {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.1s;
+}
+.color-dot:hover { border-color: #fff; }
+
+/* Password overlay */
+#svc-pw-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.95);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  display: none;
+}
+.pw-title { font-family: 'Kanit', sans-serif; font-size: 18px; color: #C9A84C; }
+.pw-dots { display: flex; gap: 12px; }
+.pw-dot { width: 16px; height: 16px; border-radius: 50%; background: #222; border: 1px solid #444; }
+.pw-dot.filled { background: #C9A84C; border-color: #C9A84C; }
+.pw-numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 200px; }
+.pw-key {
+  background: #0f0f1a;
+  border: 1px solid #2a2a3a;
+  color: #fff;
+  padding: 14px;
+  text-align: center;
+  font-size: 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Kanit', sans-serif;
+  transition: all 0.1s;
+}
+.pw-key:hover { background: #1a1a2a; border-color: #C9A84C; }
+.pw-key.clear { font-size: 12px; color: #ff6b6b; }
+.pw-err { font-size: 11px; color: #ff4444; height: 16px; }
+
+</style>
+</head>
+<body>
+
+<!-- Simulator shell -->
+<div class="sim-header">
+  <div class="sim-title">🕉 SATU MACHINE SIMULATOR</div>
+  <div class="sim-status">API: <span id="api-status">—</span> &nbsp;|&nbsp; Device: <span id="dev-status">—</span> &nbsp;|&nbsp; State: <span id="state-status">BOOT</span></div>
+</div>
+
+<div class="machine-bezel">
+  <!-- THE MACHINE SCREEN -->
+  <div id="screen">
+
+    <!-- Status bar (persistent) -->
+    <div class="status-bar" id="status-bar" style="display:none;">
+      <div class="logo">SATU</div>
+      <div class="status-center" id="sb-label">เลือกสิ่งที่ต้องการ</div>
+      <div class="status-right" id="sb-right">Connecting...<br>--:--</div>
+    </div>
+
+    <!-- BOOT SCREEN -->
+    <div id="scr-boot" style="display:flex;">
+      <div class="boot-logo">SATU</div>
+      <div class="boot-sub">Sacred Automated Temple Unit</div>
+      <div class="boot-status" id="boot-msg">Initializing...</div>
+      <div class="boot-progress"><div class="boot-progress-bar" id="boot-bar" style="width:0%"></div></div>
+    </div>
+
+    <!-- IDLE / PRODUCT SELECTION -->
+    <div id="scr-idle" style="display:none; flex-direction:column;">
+      <div class="product-grid" id="product-grid">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- DONOR NAME INPUT -->
+    <div id="scr-donor" style="display:none; flex-direction:column;">
+      <div class="donor-content">
+        <div class="donor-title">บันทึกชื่อผู้ทำบุญ</div>
+        <div class="donor-sub">Enter donor name (optional) — ไม่บังคับ</div>
+        <div class="donor-input-row">
+          <div class="donor-input-display" id="donor-display">_</div>
+        </div>
+        <div class="kb-hint">💡 Type on your keyboard — or tap Skip to continue anonymously</div>
+        <div class="donor-btns">
+          <div class="donor-btn skip" onclick="skipDonor()">Skip / ข้าม</div>
+          <div class="donor-btn confirm" onclick="confirmDonor()">Confirm ✓</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GIFT OPTION -->
+    <div id="scr-gift" style="display:none; flex-direction:column;">
+      <div class="gift-content">
+        <div class="gift-opt" id="gift-none" onclick="selectGift(false)">
+          <div class="gift-icon">📦</div>
+          <div class="gift-name">Item Only</div>
+          <div class="gift-desc">Receive your chosen donation item from the dispenser</div>
+        </div>
+        <div class="gift-opt" id="gift-water" onclick="selectGift(true)">
+          <div class="gift-icon">💦</div>
+          <div class="gift-name">+ Sacred Water</div>
+          <div class="gift-desc">Add a sacred water spray blessing with your item<br>น้ำมนต์มงคล</div>
+          <div class="gift-add">+20 THB</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QR PAYMENT -->
+    <div id="scr-qr" style="display:none; flex-direction:column; position:relative;">
+      <div class="qr-layout">
+        <div class="qr-left">
+          <div class="qr-amount" id="qr-amount-display"><span>฿</span>—</div>
+          <div class="qr-product-name" id="qr-product-display">—</div>
+          <div class="qr-donor" id="qr-donor-display"></div>
+          <div class="qr-instructions">
+            1. Open your banking app<br>
+            2. Select "PromptPay QR" / สแกน QR<br>
+            3. Scan the code<br>
+            4. Confirm payment
+          </div>
+          <div class="qr-timer" id="qr-timer">⏱ 2:00</div>
+        </div>
+        <div class="qr-right">
+          <div id="qr-canvas-wrap">
+            <canvas id="qr-canvas" width="180" height="180"></canvas>
+          </div>
+          <div class="qr-scan-label">PromptPay</div>
+          <div class="qr-promptpay" id="qr-pp-label">สแกนเพื่อชำระเงิน</div>
+          <div class="qr-order-id" id="qr-order-id-display"></div>
+        </div>
+      </div>
+      <div class="payment-bar"><div class="payment-bar-fill" id="payment-bar-fill" style="width:100%"></div></div>
+    </div>
+
+    <!-- VENDING -->
+    <div id="scr-vending" style="display:none; flex-direction:column; align-items:center; justify-content:center; gap:24px; padding-top:44px;">
+      <div class="status-bar">
+        <div class="logo">SATU</div>
+        <div class="status-center">กำลังจ่ายของ</div>
+        <div class="status-right" id="vend-sb-right"></div>
+      </div>
+      <div class="vend-icon">📿</div>
+      <div class="vend-title" id="vend-title">กำลังจ่ายของ...</div>
+      <div class="vend-sub">Please wait — รอสักครู่</div>
+      <div class="vend-bar"><div class="vend-bar-fill"></div></div>
+    </div>
+
+    <!-- LUCKY NUMBER -->
+    <div id="scr-lucky">
+      <div class="status-bar">
+        <div class="logo">SATU</div>
+        <div class="status-center">เลขมงคล</div>
+        <div class="status-right"></div>
+      </div>
+      <div class="lucky-label">Your Merit Lucky Number</div>
+      <div class="lucky-number" id="lucky-number">—</div>
+      <div class="lucky-sub">Compare this with the temple fortune sticks<br>เปรียบเทียบกับไม้พยากรณ์ของวัด</div>
+      <div class="lucky-water" id="lucky-water-note" style="display:none;">
+        💦 Sacred water spray has been activated<br>น้ำมนต์มงคลถูกพรม
+      </div>
+    </div>
+
+    <!-- THANK YOU -->
+    <div id="scr-thanks">
+      <div class="status-bar">
+        <div class="logo">SATU</div>
+        <div class="status-center">ขอบคุณ</div>
+        <div class="status-right"></div>
+      </div>
+      <div class="thanks-check">✅</div>
+      <div class="thanks-title">Thank You!</div>
+      <div class="thanks-th">ขอบคุณที่ทำบุญ</div>
+      <div class="thanks-donor" id="thanks-donor"></div>
+      <div class="thanks-sub">Your merit has been recorded.<br>May your generosity bring you happiness, health, and prosperity.</div>
+      <div class="thanks-merit">"ทำดีได้ดี" — Good deeds bring good returns</div>
+    </div>
+
+    <!-- ERROR -->
+    <div id="scr-error">
+      <div class="error-icon">⚠️</div>
+      <div class="error-title" id="error-title">Error</div>
+      <div class="error-msg" id="error-msg">An error occurred.</div>
+      <div class="error-retry-btn" onclick="showScreen('idle')">Try Again / ลองใหม่</div>
+    </div>
+
+    <!-- SERVICE MODE -->
+    <div id="scr-service" style="display:none; flex-direction:column;">
+      <div class="service-header">
+        🔧 SERVICE MODE
+        <span style="color:#ff8c00;" id="svc-device-id">—</span>
+        <span style="margin-left:auto; cursor:pointer; color:#ff4444;" onclick="exitService()">✕ EXIT</span>
+      </div>
+      <div class="service-tabs">
+        <div class="service-tab active" onclick="svcTab('diag')">DIAGNOSTICS</div>
+        <div class="service-tab" onclick="svcTab('lanes')">LANES</div>
+        <div class="service-tab" onclick="svcTab('leds')">LEDS</div>
+        <div class="service-tab" onclick="svcTab('settings')">SETTINGS</div>
+        <div class="service-tab" onclick="svcTab('firmware')">FIRMWARE</div>
+      </div>
+
+      <!-- DIAGNOSTICS TAB -->
+      <div class="service-body active" id="svc-diag">
+        <div class="svc-section-title">System Info</div>
+        <div class="svc-row"><span class="svc-label">Device ID</span><span class="svc-val" id="d-deviceid">—</span></div>
+        <div class="svc-row"><span class="svc-label">WiFi SSID</span><span class="svc-val" id="d-wifi">Simulator</span></div>
+        <div class="svc-row"><span class="svc-label">IP Address</span><span class="svc-val" id="d-ip">192.168.1.100</span></div>
+        <div class="svc-row"><span class="svc-label">Free Heap</span><span class="svc-val" id="d-heap">8,192 KB</span></div>
+        <div class="svc-row"><span class="svc-label">Uptime</span><span class="svc-val" id="d-uptime">0s</span></div>
+        <div class="svc-row"><span class="svc-label">Backend API</span><span class="svc-val" id="d-api">—</span></div>
+        <div class="svc-row"><span class="svc-label">Last Heartbeat</span><span class="svc-val" id="d-hb">Never</span></div>
+        <div class="svc-row"><span class="svc-label">Payment Mode</span><span class="svc-val" id="d-mode">—</span></div>
+        <div class="svc-section-title" style="margin-top:14px;">Self Test</div>
+        <div class="svc-row">
+          <span class="svc-label">Run hardware self-test</span>
+          <button class="svc-selftest-btn" onclick="runSelfTest()">▶ RUN TEST</button>
+        </div>
+        <div id="self-test-results" style="font-size:11px; color:#555; margin-top:8px; font-family:Share Tech Mono,monospace; line-height:1.8;"></div>
+      </div>
+
+      <!-- LANES TAB -->
+      <div class="service-body" id="svc-lanes">
+        <div class="svc-section-title">Lane Status &amp; Price Override</div>
+        <div class="lane-grid" id="svc-lane-grid"></div>
+        <div style="margin-top:14px;">
+          <div class="svc-section-title">Test Fire Lane</div>
+          <div class="svc-row">
+            <span class="svc-label">Fire relay for selected lane (SIMULATE)</span>
+            <button class="svc-selftest-btn" onclick="testFireLane()">⚡ FIRE RELAY</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEDS TAB -->
+      <div class="service-body" id="svc-leds">
+        <div class="svc-section-title">LED Zone Control</div>
+        <div class="led-zone-grid" id="led-zone-grid"></div>
+        <div class="svc-section-title" style="margin-top:14px;">Quick Effects</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="svc-selftest-btn" onclick="ledEffect('idle')">Idle Gold</button>
+          <button class="svc-selftest-btn" onclick="ledEffect('celebrate')">Celebrate</button>
+          <button class="svc-selftest-btn" onclick="ledEffect('error')">Error</button>
+          <button class="svc-selftest-btn" onclick="ledEffect('off')">All Off</button>
+        </div>
+        <div class="svc-section-title" style="margin-top:14px;">Brightness</div>
+        <div class="svc-row">
+          <span class="svc-label">LED Brightness (0-255)</span>
+          <input class="svc-input" type="number" min="0" max="255" value="128" id="led-brightness">
+        </div>
+      </div>
+
+      <!-- SETTINGS TAB -->
+      <div class="service-body" id="svc-settings">
+        <div class="svc-section-title">Network</div>
+        <div class="svc-row"><span class="svc-label">WiFi SSID</span><input class="svc-input" value="Temple_WiFi" id="cfg-ssid"></div>
+        <div class="svc-row"><span class="svc-label">WiFi Password</span><input class="svc-input" type="password" value="••••••••" id="cfg-pass"></div>
+        <div class="svc-section-title">Display</div>
+        <div class="svc-row">
+          <span class="svc-label">Screen Theme</span>
+          <select class="svc-input" id="cfg-theme" onchange="applyTheme(this.value)">
+            <option>Dark Gold</option>
+            <option>Temple Blue</option>
+            <option>Classic</option>
+          </select>
+        </div>
+        <div class="svc-row">
+          <span class="svc-label">Screen Timeout</span>
+          <input class="svc-input" type="number" value="30" id="cfg-timeout"> <span style="color:#555;font-size:10px;margin-left:6px;">sec</span>
+        </div>
+        <div class="svc-section-title">Sound</div>
+        <div class="svc-row">
+          <span class="svc-label">Sound Effects</span>
+          <div class="svc-toggle on" id="toggle-sound" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="svc-row">
+          <span class="svc-label">Volume</span>
+          <input class="svc-input" type="range" min="0" max="100" value="70" style="width:120px;">
+        </div>
+        <div class="svc-section-title">Machine</div>
+        <div class="svc-row">
+          <span class="svc-label">Sacred Water Feature</span>
+          <div class="svc-toggle on" id="toggle-water" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="svc-row">
+          <span class="svc-label">Lucky Number Feature</span>
+          <div class="svc-toggle on" id="toggle-lucky" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div style="margin-top:16px; display:flex; gap:8px;">
+          <button class="svc-selftest-btn" onclick="saveSettings()">💾 Save Settings</button>
+          <button class="svc-selftest-btn" style="color:#ff6b6b;border-color:#8b0000;" onclick="factoryReset()">🔄 Factory Reset</button>
+        </div>
+      </div>
+
+      <!-- FIRMWARE TAB -->
+      <div class="service-body" id="svc-firmware">
+        <div class="svc-section-title">Current Firmware</div>
+        <div class="svc-row"><span class="svc-label">Version</span><span class="svc-val">v1.0.0-sim</span></div>
+        <div class="svc-row"><span class="svc-label">Build Date</span><span class="svc-val">2025-04-22</span></div>
+        <div class="svc-row"><span class="svc-label">Board</span><span class="svc-val">ESP32-8048S070C</span></div>
+        <div class="svc-section-title">Remote OTA</div>
+        <div class="svc-row">
+          <span class="svc-label">Check for update from backend</span>
+          <button class="svc-selftest-btn" onclick="checkOTA()">🔄 CHECK UPDATE</button>
+        </div>
+        <div id="ota-status" style="font-size:11px;color:#555;margin-top:8px;font-family:Share Tech Mono,monospace;"></div>
+        <div class="svc-section-title">Security</div>
+        <div class="svc-row"><span class="svc-label">Flash Encryption</span><span class="svc-val" style="color:#ff8c00;">DISABLED (dev mode)</span></div>
+        <div class="svc-row"><span class="svc-label">Secure Boot</span><span class="svc-val" style="color:#ff8c00;">DISABLED (dev mode)</span></div>
+        <div class="svc-row"><span class="svc-label">JTAG</span><span class="svc-val" style="color:#4caf50;">ENABLED</span></div>
+      </div>
+    </div>
+
+    <!-- SERVICE PASSWORD OVERLAY -->
+    <div id="svc-pw-overlay" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.95); z-index:200; flex-direction:column; align-items:center; justify-content:center; gap:16px;">
+      <div class="pw-title">🔐 Service Access</div>
+      <div class="pw-dots" id="pw-dots"></div>
+      <div class="pw-numpad" id="pw-numpad"></div>
+      <div class="pw-err" id="pw-err"></div>
+      <div style="font-size:10px;color:#333;">Default: 1234</div>
+    </div>
+
+  </div><!-- end #screen -->
+</div><!-- end .machine-bezel -->
+
+<!-- Controls below screen -->
+<div class="sim-controls">
+  <button class="sim-btn" onclick="simReboot()">⟳ Reboot</button>
+  <button class="sim-btn" onclick="openService()">🔧 Service</button>
+  <button class="sim-btn" onclick="simPayment()">💳 Simulate Payment</button>
+  <button class="sim-btn" onclick="simHeartbeat()">♥ Heartbeat</button>
+  <button class="sim-btn" onclick="pollCmds()">📡 Poll Commands</button>
+  <button class="sim-btn danger" onclick="simDisable()">🚫 Disable Cmd</button>
+  <button class="sim-btn danger" onclick="simRebootCmd()">💥 Reboot Cmd</button>
+</div>
+
+<div class="api-row">
+  <label>API BASE URL:</label>
+  <input type="text" id="api-url" value="https://api.janishammer.com" placeholder="https://api.janishammer.com">
+  <button class="sim-btn" onclick="reconnect()">Connect</button>
+  <label style="margin-left:8px;">MAC:</label>
+  <input type="text" id="sim-mac" value="" style="width:160px;" placeholder="Auto">
+</div>
+
+<div class="sim-log" id="sim-log">
+  <div class="log-line state">[SIM] Satu Machine Simulator loaded. Click Connect to begin.</div>
+</div>
+
+<!-- QR Code library (lightweight, no external dep) -->
+<script>
+// ─── Tiny QR renderer using canvas (no library needed) ─────────────────────
+// We'll draw a fake-looking QR pattern for simulation, or load the real image
+// from the backend QR URL if available.
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════════════════
+const STATE = {
+  screen: 'boot',
+  deviceId: '',
+  deviceSecret: '',
+  mac: '',
+  selectedProduct: -1,
+  donorName: '',
+  wantWater: false,
+  currentOrderId: '',
+  currentQrUrl: '',
+  currentAmount: 0,
+  currentProductName: '',
+  paymentTimer: null,
+  paymentSeconds: 120,
+  heartbeatTimer: null,
+  cmdPollTimer: null,
+  uptimeTimer: null,
+  uptimeSeconds: 0,
+  lastHeartbeat: null,
+  svcSelectedLane: -1,
+  pwInput: '',
+  SERVICE_PASSWORD: '1234',
+};
+
+const PRODUCTS = {
+  1:  { name: 'Blessing Card',     nameTH: 'บัตรอวยพร',    price: 10,    icon: '🙏' },
+  2:  { name: 'Small Amulet',      nameTH: 'พระเล็ก',      price: 20,    icon: '📿' },
+  3:  { name: 'Medium Amulet',     nameTH: 'พระกลาง',      price: 50,    icon: '📿' },
+  4:  { name: 'Large Amulet',      nameTH: 'พระใหญ่',      price: 100,   icon: '📿' },
+  5:  { name: 'Monk Blessing',     nameTH: 'พรพระ',        price: 500,   icon: '🕉️' },
+  6:  { name: 'Temple Donation',   nameTH: 'ทำบุญวัด',     price: 1000,  icon: '⛩️' },
+  7:  { name: 'Merit Set',         nameTH: 'ชุดทำบุญ',     price: 2000,  icon: '🌸' },
+  8:  { name: 'Gold Leaf',         nameTH: 'ทองคำเปลว',    price: 5000,  icon: '🌟' },
+  9:  { name: 'Buddha Statue',     nameTH: 'พระพุทธรูป',   price: 10000, icon: '🏛️' },
+  10: { name: 'Lifetime Blessing', nameTH: 'พรชั่วชีวิต',  price: 20000, icon: '✨' },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  LOGGING
+// ═══════════════════════════════════════════════════════════════════════════
+function log(msg, type = '') {
+  const el = document.getElementById('sim-log');
+  const ts = new Date().toTimeString().slice(0,8);
+  const div = document.createElement('div');
+  div.className = `log-line ${type}`;
+  div.textContent = `[${ts}] ${msg}`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SCREEN MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════
+const SCREENS = ['boot','idle','donor','gift','qr','vending','lucky','thanks','error','service'];
+
+function showScreen(name, label = '', opts = {}) {
+  SCREENS.forEach(s => {
+    const el = document.getElementById(`scr-${s}`);
+    if (el) el.style.display = 'none';
+  });
+
+  const target = document.getElementById(`scr-${name}`);
+  if (!target) return;
+  const isCol = ['idle','donor','gift','qr','vending','lucky','thanks','error','service'].includes(name);
+  target.style.display = isCol ? 'flex' : 'block';
+
+  const sb = document.getElementById('status-bar');
+  if (sb) sb.style.display = ['idle','donor','gift','qr'].includes(name) ? 'flex' : 'none';
+
+  if (label) document.getElementById('sb-label').textContent = label;
+  STATE.screen = name;
+  document.getElementById('state-status').textContent = name.toUpperCase();
+  log(`[STATE] → ${name.toUpperCase()}`, 'state');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  API HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+function apiUrl() { return document.getElementById('api-url').value.replace(/\/$/, ''); }
+
+async function apiPost(path, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (STATE.deviceSecret) headers['X-Device-Secret'] = STATE.deviceSecret;
+  const r = await fetch(apiUrl() + path, { method: 'POST', headers, body: JSON.stringify(body) });
+  return { status: r.status, data: await r.json() };
+}
+
+async function apiGet(path) {
+  const headers = {};
+  if (STATE.deviceSecret) headers['X-Device-Secret'] = STATE.deviceSecret;
+  const url = apiUrl() + path + (path.includes('?') ? '&' : '?') + `device_id=${STATE.deviceId}`;
+  const r = await fetch(url, { headers });
+  return { status: r.status, data: await r.json() };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  BOOT SEQUENCE
+// ═══════════════════════════════════════════════════════════════════════════
+function genMac() {
+  return Array.from({length:6}, () =>
+    Math.floor(Math.random()*256).toString(16).padStart(2,'0').toUpperCase()
+  ).join(':');
+}
+
+async function bootSequence() {
+  showScreen('boot');
+  const steps = [
+    ['Initializing hardware...', 10],
+    ['MCP23017 I2C scan...', 25],
+    ['LED init...', 40],
+    ['Display init (EK9716 driver)...', 55],
+    ['WiFi connecting...', 70],
+    ['Calling /v1/machine/hello...', 85],
+    ['Ready.', 100],
+  ];
+
+  for (const [msg, pct] of steps) {
+    document.getElementById('boot-msg').textContent = msg;
+    document.getElementById('boot-bar').style.width = pct + '%';
+    await delay(400 + Math.random() * 300);
+    log(`[BOOT] ${msg}`);
+  }
+
+  await sendHello();
+}
+
+async function sendHello() {
+  let mac = document.getElementById('sim-mac').value.trim();
+  if (!mac) {
+    mac = genMac();
+    document.getElementById('sim-mac').value = mac;
+  }
+  STATE.mac = mac;
+  log(`[NET] POST /v1/machine/hello  MAC=${mac}`, 'net');
+
+  try {
+    const { status, data } = await apiPost('/v1/machine/hello', { mac, firmware: 'v1.0.0-sim' });
+    if (status === 200 || status === 201) {
+      STATE.deviceId = data.device_id || '';
+      STATE.deviceSecret = data.device_secret || '';
+      log(`[NET] Hello OK: device_id=${STATE.deviceId} status=${data.status}`, 'ok');
+      document.getElementById('dev-status').textContent = STATE.deviceId;
+      document.getElementById('api-status').textContent = 'Connected';
+      document.getElementById('sb-right').textContent = STATE.deviceId + '\nWiFi OK';
+
+      // Update service screen device id
+      document.getElementById('svc-device-id').textContent = STATE.deviceId;
+      document.getElementById('d-deviceid').textContent = STATE.deviceId;
+      document.getElementById('d-api').textContent = apiUrl();
+
+      startTimers();
+      buildProductGrid();
+      await delay(600);
+      showScreen('idle', 'เลือกสิ่งที่ต้องการ');
+    } else {
+      log(`[NET] Hello FAILED: ${status} ${JSON.stringify(data)}`, 'err');
+      document.getElementById('api-status').textContent = 'Error';
+      showError('Backend Error', `Cannot register machine.\n${data.error || 'Check API URL and try again.'}`);
+    }
+  } catch(e) {
+    log(`[NET] Hello exception: ${e.message}`, 'err');
+    document.getElementById('api-status').textContent = 'Offline';
+    showError('Offline', 'Cannot reach backend API.\nCheck the API URL above and click Connect.');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  PRODUCT GRID
+// ═══════════════════════════════════════════════════════════════════════════
+function buildProductGrid() {
+  const grid = document.getElementById('product-grid');
+  grid.innerHTML = '';
+  for (let i = 1; i <= 10; i++) {
+    const p = PRODUCTS[i];
+    const cell = document.createElement('div');
+    cell.className = 'product-cell';
+    cell.dataset.product = i;
+    cell.innerHTML = `
+      <div class="cell-num">${i}</div>
+      <div style="font-size:20px;margin:2px 0;">${p.icon}</div>
+      <div class="cell-name">${p.nameTH}<br><span style="color:#555;font-size:8px;">${p.name}</span></div>
+      <div class="cell-price">${p.price.toLocaleString()} <span>THB</span></div>
+    `;
+    cell.addEventListener('click', () => onProductTap(i));
+    grid.appendChild(cell);
+  }
+}
+
+function onProductTap(productIndex) {
+  if (STATE.screen !== 'idle') return;
+  STATE.selectedProduct = productIndex;
+  const p = PRODUCTS[productIndex];
+  log(`[UI] Product selected: ${productIndex} — ${p.name} (${p.price} THB)`);
+
+  // Highlight
+  document.querySelectorAll('.product-cell').forEach(c => c.classList.remove('selected'));
+  document.querySelector(`[data-product="${productIndex}"]`)?.classList.add('selected');
+
+  // Short delay then go to donor name screen
+  setTimeout(() => showScreen('donor', 'ใส่ชื่อผู้ทำบุญ'), 300);
+
+  // Set up keyboard for donor name
+  STATE.donorName = '';
+  document.getElementById('donor-display').textContent = '_';
+  setupDonorKeyboard();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  DONOR NAME
+// ═══════════════════════════════════════════════════════════════════════════
+function setupDonorKeyboard() {
+  const el = document.getElementById('donor-display');
+  const handler = (e) => {
+    if (STATE.screen !== 'donor') { document.removeEventListener('keydown', handler); return; }
+    if (e.key === 'Enter') { confirmDonor(); return; }
+    if (e.key === 'Escape') { skipDonor(); return; }
+    if (e.key === 'Backspace') {
+      STATE.donorName = STATE.donorName.slice(0,-1);
+    } else if (e.key.length === 1 && STATE.donorName.length < 50) {
+      STATE.donorName += e.key;
+    }
+    el.textContent = STATE.donorName + '_' || '_';
+  };
+  document.addEventListener('keydown', handler);
+}
+
+function skipDonor() { STATE.donorName = ''; log('[UI] Donor name skipped'); showScreen('gift', 'เลือกของขวัญเสริม'); }
+function confirmDonor() {
+  log(`[UI] Donor name: "${STATE.donorName}"`);
+  showScreen('gift', 'เลือกของขวัญเสริม');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  GIFT OPTION
+// ═══════════════════════════════════════════════════════════════════════════
+function selectGift(wantWater) {
+  STATE.wantWater = wantWater;
+  log(`[UI] Gift: ${wantWater ? 'Sacred water selected' : 'No gift'}`);
+  document.getElementById('gift-none').classList.toggle('selected', !wantWater);
+  document.getElementById('gift-water').classList.toggle('selected', wantWater);
+  setTimeout(() => createOrder(), 300);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  CREATE ORDER
+// ═══════════════════════════════════════════════════════════════════════════
+async function createOrder() {
+  if (!STATE.deviceId) { showError('Not Registered', 'Device not registered with backend.'); return; }
+
+  const p = PRODUCTS[STATE.selectedProduct];
+  const totalAmount = p.price + (STATE.wantWater ? 20 : 0);
+  log(`[NET] POST /v1/order  device=${STATE.deviceId} product=${STATE.selectedProduct} donor="${STATE.donorName}"`, 'net');
+
+  showScreen('qr', 'ชำระเงิน');
+  document.getElementById('qr-amount-display').innerHTML = `<span>฿</span>${totalAmount.toLocaleString()}`;
+  document.getElementById('qr-product-display').textContent = `${p.icon} ${p.nameTH} (${p.name})`;
+  document.getElementById('qr-donor-display').textContent = STATE.donorName ? `Donor: ${STATE.donorName}` : '';
+  drawFakeQR();
+
+  try {
+    const { status, data } = await apiPost('/v1/order', {
+      device_id: STATE.deviceId,
+      product_id: STATE.selectedProduct,
+      donor_name: STATE.donorName || null,
+    });
+
+    if (status === 200 || status === 201) {
+      STATE.currentOrderId = data.order_id;
+      STATE.currentQrUrl = data.qr_code_url;
+      STATE.currentAmount = data.amount;
+      STATE.currentProductName = data.product_name || p.name;
+      log(`[NET] Order created: ${STATE.currentOrderId}  QR=${STATE.currentQrUrl}`, 'ok');
+      document.getElementById('qr-order-id-display').textContent = STATE.currentOrderId;
+
+      // Load real QR image if URL is an image
+      if (STATE.currentQrUrl && STATE.currentQrUrl.startsWith('http')) {
+        loadQRImage(STATE.currentQrUrl);
+      }
+
+      startPaymentTimer(120);
+    } else {
+      log(`[NET] Order FAILED: ${status} ${JSON.stringify(data)}`, 'err');
+      showError('Payment Error', `Cannot create order.\n${data.error || 'Try again.'}`);
+    }
+  } catch(e) {
+    log(`[NET] Order exception: ${e.message}`, 'err');
+    showError('Network Error', 'Cannot reach backend.');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  QR DISPLAY
+// ═══════════════════════════════════════════════════════════════════════════
+function drawFakeQR() {
+  const canvas = document.getElementById('qr-canvas');
+  const ctx = canvas.getContext('2d');
+  const size = 180;
+  canvas.width = canvas.height = size;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0,0,size,size);
+  ctx.fillStyle = '#000';
+
+  // Draw random QR-like pattern
+  const grid = 21;
+  const cell = size / grid;
+  for (let r = 0; r < grid; r++) {
+    for (let c = 0; c < grid; c++) {
+      const inFinder = (r<7&&c<7)||(r<7&&c>13)||(r>13&&c<7);
+      const fill = inFinder ? (r===0||r===6||c===0||c===6||r===3&&c>=2&&c<=4) : Math.random() > 0.55;
+      if (fill) ctx.fillRect(c*cell+1, r*cell+1, cell-1, cell-1);
+    }
+  }
+  // Finder patterns (proper)
+  [[0,0],[0,14],[14,0]].forEach(([row,col]) => {
+    ctx.strokeStyle = '#000'; ctx.lineWidth = cell;
+    ctx.strokeRect(col*cell+cell*0.5, row*cell+cell*0.5, cell*6, cell*6);
+    ctx.fillRect((col+2)*cell, (row+2)*cell, cell*3, cell*3);
+  });
+}
+
+function loadQRImage(url) {
+  const canvas = document.getElementById('qr-canvas');
+  const ctx = canvas.getContext('2d');
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => { ctx.clearRect(0,0,180,180); ctx.drawImage(img,0,0,180,180); log('[UI] Real QR image loaded', 'ok'); };
+  img.onerror = () => log('[UI] QR image load failed — using generated pattern', 'err');
+  img.src = url;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  PAYMENT TIMER + POLLING
+// ═══════════════════════════════════════════════════════════════════════════
+function startPaymentTimer(seconds) {
+  STATE.paymentSeconds = seconds;
+  clearInterval(STATE.paymentTimer);
+  const totalMs = seconds * 1000;
+  const startMs = Date.now();
+
+  STATE.paymentTimer = setInterval(async () => {
+    STATE.paymentSeconds--;
+    const pct = (STATE.paymentSeconds / seconds) * 100;
+    document.getElementById('payment-bar-fill').style.width = pct + '%';
+    document.getElementById('qr-timer').textContent = `⏱ ${formatTime(STATE.paymentSeconds)}`;
+
+    if (STATE.paymentSeconds <= 0) {
+      clearInterval(STATE.paymentTimer);
+      showError('Payment Timeout', 'The payment window has expired.\nPlease start a new transaction.');
+      return;
+    }
+
+    // Poll status every 3 seconds
+    if (STATE.paymentSeconds % 3 === 0 && STATE.currentOrderId) {
+      const status = await checkPaymentStatus();
+      if (status === 'paid') {
+        clearInterval(STATE.paymentTimer);
+        onPaymentConfirmed();
+      }
+    }
+  }, 1000);
+}
+
+async function checkPaymentStatus() {
+  if (!STATE.currentOrderId) return 'pending';
+  try {
+    const r = await fetch(`${apiUrl()}/v1/order/${STATE.currentOrderId}/status`);
+    const d = await r.json();
+    return d.status || 'pending';
+  } catch { return 'pending'; }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  PAYMENT CONFIRMED → VEND FLOW
+// ═══════════════════════════════════════════════════════════════════════════
+function onPaymentConfirmed() {
+  log('[PAY] Payment confirmed!', 'ok');
+  const p = PRODUCTS[STATE.selectedProduct];
+  showScreen('vending');
+
+  // Simulated status bar for vending screen
+  document.querySelector('#scr-vending .status-bar')?.remove?.();
+
+  document.getElementById('vend-title').textContent = `กำลังจ่าย: ${p.nameTH}`;
+  document.getElementById('vend-icon').textContent = p.icon;
+
+  // Water pump simulation
+  if (STATE.wantWater) {
+    setTimeout(() => log('[HW] Water pump relay FIRED (Relay 11)', 'ok'), 1200);
+  }
+
+  setTimeout(() => showScreen('lucky'), 3500);
+}
+
+function showLuckyScreen() {
+  const lucky = Math.floor(Math.random() * 90) + 10; // 10-99
+  document.getElementById('lucky-number').textContent = lucky;
+  log(`[UI] Lucky number generated: ${lucky}`);
+  if (STATE.wantWater) {
+    document.getElementById('lucky-water-note').style.display = 'block';
+  } else {
+    document.getElementById('lucky-water-note').style.display = 'none';
+  }
+  setTimeout(() => showThanksScreen(), 5000);
+}
+
+function showThanksScreen() {
+  showScreen('thanks');
+  const donor = STATE.donorName ? `— ${STATE.donorName} —` : '';
+  document.getElementById('thanks-donor').textContent = donor;
+  log('[UI] Transaction complete');
+  setTimeout(() => {
+    STATE.selectedProduct = -1;
+    STATE.donorName = '';
+    STATE.wantWater = false;
+    STATE.currentOrderId = '';
+    buildProductGrid();
+    showScreen('idle', 'เลือกสิ่งที่ต้องการ');
+  }, 6000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  ERROR SCREEN
+// ═══════════════════════════════════════════════════════════════════════════
+function showError(title, msg) {
+  document.getElementById('error-title').textContent = title;
+  document.getElementById('error-msg').textContent = msg;
+  showScreen('error');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  TIMERS: heartbeat, commands, uptime
+// ═══════════════════════════════════════════════════════════════════════════
+function startTimers() {
+  clearInterval(STATE.heartbeatTimer);
+  clearInterval(STATE.cmdPollTimer);
+  clearInterval(STATE.uptimeTimer);
+
+  STATE.heartbeatTimer = setInterval(simHeartbeat, 300000); // 5min
+  STATE.cmdPollTimer   = setInterval(pollCmds, 30000);      // 30s
+  STATE.uptimeTimer    = setInterval(() => {
+    STATE.uptimeSeconds++;
+    document.getElementById('d-uptime').textContent = formatTime(STATE.uptimeSeconds);
+    document.getElementById('sb-right').textContent = STATE.deviceId + '\nWiFi OK';
+  }, 1000);
+}
+
+async function simHeartbeat() {
+  if (!STATE.deviceId) return;
+  log(`[NET] POST /v1/machine/heartbeat`, 'net');
+  try {
+    const { status, data } = await apiPost('/v1/machine/heartbeat', {
+      device_id: STATE.deviceId,
+      free_heap: Math.floor(Math.random()*4096 + 4096) * 1024,
+      uptime: STATE.uptimeSeconds,
+      firmware: 'v1.0.0-sim',
+    });
+    STATE.lastHeartbeat = new Date().toLocaleTimeString();
+    document.getElementById('d-hb').textContent = STATE.lastHeartbeat;
+    log(`[NET] Heartbeat: HTTP ${status}`, status === 200 ? 'ok' : 'err');
+  } catch(e) { log(`[NET] Heartbeat failed: ${e.message}`, 'err'); }
+}
+
+async function pollCmds() {
+  if (!STATE.deviceId) return;
+  log(`[NET] GET /v1/machine/commands`, 'net');
+  try {
+    const { status, data } = await apiGet('/v1/machine/commands');
+    const cmds = data.commands || [];
+    if (cmds.length > 0) {
+      log(`[CMD] ${cmds.length} command(s) received`, 'ok');
+      cmds.forEach(c => handleCommand(c.command, c.data));
+    }
+  } catch(e) { log(`[NET] Commands failed: ${e.message}`, 'err'); }
+}
+
+function handleCommand(cmd, data) {
+  log(`[CMD] Executing: ${cmd}`, 'state');
+  if (cmd === 'payment_confirmed' && STATE.screen === 'qr') {
+    clearInterval(STATE.paymentTimer);
+    onPaymentConfirmed();
+  } else if (cmd === 'disable') {
+    showError('Machine Disabled', 'This machine has been disabled by the administrator.\nPlease contact your temple manager.');
+  } else if (cmd === 'enable') {
+    if (STATE.screen === 'error') showScreen('idle', 'เลือกสิ่งที่ต้องการ');
+  } else if (cmd === 'reboot') {
+    log('[CMD] Reboot command — rebooting simulator...', 'state');
+    setTimeout(simReboot, 1000);
+  } else if (cmd === 'register') {
+    log('[CMD] Machine registered to temple owner', 'ok');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SERVICE MODE
+// ═══════════════════════════════════════════════════════════════════════════
+function openService() {
+  const overlay = document.getElementById('svc-pw-overlay');
+  overlay.style.display = 'flex';
+  STATE.pwInput = '';
+  renderPwDots();
+  buildPwNumpad();
+}
+
+function buildPwNumpad() {
+  const pad = document.getElementById('pw-numpad');
+  pad.innerHTML = '';
+  [1,2,3,4,5,6,7,8,9,'C',0,'⌫'].forEach(k => {
+    const btn = document.createElement('div');
+    btn.className = 'pw-key' + (k === 'C' ? ' clear' : '');
+    btn.textContent = k;
+    btn.onclick = () => {
+      if (k === 'C') { STATE.pwInput = ''; }
+      else if (k === '⌫') { STATE.pwInput = STATE.pwInput.slice(0,-1); }
+      else if (STATE.pwInput.length < 4) { STATE.pwInput += k; }
+      renderPwDots();
+      if (STATE.pwInput.length === 4) checkPassword();
+    };
+    pad.appendChild(btn);
+  });
+}
+
+function renderPwDots() {
+  const dots = document.getElementById('pw-dots');
+  dots.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const d = document.createElement('div');
+    d.className = 'pw-dot' + (i < STATE.pwInput.length ? ' filled' : '');
+    dots.appendChild(d);
+  }
+}
+
+function checkPassword() {
+  if (STATE.pwInput === STATE.SERVICE_PASSWORD) {
+    document.getElementById('svc-pw-overlay').style.display = 'none';
+    document.getElementById('pw-err').textContent = '';
+    showServiceScreen();
+  } else {
+    document.getElementById('pw-err').textContent = 'Wrong password';
+    setTimeout(() => {
+      STATE.pwInput = '';
+      renderPwDots();
+      document.getElementById('pw-err').textContent = '';
+    }, 800);
+  }
+}
+
+function showServiceScreen() {
+  // Show service screen directly (no status-bar overlay)
+  SCREENS.forEach(s => {
+    const el = document.getElementById(`scr-${s}`);
+    if (el) el.style.display = 'none';
+  });
+  document.getElementById('scr-service').style.display = 'flex';
+  document.getElementById('status-bar').style.display = 'none';
+  STATE.screen = 'service';
+  document.getElementById('state-status').textContent = 'SERVICE';
+
+  // Populate lane grid
+  buildServiceLaneGrid();
+  buildLEDGrid();
+}
+
+function exitService() { buildProductGrid(); showScreen('idle', 'เลือกสิ่งที่ต้องการ'); }
+
+function svcTab(tab) {
+  document.querySelectorAll('.service-tab').forEach((t,i) => t.classList.remove('active'));
+  document.querySelectorAll('.service-body').forEach(b => b.classList.remove('active'));
+  const tabs = ['diag','lanes','leds','settings','firmware'];
+  const idx = tabs.indexOf(tab);
+  document.querySelectorAll('.service-tab')[idx]?.classList.add('active');
+  document.getElementById(`svc-${tab}`)?.classList.add('active');
+}
+
+function buildServiceLaneGrid() {
+  const grid = document.getElementById('svc-lane-grid');
+  grid.innerHTML = '';
+  for (let i = 1; i <= 10; i++) {
+    const p = PRODUCTS[i];
+    const cell = document.createElement('div');
+    cell.className = 'lane-cell ok';
+    cell.dataset.lane = i;
+    cell.innerHTML = `
+      <div class="l-num">${i}</div>
+      <div class="l-price"><input type="number" value="${p.price}" style="width:60px;background:#0d0d14;border:1px solid #222;color:#C9A84C;padding:2px 4px;border-radius:3px;font-size:10px;" onchange="updatePrice(${i},this.value)"></div>
+      <div class="l-status">✓ OK</div>
+    `;
+    cell.onclick = (e) => { if (e.target.tagName !== 'INPUT') { STATE.svcSelectedLane = i; document.querySelectorAll('.lane-cell').forEach(c=>c.style.outline=''); cell.style.outline='2px solid #C9A84C'; } };
+    grid.appendChild(cell);
+  }
+}
+
+function updatePrice(lane, val) {
+  if (PRODUCTS[lane]) PRODUCTS[lane].price = parseInt(val);
+  buildProductGrid();
+  log(`[SVC] Lane ${lane} price updated to ${val} THB`);
+}
+
+function buildLEDGrid() {
+  const grid = document.getElementById('led-zone-grid');
+  grid.innerHTML = '';
+  const zones = [
+    {name:'TOP (0-9)',    color:'#C9A84C'},
+    {name:'FLOOR 1 (10-19)', color:'#4caf50'},
+    {name:'FLOOR 2 (20-29)', color:'#4fc3f7'},
+    {name:'DOOR (30-39)',    color:'#ff8c00'},
+  ];
+  const colors = ['#C9A84C','#ff4444','#4caf50','#4fc3f7','#ff8c00','#ffffff','#ff00ff','#000000'];
+  zones.forEach(z => {
+    const div = document.createElement('div');
+    div.className = 'led-zone';
+    div.innerHTML = `
+      <div class="led-zone-name">${z.name}</div>
+      <div class="led-preview" style="background:${z.color};"></div>
+      <div class="color-row">${colors.map(c=>`<div class="color-dot" style="background:${c};" onclick="setLEDZone(this,'${c}')"></div>`).join('')}</div>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+function setLEDZone(dot, color) {
+  const preview = dot.closest('.led-zone').querySelector('.led-preview');
+  preview.style.background = color;
+  log(`[LED] Zone color set to ${color}`);
+}
+
+function ledEffect(name) {
+  log(`[LED] Effect: ${name}`);
+  const colors = { idle:'#C9A84C', celebrate:'#4caf50', error:'#ff4444', off:'#000000' };
+  document.querySelectorAll('.led-preview').forEach(p => p.style.background = colors[name]||'#000');
+}
+
+function runSelfTest() {
+  const results = document.getElementById('self-test-results');
+  results.textContent = '';
+  const tests = [
+    ['MCP23017 #1 (0x20)', true],
+    ['MCP23017 #2 (0x21)', true],
+    ['IR Sensor 1-8', true],
+    ['IR Sensor 9-10', true],
+    ['Relay 1-10', true],
+    ['Door Lock Relay', true],
+    ['Water Pump Relay', true],
+    ['WS2812B LEDs (40px)', true],
+    ['EK9716 Display', true],
+    ['GT911 Touch', true],
+    ['WiFi Link', !!STATE.deviceId],
+    ['Backend API', !!STATE.deviceId],
+    ['NVS Storage', true],
+    ['Temperature', true, '38°C'],
+  ];
+  let delay = 0;
+  tests.forEach(([label, ok, extra]) => {
+    setTimeout(() => {
+      const status = ok ? '✓ PASS' : '✗ FAIL';
+      const color = ok ? '#4caf50' : '#ff4444';
+      const line = document.createElement('div');
+      line.style.color = ok ? '#4caf50' : '#ff4444';
+      line.textContent = `${status.padEnd(8)} ${label}${extra?' — '+extra:''}`;
+      results.appendChild(line);
+      log(`[TEST] ${label}: ${ok ? 'PASS' : 'FAIL'}`, ok ? 'ok' : 'err');
+    }, delay);
+    delay += 150;
+  });
+}
+
+function testFireLane() {
+  const lane = STATE.svcSelectedLane;
+  if (lane < 0) { log('[SVC] No lane selected', 'err'); return; }
+  log(`[HW] FIRING relay ${lane} for lane ${lane} (800ms pulse) — SIMULATED`, 'ok');
+  const cell = document.querySelector(`[data-lane="${lane}"]`);
+  if (cell) { cell.style.background='#1f1500'; setTimeout(()=>cell.style.background='',1000); }
+}
+
+function saveSettings() { log('[SVC] Settings saved (simulated)', 'ok'); }
+function factoryReset() { if(confirm('Factory reset?')) simReboot(); }
+function checkOTA() {
+  document.getElementById('ota-status').textContent = 'Checking backend for firmware updates...';
+  setTimeout(()=>{ document.getElementById('ota-status').textContent = '✓ v1.0.0-sim is up to date'; }, 1500);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SIMULATOR CONTROL BUTTONS
+// ═══════════════════════════════════════════════════════════════════════════
+function simReboot() {
+  log('[SIM] Rebooting...', 'state');
+  clearInterval(STATE.heartbeatTimer);
+  clearInterval(STATE.cmdPollTimer);
+  clearInterval(STATE.paymentTimer);
+  clearInterval(STATE.uptimeTimer);
+  STATE.uptimeSeconds = 0;
+  STATE.deviceId = '';
+  STATE.deviceSecret = '';
+  STATE.currentOrderId = '';
+  bootSequence();
+}
+
+async function simPayment() {
+  if (!STATE.currentOrderId) { log('[SIM] No active order to simulate payment', 'err'); return; }
+  log(`[SIM] Simulating payment for ${STATE.currentOrderId}`, 'state');
+  try {
+    // Hit the fake omise simulate endpoint
+    const r = await fetch(`https://fake-omise.csmittee.workers.dev/test/simulate-payment`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ order_id: STATE.currentOrderId })
+    });
+    if (r.ok) {
+      log('[SIM] Fake payment triggered — waiting for webhook → command...', 'ok');
+    } else {
+      // Fallback: directly inject payment_confirmed
+      log('[SIM] Fake payment endpoint unavailable — injecting payment_confirmed locally', 'net');
+      handleCommand('payment_confirmed', {});
+    }
+  } catch {
+    log('[SIM] Direct payment simulation (no network to fake-omise)', 'net');
+    handleCommand('payment_confirmed', {});
+  }
+}
+
+async function simDisable() {
+  log('[SIM] Injecting disable command locally', 'state');
+  handleCommand('disable', {});
+}
+
+async function simRebootCmd() {
+  log('[SIM] Injecting reboot command locally', 'state');
+  handleCommand('reboot', {});
+}
+
+function reconnect() {
+  log('[SIM] Reconnecting...', 'state');
+  simReboot();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════════════════════════
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+function formatTime(s) {
+  if (s >= 3600) return `${Math.floor(s/3600)}h ${Math.floor(s%3600/60)}m`;
+  if (s >= 60) return `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
+  return `0:${s.toString().padStart(2,'0')}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Wire up screen transitions that use showLuckyScreen
+// ═══════════════════════════════════════════════════════════════════════════
+const _origShowScreen = showScreen;
+window.showScreen = function(name, label, opts) {
+  _origShowScreen(name, label, opts);
+  if (name === 'lucky') showLuckyScreen();
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  BOOT ON LOAD
+// ═══════════════════════════════════════════════════════════════════════════
+window.addEventListener('load', () => bootSequence());
+</script>
+</body>
+</html>
