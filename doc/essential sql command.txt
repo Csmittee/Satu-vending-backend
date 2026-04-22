@@ -1,0 +1,135 @@
+Good thinking. Here's your reference card first, then we move to Item 3.
+
+---
+
+## 🗄️ D1 Essential SQL Reference Card
+
+### Password Hash — Generate & Insert Admin User
+D1 cannot run bcrypt. You generate the hash outside, then insert it.
+
+**Step 1 — Generate hash (run in your terminal, not D1):**
+```bash
+node -e "const b=require('bcryptjs'); b.hash('yourpassword',10).then(h=>console.log(h))"
+```
+If bcryptjs not installed:
+```bash
+npm install bcryptjs
+```
+Output looks like: `$2a$10$xK8J2mN9pL...` — copy that string.
+
+**Step 2 — Insert into D1:**
+```sql
+INSERT INTO users (email, name, password_hash, role, created_at)
+VALUES ('owner@watprakaew.com', 'Phra Somchai', '$2a$10$xK8J2mN9pL...', 'user', strftime('%s','now'));
+```
+
+**Update existing password:**
+```sql
+UPDATE users SET password_hash = '$2a$10$newHashHere' WHERE email = 'admin@satu.com';
+```
+
+---
+
+### Common Lookup Queries
+```sql
+-- Check a specific user
+SELECT id, email, name, role FROM users WHERE email = 'admin@satu.com';
+
+-- All active devices
+SELECT device_id, temple_name, status, last_heartbeat FROM devices WHERE status = 'active';
+
+-- Recent orders
+SELECT order_id, device_id, amount/100 as thb, status, 
+       datetime(created_at,'unixepoch','+7 hours') as time_th
+FROM orders ORDER BY created_at DESC LIMIT 20;
+
+-- Pending orders older than 30 min (should be expired by cron)
+SELECT order_id, device_id, datetime(created_at,'unixepoch','+7 hours') as created
+FROM orders 
+WHERE status = 'pending' AND created_at < strftime('%s','now') - 1800;
+
+-- Check cron is running
+SELECT job_name, status, rows_affected, 
+       datetime(started_at,'unixepoch','+7 hours') as run_time
+FROM cron_log ORDER BY started_at DESC LIMIT 10;
+
+-- Rate limit activity (who is hitting the API hard)
+SELECT ip, SUM(count) as total_hits 
+FROM rate_limit_counters 
+GROUP BY ip ORDER BY total_hits DESC LIMIT 20;
+
+-- Unclaimed devices (pending, no owner)
+SELECT mac, device_id, firmware_version,
+       datetime(first_seen,'unixepoch','+7 hours') as first_seen
+FROM devices WHERE status = 'pending' AND owner_id IS NULL;
+```
+
+---
+
+### Maintenance Queries
+```sql
+-- Manually expire stale orders (if cron missed)
+UPDATE orders SET status = 'expired'
+WHERE status = 'pending' AND created_at < strftime('%s','now') - 1800;
+
+-- Clean ghost test devices (safe to run anytime)
+DELETE FROM devices WHERE mac LIKE 'TEST:MAC:%';
+
+-- Clear all test orders
+DELETE FROM orders WHERE device_id = 'SATU-TEST001';
+
+-- Clear executed commands older than 7 days
+DELETE FROM device_commands 
+WHERE executed = 1 AND executed_at < strftime('%s','now') - 604800;
+
+-- Clear old connection logs (keep last 30 days)
+DELETE FROM connection_logs 
+WHERE created_at < strftime('%s','now') - 2592000;
+
+-- Clear old cron logs (keep last 90 days)
+DELETE FROM cron_log 
+WHERE started_at < strftime('%s','now') - 7776000;
+```
+
+---
+
+### Admin Actions
+```sql
+-- Disable a device
+UPDATE devices SET status = 'disabled', disable_reason = 'non_payment', 
+disabled_at = strftime('%s','now') WHERE device_id = 'SATU-XXXXXX';
+
+-- Re-enable a device  
+UPDATE devices SET status = 'active', disable_reason = NULL, 
+disabled_at = NULL WHERE device_id = 'SATU-XXXXXX';
+
+-- Promote user to admin
+UPDATE users SET role = 'admin' WHERE email = 'staff@satu.com';
+
+-- Revoke admin
+UPDATE users SET role = 'user' WHERE email = 'staff@satu.com';
+```
+
+---
+
+### Backup Routine
+Run this from your terminal (not D1 console) monthly or before any big deploy:
+
+```bash
+# Export full DB — structure + all live data
+npx wrangler d1 export satu_db --output=backup_$(date +%Y%m%d).sql
+
+# Verify the backup file was created
+ls -lh backup_*.sql
+```
+
+**Suggested backup schedule:**
+| When | What |
+|---|---|
+| Before every deploy | `wrangler d1 export` |
+| Monthly | Export + commit `schema.sql` to repo |
+| After adding real temples | Export immediately |
+
+---
+
+Save that somewhere permanent. Now — **Item 3, auth login endpoint. Say go.**
