@@ -8,6 +8,9 @@ import { rateLimit } from './middleware/rateLimit.js';
 import { logRequest } from './middleware/logging.js';
 
 export default {
+    // ════════════════════════════════════════════════════════════════════════
+    //  HTTP HANDLER
+    // ════════════════════════════════════════════════════════════════════════
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
         const path = url.pathname;
@@ -16,7 +19,7 @@ export default {
         // Non-blocking logging — never delays or breaks any request
         ctx.waitUntil(logRequest(request, env));
 
-        // ── Public health check (no auth, no logging delay) ─────────────────
+        // ── Public health check ──────────────────────────────────────────────
         if (path === '/health' && method === 'GET') {
             return Response.json({
                 status: 'ok',
@@ -34,10 +37,9 @@ export default {
             });
         }
 
-        // ── Test / Demo pages (served from Worker assets, not GitHub) ────────
-        // FIX: Removed live GitHub fetch (supply-chain risk). Bundle these as
-        // Worker assets via wrangler.toml [assets] and serve from env.ASSETS.
-        // If you haven't migrated yet, keep the fetch but add error handling:
+        // ── Test / Demo pages ────────────────────────────────────────────────
+        // TODO: Move these to Worker assets (wrangler.toml [assets]) to remove
+        // the GitHub fetch dependency (supply-chain risk). For now keep with error handling.
         if (path === '/test' && method === 'GET') {
             try {
                 const html = await fetch('https://raw.githubusercontent.com/Csmittee/Satu-vending-backend/main/satu-system-tester.html');
@@ -64,7 +66,7 @@ export default {
             }
         }
 
-        // ── Omise Webhook (public — Omise calls this, signature verified inside) ──
+        // ── Omise Webhook (public — signature verified inside) ───────────────
         if (path === '/v1/webhook/omise' && method === 'POST') {
             return handleOmiseWebhook(request, env);
         }
@@ -82,7 +84,7 @@ export default {
             return handleGetCommands(request, env);
         }
 
-        // ── Order (rate limited) ─────────────────────────────────────────────
+        // ── Order (D1-backed rate limited — 20 req/min per IP) ──────────────
         if (path === '/v1/order' && method === 'POST') {
             return rateLimit(request, env, async () => handleCreateOrder(request, env));
         }
@@ -94,22 +96,13 @@ export default {
 
         // ════════════════════════════════════════════════════════════════════
         //  ADMIN DASHBOARD
-        //  FIX: Now requires ADMIN_SECRET header — no longer open to anyone
-        //  who knows the URL.
-        //
-        //  How to access:
-        //    curl -H "X-Admin-Token: YOUR_SECRET" https://api.janishammer.com/admin
-        //
-        //  Setup (one time):
-        //    npx wrangler secret put ADMIN_SECRET
-        //    → paste a long random string, e.g. from: openssl rand -hex 32
-        //
-        //  The path is now /admin — change ADMIN_PATH secret to customise.
+        //  Requires X-Admin-Token header matching ADMIN_SECRET env secret.
+        //  Access: curl -H "X-Admin-Token: YOUR_SECRET" https://api.janishammer.com/admin
+        //  Setup:  npx wrangler secret put ADMIN_SECRET
         // ════════════════════════════════════════════════════════════════════
         const ADMIN_PATH = env.ADMIN_PATH || '/admin';
 
         if (path === ADMIN_PATH || path.startsWith(ADMIN_PATH + '/api/')) {
-            // Verify admin token from header (never in URL — URLs appear in logs)
             const providedToken = request.headers.get('X-Admin-Token');
             if (!env.ADMIN_SECRET || !providedToken || providedToken !== env.ADMIN_SECRET) {
                 return new Response('Forbidden', { status: 403 });
@@ -156,48 +149,175 @@ export default {
         }
 
         return Response.json({ error: 'Not found' }, { status: 404 });
+    },
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  CRON HANDLER
+    //  Triggered by Cloudflare Cron Triggers defined in wrangler.toml.
+    //  Currently handles:
+    //    "*/30 * * * *" → expire stale pending orders + clean rate limit table
+    //
+    //  WHY HERE AND NOT A SEPARATE WORKER:
+    //    Same D1 binding, same deploy, zero extra infrastructure.
+    //    For a solo founder this is the right call — one codebase to maintain.
+    //
+    //  TO ENABLE: Add to wrangler.toml (see wrangler.toml in this release):
+    //    [triggers]
+    //    crons = ["*/30 * * * *"]
+    // ════════════════════════════════════════════════════════════════════════
+    async scheduled(event, env, ctx) {
+        ctx.waitUntil(runScheduledJobs(event, env));
     }
 };
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SCHEDULED JOB RUNNER
+// ════════════════════════════════════════════════════════════════════════════
+async function runScheduledJobs(event, env) {
+    const now = Math.floor(Date.now() / 1000);
+    console.log(`[cron] Scheduled trigger fired at ${now} (cron: ${event.cron})`);
+
+    // Run both jobs — don't let one failure block the other
+    await Promise.allSettled([
+        expireStaleOrders(env, now),
+        cleanupRateLimitCounters(env, now)
+    ]);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+//  JOB 1: Expire stale pending orders
+//
+//  Any order still 'pending' after 30 minutes is abandoned.
+//  Mark it 'expired' so it doesn't pollute dashboards or confuse machines.
+//  This does NOT affect Omise — if Omise somehow sends a webhook for an
+//  expired order, webhook.js will log it but not double-dispense (the
+//  order status check prevents that).
+// ────────────────────────────────────────────────────────────────────────────
+async function expireStaleOrders(env, now) {
+    const logId = await startCronLog(env, 'expire_orders', now);
+    try {
+        const cutoff = now - (30 * 60); // 30 minutes ago
+
+        const result = await env.DB.prepare(`
+            UPDATE orders
+            SET status = 'expired'
+            WHERE status = 'pending'
+              AND created_at < ?
+        `).bind(cutoff).run();
+
+        const rowsAffected = result.meta?.changes ?? 0;
+        console.log(`[cron] expire_orders: ${rowsAffected} orders expired`);
+        await finishCronLog(env, logId, 'ok', rowsAffected);
+    } catch (err) {
+        console.error('[cron] expire_orders failed:', err.message);
+        await finishCronLog(env, logId, 'error', 0, err.message);
+    }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+//  JOB 2: Clean up stale rate limit counter rows
+//
+//  Each row covers a 1-minute window. Rows older than 5 minutes are useless.
+//  Without cleanup the table grows unboundedly. At 100 IPs/min × 60min/day
+//  = 144,000 rows/day. D1 handles this fine, but there's no reason to keep
+//  them — they'll never be queried again.
+// ────────────────────────────────────────────────────────────────────────────
+async function cleanupRateLimitCounters(env, now) {
+    const logId = await startCronLog(env, 'cleanup_rate_limits', now);
+    try {
+        const currentWindowKey = Math.floor(now / 60);
+        const cutoffWindowKey = currentWindowKey - 5; // keep last 5 minutes
+
+        const result = await env.DB.prepare(`
+            DELETE FROM rate_limit_counters
+            WHERE window_key < ?
+        `).bind(cutoffWindowKey).run();
+
+        const rowsAffected = result.meta?.changes ?? 0;
+        console.log(`[cron] cleanup_rate_limits: ${rowsAffected} rows deleted`);
+        await finishCronLog(env, logId, 'ok', rowsAffected);
+    } catch (err) {
+        console.error('[cron] cleanup_rate_limits failed:', err.message);
+        await finishCronLog(env, logId, 'error', 0, err.message);
+    }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+//  CRON LOG HELPERS
+// ────────────────────────────────────────────────────────────────────────────
+async function startCronLog(env, jobName, now) {
+    try {
+        const result = await env.DB.prepare(`
+            INSERT INTO cron_log (job_name, started_at, status)
+            VALUES (?, ?, 'running')
+        `).bind(jobName, now).run();
+        return result.meta?.last_row_id ?? null;
+    } catch {
+        return null; // Non-fatal — don't break the actual job
+    }
+}
+
+async function finishCronLog(env, logId, status, rowsAffected, errorMsg = null) {
+    if (!logId) return;
+    try {
+        const now = Math.floor(Date.now() / 1000);
+        await env.DB.prepare(`
+            UPDATE cron_log
+            SET finished_at = ?, status = ?, rows_affected = ?, error_msg = ?
+            WHERE id = ?
+        `).bind(now, status, rowsAffected, errorMsg, logId).run();
+    } catch {
+        // Non-fatal
+    }
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 //  ADMIN DASHBOARD HANDLER
 // ════════════════════════════════════════════════════════════════════════════
 
-// FIX: Escape user-supplied data before injecting into HTML to prevent XSS
 function escapeJson(obj) {
     return JSON.stringify(obj).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/\//g, '\\u002f');
 }
 
 async function handleAdminDashboard(env, adminPath) {
-    const tables     = await env.DB.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`).all();
-    const orders     = await env.DB.prepare(`SELECT COUNT(*) as count FROM orders`).first();
-    const devices    = await env.DB.prepare(`SELECT COUNT(*) as count FROM devices`).first();
-    const users      = await env.DB.prepare(`SELECT COUNT(*) as count FROM users`).first();
-    const todayOrders = await env.DB.prepare(
-        `SELECT COUNT(*) as count, SUM(amount) as total FROM orders WHERE date(created_at/1000, 'unixepoch') = date('now')`
-    ).first();
-    const recentOrders = await env.DB.prepare(
-        `SELECT order_id, device_id, amount, status, datetime(created_at/1000, 'unixepoch', '+7 hours') as created FROM orders ORDER BY created_at DESC LIMIT 10`
-    ).all();
-    const recentDevices = await env.DB.prepare(
-        `SELECT device_id, temple_name, status, datetime(last_heartbeat/1000, 'unixepoch', '+7 hours') as last_seen FROM devices ORDER BY last_heartbeat DESC LIMIT 10`
-    ).all();
+    const tables = await env.DB.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`).all();
+    const tableNames = tables.results.map(t => t.name);
 
-    const tableNamesJson    = escapeJson(tables.results.map(t => t.name));
-    const recentOrdersJson  = escapeJson(recentOrders.results);
-    const recentDevicesJson = escapeJson(recentDevices.results);
+    const [orders, devices, users, todayOrders] = await Promise.all([
+        env.DB.prepare(`SELECT COUNT(*) as count FROM orders`).first(),
+        env.DB.prepare(`SELECT COUNT(*) as count FROM devices`).first(),
+        env.DB.prepare(`SELECT COUNT(*) as count FROM users`).first(),
+        env.DB.prepare(`
+            SELECT COUNT(*) as count, COALESCE(SUM(amount)/100, 0) as total
+            FROM orders
+            WHERE status='paid' AND created_at > strftime('%s','now','-1 day')
+        `).first()
+    ]);
 
-    // Pass adminPath into JS so the dashboard fetch calls use the correct path
-    const adminPathJson = escapeJson(adminPath);
+    const recentOrders = await env.DB.prepare(`
+        SELECT order_id, device_id, amount/100 as amount, status,
+               datetime(created_at, 'unixepoch', '+7 hours') as created
+        FROM orders ORDER BY created_at DESC LIMIT 20
+    `).all();
+
+    const recentDevices = await env.DB.prepare(`
+        SELECT device_id, temple_name, status,
+               datetime(last_heartbeat, 'unixepoch', '+7 hours') as last_seen
+        FROM devices ORDER BY last_heartbeat DESC LIMIT 20
+    `).all();
+
+    const adminPathJson   = escapeJson(adminPath);
+    const tableNamesJson  = escapeJson(tableNames);
+    const recentOrdersJson  = escapeJson(recentOrders.results  || []);
+    const recentDevicesJson = escapeJson(recentDevices.results || []);
 
     const html = `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Satu Admin</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f0f1a; color: #e0e0e0; padding: 20px; }
         .container { max-width: 1400px; margin: 0 auto; }
         h1 { color: #667eea; margin-bottom: 10px; }
@@ -263,7 +383,6 @@ async function handleAdminDashboard(env, adminPath) {
     const recentOrders  = ${recentOrdersJson};
     const recentDevices = ${recentDevicesJson};
 
-    // FIX: Escape HTML to prevent XSS from database values
     function h(str) {
         return String(str ?? '-')
             .replace(/&/g,'&amp;').replace(/</g,'&lt;')
@@ -308,7 +427,6 @@ async function handleAdminDashboard(env, adminPath) {
     async function showTab(tableName) {
         const c = document.getElementById('table-content');
         c.innerHTML = '<div class="table-container">Loading...</div>';
-        // FIX: send admin token with every API call
         const token = sessionStorage.getItem('adminToken') || prompt('Enter Admin Token:');
         if (token) sessionStorage.setItem('adminToken', token);
         try {
@@ -352,20 +470,23 @@ async function handleAdminDashboard(env, adminPath) {
 
 // ════════════════════════════════════════════════════════════════════════════
 //  ADMIN TABLE DATA
-//  FIX: whitelist check kept — never interpolate tableName without it
+//  Whitelist prevents SQL injection via table name.
+//  UPDATED: added rate_limit_counters and cron_log
 // ════════════════════════════════════════════════════════════════════════════
 async function handleAdminTableData(tableName, env) {
     const validTables = [
         'users', 'devices', 'orders', 'setup_codes', 'donor_consent',
         'data_access_log', 'device_commands', 'admin_log', 'ownership_log',
-        'connection_logs', 'firmware_versions', 'test_payments'
+        'connection_logs', 'firmware_versions', 'test_payments',
+        'rate_limit_counters',  // Added: rate limiter backing store
+        'cron_log'              // Added: scheduled job audit trail
     ];
 
     if (!validTables.includes(tableName)) {
         return Response.json({ error: 'Invalid table' }, { status: 400 });
     }
 
-    // Safe: tableName is whitelisted above, not user input
-    const data = await env.DB.prepare(`SELECT * FROM ${tableName} ORDER BY id DESC LIMIT 200`).all();
+    // Safe: tableName is whitelisted above
+    const data = await env.DB.prepare(`SELECT * FROM ${tableName} ORDER BY rowid DESC LIMIT 200`).all();
     return Response.json(data.results);
 }
