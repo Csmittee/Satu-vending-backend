@@ -162,44 +162,42 @@ export default {
                 return withCors(await handleAdminTableData(tableName, env), request);
             }
         }
+// ── Static Assets — serve BEFORE JWT check ──────────────────────────
+        // public/ files (simulator.html etc) must be served before JWT auth
+        // or every unmatched request returns 401 instead of the HTML file.
+        if (env.ASSETS) {
+            const assetResponse = await env.ASSETS.fetch(request);
+            if (assetResponse.status !== 404) {
+                return assetResponse;
+            }
+        }
 
         // ── JWT-protected routes ─────────────────────────────────────────────
         const auth = await authenticateJWT(request, env);
         if (!auth.valid) {
             return withCors(Response.json({ error: 'Unauthorized' }, { status: 401 }), request);
         }
-
         if (path === '/v1/dashboard/devices' && method === 'GET') {
             return withCors(await handleGetUserDevices(auth.userId, env), request);
         }
-
         if (path === '/v1/admin/device/disable' && method === 'POST') {
             if (!await requireAdmin(auth.userId, env)) return withCors(Response.json({ error: 'Admin required' }, { status: 403 }), request);
             return withCors(await handleDisableDevice(request, env, auth.userId), request);
         }
-
         if (path === '/v1/admin/device/enable' && method === 'POST') {
             if (!await requireAdmin(auth.userId, env)) return withCors(Response.json({ error: 'Admin required' }, { status: 403 }), request);
             return withCors(await handleEnableDevice(request, env, auth.userId), request);
         }
-
         if (path === '/v1/admin/device/reassign' && method === 'POST') {
             if (!await requireAdmin(auth.userId, env)) return withCors(Response.json({ error: 'Admin required' }, { status: 403 }), request);
             return withCors(await handleReassignDevice(request, env, auth.userId), request);
         }
-
         if (path === '/v1/admin/devices' && method === 'GET') {
             if (!await requireAdmin(auth.userId, env)) return withCors(Response.json({ error: 'Admin required' }, { status: 403 }), request);
             return withCors(await handleGetAllDevices(request, env), request);
         }
 
-       // Serve static assets (public/ folder) for anything not matched above
-        if (env.ASSETS) {
-            return env.ASSETS.fetch(request);
-        }
         return withCors(Response.json({ error: 'Not found' }, { status: 404 }), request);
-    
-    
     },
 
     // ════════════════════════════════════════════════════════════════════════
