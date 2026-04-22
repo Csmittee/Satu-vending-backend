@@ -167,12 +167,31 @@
                 <input type="text" id="deviceId" value="SATU-TEST001">
             </div>
             <div class="config-row">
-                <label>Test Mode:</label>
-                <select id="testMode" style="flex:1;background:#1a1a2e;border:1px solid #2a2a3e;padding:8px;border-radius:6px;color:white;">
-                    <option value="fake">Fake Payment (No Omise)</option>
-                    <option value="omise_test">Omise Test Mode (Requires API Key)</option>
+                <label>Payment Gateway:</label>
+                <select id="testMode" onchange="onModeChange(this.value)"
+                    style="flex:1;background:#1a1a2e;border:1px solid #2a2a3e;padding:8px;border-radius:6px;color:white;">
+                    <option value="fake_omise">Fake Omise (recommended for testing)</option>
+                    <option value="true_omise">True Omise (live Omise account required)</option>
                 </select>
             </div>
+        </div>
+
+        <!-- Mode warning banner -->
+        <div id="mode-banner-fake" style="
+            background:#10b98115; border:1px solid #10b981; border-radius:8px;
+            padding:10px 16px; margin-bottom:16px; font-size:12px; color:#10b981;">
+            ✅ <b>Fake Omise mode</b> — All 14 tests run fully.
+            Backend PAYMENT_MODE must be set to <code>fake</code> in Cloudflare secrets.
+            Tests 8, 10, 11 use the fake Omise worker to simulate webhook callbacks.
+        </div>
+        <div id="mode-banner-true" style="
+            display:none; background:#ef444415; border:1px solid #ef4444; border-radius:8px;
+            padding:10px 16px; margin-bottom:16px; font-size:12px; color:#ef4444;">
+            ⚠️ <b>True Omise mode</b> — Tests 8, 10, 11 are greyed out and skipped.<br>
+            These tests require Omise to call your webhook with a valid HMAC signature,
+            which only happens during a real PromptPay payment scan.
+            They cannot be automated — verify manually by doing a real scan.
+            All other tests (1–7, 9, 12–14) run normally.
         </div>
 
         <!-- Summary -->
@@ -213,6 +232,33 @@
     </div>
 
     <script>
+        // ── Mode switcher ─────────────────────────────────────────────────────
+        function onModeChange(mode) {
+            const isFake = mode === 'fake_omise';
+            document.getElementById('mode-banner-fake').style.display = isFake ? 'block' : 'none';
+            document.getElementById('mode-banner-true').style.display = isFake ? 'none' : 'block';
+
+            // Grey out tests 8, 10, 11 in true_omise mode
+            [8, 10, 11].forEach(id => {
+                const card = document.getElementById(`test-${id}`);
+                if (!card) return;
+                if (isFake) {
+                    card.style.opacity = '1';
+                    card.style.pointerEvents = 'auto';
+                    card.style.border = '1px solid #2a2a3e';
+                } else {
+                    card.style.opacity = '0.35';
+                    card.style.pointerEvents = 'none';
+                    card.style.border = '1px solid #ef444440';
+                    const status = card.querySelector('.test-status');
+                    if (status) { status.className = 'test-status'; status.textContent = '⊘ N/A — True Omise'; status.style.cssText = 'background:#ef444415;color:#ef4444;border:1px solid #ef444440;padding:4px 12px;border-radius:20px;font-size:11px;'; }
+                }
+            });
+        }
+
+        // Apply on page load based on default selection
+        window.addEventListener('load', () => onModeChange(document.getElementById('testMode').value));
+
         const FAKE_OMISE_URL = 'https://fake-omise.csmittee.workers.dev';
         // NOTE: All order tests use product_id: 2 (Small Amulet, 20 THB minimum).
         // Omise rejects charges below 20 THB — product_id: 1 (10 THB) will 502.
@@ -417,8 +463,8 @@
                 description: "Does webhook reach backend and return ok?",
                 checkpoint: "Fake Omise → webhook → backend returns {status:'ok'}",
                 run: async (apiUrl, deviceId, mode) => {
-                    if (mode !== 'fake') {
-                        return { passed: true, message: "Omise test mode — requires manual webhook setup", data: {} };
+                    if (mode !== 'fake_omise') {
+                        return { passed: true, message: "⏭ TRUE OMISE MODE — Skipped. Fake Omise simulate endpoint not used in true Omise mode.", data: {} };
                     }
                     const orderRes = await fetch(`${apiUrl}/v1/order`, {
                         method: 'POST',
@@ -453,10 +499,10 @@
                 description: "Does payment_confirmed command appear in queue after payment?",
                 checkpoint: "payment_confirmed in device_commands within 8s",
                 run: async (apiUrl, deviceId, mode) => {
-                    if (mode === 'live') {
+                    if (mode === 'true_omise') {
                         return {
                             passed: true,
-                            message: `⏭ Skipped in live mode — webhook requires real Omise signature. Test with PAYMENT_MODE=fake or via real PromptPay scan.`,
+                            message: `⏭ TRUE OMISE MODE — Skipped. Requires real PromptPay scan for Omise to call webhook with valid HMAC signature. Verify manually via real payment.`,
                             data: {}
                         };
                     }
@@ -533,10 +579,10 @@
                 checkpoint: "GET /v1/order/:id/status returns status='paid'",
                 isNew: true,
                 run: async (apiUrl, deviceId, mode) => {
-                    if (mode === 'live') {
+                    if (mode === 'true_omise') {
                         return {
                             passed: true,
-                            message: `⏭ Skipped in live mode — webhook requires real Omise signature. Switch to fake mode to test this.`,
+                            message: `⏭ TRUE OMISE MODE — Skipped. Switch to Fake Omise mode to test webhook→order status flow automatically.`,
                             data: {}
                         };
                     }
@@ -581,10 +627,10 @@
                 checkpoint: "Two webhook calls → exactly 1 payment_confirmed in queue",
                 isNew: true,
                 run: async (apiUrl, deviceId, mode) => {
-                    if (mode === 'live') {
+                    if (mode === 'true_omise') {
                         return {
                             passed: true,
-                            message: `⏭ Skipped in live mode — webhook signature required. Switch to fake mode to test idempotency.`,
+                            message: `⏭ TRUE OMISE MODE — Skipped. Switch to Fake Omise mode to test idempotency automatically.`,
                             data: {}
                         };
                     }
