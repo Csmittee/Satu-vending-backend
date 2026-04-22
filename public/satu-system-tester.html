@@ -462,10 +462,16 @@
                     if (!order.order_id || !order.omise_charge_id) {
                         return { passed: false, message: 'Failed to create order', data: order };
                     }
-                    await fetch(`${FAKE_OMISE_URL}/simulate-payment`, {
+                    // Fire webhook directly to backend (bypasses fake-omise, works in live mode)
+                    await fetch(`${apiUrl}/v1/webhook/omise`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ order_id: order.order_id, charge_id: order.omise_charge_id })
+                        body: JSON.stringify({
+                            object: 'charge',
+                            id: order.omise_charge_id,
+                            status: 'successful',
+                            metadata: { order_id: order.order_id }
+                        })
                     });
                     const { found, commands } = await pollCommands(apiUrl, deviceId, 'payment_confirmed');
                     return {
@@ -498,7 +504,9 @@
                         body: JSON.stringify({ order_id: order.order_id, charge_id: order.omise_charge_id, reason: 'insufficient_funds' })
                     });
                     await new Promise(r => setTimeout(r, 2000));
-                    const cmdRes   = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
+                    const secret = await getDeviceSecret(apiUrl, deviceId);
+                    const cmdHeaders = secret ? { 'X-Device-Secret': secret } : {};
+                    const cmdRes   = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`, { headers: cmdHeaders });
                     const commands = await cmdRes.json();
                     const hasUnlock = commands.commands && commands.commands.some(c => c.command === 'payment_confirmed');
                     return {
@@ -528,10 +536,16 @@
                     if (!order.order_id || !order.omise_charge_id) {
                         return { passed: false, message: 'Failed to create order', data: order };
                     }
-                    await fetch(`${FAKE_OMISE_URL}/simulate-payment`, {
+                    // Fire webhook directly — works in both fake and live mode
+                    await fetch(`${apiUrl}/v1/webhook/omise`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ order_id: order.order_id, charge_id: order.omise_charge_id })
+                        body: JSON.stringify({
+                            object: 'charge',
+                            id: order.omise_charge_id,
+                            status: 'successful',
+                            metadata: { order_id: order.order_id }
+                        })
                     });
                     await new Promise(r => setTimeout(r, 1500));
                     const statusRes  = await fetch(`${apiUrl}/v1/order/${order.order_id}/status`);
@@ -590,7 +604,9 @@
                     await new Promise(r => setTimeout(r, 1200));
 
                     // Count payment_confirmed commands for this specific order
-                    const cmdRes   = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`);
+                    const secret11 = await getDeviceSecret(apiUrl, deviceId);
+                    const cmdHeaders11 = secret11 ? { 'X-Device-Secret': secret11 } : {};
+                    const cmdRes   = await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`, { headers: cmdHeaders11 });
                     const commands = await cmdRes.json();
                     const count    = (commands.commands || [])
                         .filter(c => c.command === 'payment_confirmed' &&
