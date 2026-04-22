@@ -34,7 +34,7 @@ workers_dev          = true
 # This eliminates all GitHub raw fetches and CORS issues for HTML test pages.
 [assets]
 directory = "./public"
-binding   = "ASSETS"
+
 
 # ── D1 Database ──────────────────────────────────────────────────────────────
 [[d1_databases]]
