@@ -229,7 +229,7 @@
                 const res = await fetch(`${apiUrl}/v1/machine/hello`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ mac: 'TEST:00:00:00:00:01', firmware: 'v1.0.0-test' })
+                    body: JSON.stringify({ mac: 'AA:BB:CC:DD:EE:00', firmware: 'v1.0.0-test' })
                 });
                 const data = await res.json();
                 if (data.device_secret) {
@@ -269,16 +269,16 @@
                 description: "Can my backend receive a call from the machine?",
                 checkpoint: "POST /v1/machine/hello returns 200",
                 run: async (apiUrl, deviceId, mode) => {
-                    // Always use fixed test MAC — never random. Random MACs create
-                    // ghost device rows in DB that pollute the device registry.
-                    const mac = 'TEST:00:00:00:00:01';
+                    // Use the fixed seed device MAC — already in DB as SATU-TEST001 active.
+                    // Must be valid hex format (AA:BB:...) for live mode MAC validation.
+                    // TEST:00:... fails live mode — use AA:BB:CC:DD:EE:00 instead.
+                    const mac = 'AA:BB:CC:DD:EE:00';
                     const res  = await fetch(`${apiUrl}/v1/machine/hello`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ mac, firmware: 'v1.0.0-test' })
                     });
                     const data = await res.json();
-                    // Cache the secret for subsequent tests
                     if (data.device_secret) cachedDeviceSecret = data.device_secret;
                     return {
                         passed: res.ok && (data.status === 'pending' || data.status === 'active'),
@@ -295,8 +295,7 @@
                 description: "Does backend respond with correct JSON structure?",
                 checkpoint: "Returns status + device_id + setup_code or device_secret",
                 run: async (apiUrl, deviceId, mode) => {
-                    // Use fixed test MAC — same device, confirm response structure
-                    const mac = 'TEST:00:00:00:00:01';
+                    const mac = 'AA:BB:CC:DD:EE:00';
                     const res  = await fetch(`${apiUrl}/v1/machine/hello`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -767,8 +766,38 @@
             const deviceId = document.getElementById('deviceId').value;
             const mode     = document.getElementById('testMode').value;
             testResults    = {};
+            cachedDeviceSecret = null;  // reset cache for fresh run
             updateSummary();
             addLog(`Starting ${tests.length} tests against ${apiUrl} | device: ${deviceId} | mode: ${mode}`, 'info');
+
+            // ── Step 1: Bootstrap device secret ─────────────────────────
+            // Call /hello with the fixed test MAC to get device_secret before any test runs.
+            // Required for /commands calls in live mode (X-Device-Secret header).
+            try {
+                const helloRes = await fetch(`${apiUrl}/v1/machine/hello`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mac: 'AA:BB:CC:DD:EE:00', firmware: 'v1.0.0-test' })
+                });
+                const helloData = await helloRes.json();
+                if (helloData.device_secret) {
+                    cachedDeviceSecret = helloData.device_secret;
+                    addLog(`Bootstrap: device_secret cached for ${helloData.device_id}`, 'info');
+                }
+            } catch(e) {
+                addLog(`Bootstrap warning: could not fetch device_secret — ${e.message}`, 'info');
+            }
+
+            // ── Step 2: Drain command queue ──────────────────────────────
+            // Consume any leftover commands from previous test runs.
+            // Prevents queue pollution across test 8, 9, 10, 11.
+            try {
+                const headers = cachedDeviceSecret ? { 'X-Device-Secret': cachedDeviceSecret } : {};
+                await fetch(`${apiUrl}/v1/machine/commands?device_id=${deviceId}`, { headers });
+                addLog(`Queue drained — clean slate for command tests`, 'info');
+            } catch(e) { /* non-fatal */ }
+
+            // ── Step 3: Run all tests ────────────────────────────────────
             for (const test of tests) {
                 await runSingleTest(test, apiUrl, deviceId, mode);
                 await new Promise(r => setTimeout(r, 400));
