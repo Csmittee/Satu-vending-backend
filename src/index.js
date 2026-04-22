@@ -8,112 +8,142 @@ import { authenticateJWT, requireAdmin } from './middleware/auth.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import { logRequest } from './middleware/logging.js';
 
+// ════════════════════════════════════════════════════════════════════════════
+//  CORS
+//  All HTML pages are served from api.janishammer.com (same origin as the API)
+//  via Cloudflare Static Assets (wrangler.toml [assets]).
+//  CORS headers are kept for:
+//    - The ESP32 firmware (it uses HTTPClient, not a browser, so no CORS — but
+//      adding headers does no harm)
+//    - Any future external integrations (Satu 2.0 portal on a different domain)
+//    - The Omise webhook (comes from Omise servers)
+//
+//  ALLOWED_ORIGINS: lock this down to your actual domains in production.
+// ════════════════════════════════════════════════════════════════════════════
+const ALLOWED_ORIGINS = [
+    'https://api.janishammer.com',
+    'https://janishammer.com',
+    'http://localhost:8787',   // wrangler dev
+    'http://127.0.0.1:8787',
+];
+
+function corsHeaders(request) {
+    const origin = request.headers.get('Origin') || '';
+    const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+    return {
+        'Access-Control-Allow-Origin':      allowed,
+        'Access-Control-Allow-Methods':     'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers':     'Content-Type, Authorization, X-Device-Secret, X-Admin-Token',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Max-Age':           '86400',
+    };
+}
+
+function withCors(response, request) {
+    const headers = new Headers(response.headers);
+    Object.entries(corsHeaders(request)).forEach(([k, v]) => headers.set(k, v));
+    return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
 export default {
     // ════════════════════════════════════════════════════════════════════════
     //  HTTP HANDLER
     // ════════════════════════════════════════════════════════════════════════
     async fetch(request, env, ctx) {
-        const url = new URL(request.url);
-        const path = url.pathname;
+        const url    = new URL(request.url);
+        const path   = url.pathname;
         const method = request.method;
 
-        // Non-blocking logging — never delays or breaks any request
+        // ── CORS preflight (OPTIONS) — must return 200 before any auth ───────
+        if (method === 'OPTIONS') {
+            return new Response(null, { status: 204, headers: corsHeaders(request) });
+        }
+
+        // Non-blocking logging
         ctx.waitUntil(logRequest(request, env));
 
         // ── Public health check ──────────────────────────────────────────────
         if (path === '/health' && method === 'GET') {
-            return Response.json({
+            return withCors(Response.json({
                 status: 'ok',
                 timestamp: Date.now(),
                 environment: env.ENVIRONMENT || 'production',
                 payment_mode: env.PAYMENT_MODE || 'fake'
-            });
+            }), request);
         }
 
         if (path === '/' && method === 'GET') {
-            return Response.json({
+            return withCors(Response.json({
                 service: 'Satu API',
                 status: 'running',
-                endpoints: ['GET /health', 'POST /v1/machine/hello', 'POST /v1/order', 'GET /v1/machine/commands']
-            });
+                endpoints: ['GET /health', 'POST /v1/machine/hello', 'POST /v1/order', 'GET /v1/machine/commands'],
+                pages: ['GET /simulator.html', 'GET /satu-system-tester.html', 'GET /satu-machine-tester.html']
+            }), request);
         }
 
-        // ── Test / Demo pages ────────────────────────────────────────────────
-        // TODO: Move these to Worker assets (wrangler.toml [assets]) to remove
-        // the GitHub fetch dependency (supply-chain risk). For now keep with error handling.
-        if (path === '/test' && method === 'GET') {
-            try {
-                const html = await fetch('https://raw.githubusercontent.com/Csmittee/Satu-vending-backend/main/satu-system-tester.html');
-                if (!html.ok) throw new Error('upstream');
-                const text = await html.text();
-                return new Response(text, {
-                    headers: { 'Content-Type': 'text/html', 'Cache-Control': 'max-age=60' }
-                });
-            } catch {
-                return new Response('Test page unavailable', { status: 503 });
-            }
+        // ── Static HTML pages ────────────────────────────────────────────────
+        // Served from public/ via Cloudflare Assets (wrangler.toml [assets]).
+        // These routes below are LEGACY FALLBACKS only — they redirect to the
+        // asset URL so existing bookmarks still work.
+        // Primary access: api.janishammer.com/simulator.html (served by Assets directly)
+        //
+        // If you haven't migrated to [assets] yet, these fetch from the local
+        // ASSETS binding instead of GitHub (supply-chain safe).
+        if ((path === '/test' || path === '/simulator' || path === '/sim') && method === 'GET') {
+            return Response.redirect(url.origin + '/satu-system-tester.html', 302);
         }
-
         if (path === '/demo' && method === 'GET') {
-            try {
-                const html = await fetch('https://raw.githubusercontent.com/Csmittee/Satu-vending-backend/main/satu-machine-tester.html');
-                if (!html.ok) throw new Error('upstream');
-                const text = await html.text();
-                return new Response(text, {
-                    headers: { 'Content-Type': 'text/html', 'Cache-Control': 'max-age=60' }
-                });
-            } catch {
-                return new Response('Demo page unavailable', { status: 503 });
-            }
+            return Response.redirect(url.origin + '/satu-machine-tester.html', 302);
+        }
+        if (path === '/machine' && method === 'GET') {
+            return Response.redirect(url.origin + '/simulator.html', 302);
         }
 
         // ── Omise Webhook (public — signature verified inside) ───────────────
         if (path === '/v1/webhook/omise' && method === 'POST') {
-            return handleOmiseWebhook(request, env);
+            return withCors(await handleOmiseWebhook(request, env), request);
         }
 
         // ── Machine endpoints (device-secret authenticated inside handlers) ──
         if (path === '/v1/machine/hello' && method === 'POST') {
-            return handleMachineHello(request, env);
+            return withCors(await handleMachineHello(request, env), request);
         }
 
         if (path === '/v1/machine/heartbeat' && method === 'POST') {
-            return handleHeartbeat(request, env);
+            return withCors(await handleHeartbeat(request, env), request);
         }
 
         if (path === '/v1/machine/commands' && method === 'GET') {
-            return handleGetCommands(request, env);
+            return withCors(await handleGetCommands(request, env), request);
         }
 
         // ── Auth (rate limited — prevents brute force login) ─────────────────
         if (path === '/v1/auth/login' && method === 'POST') {
-            return rateLimit(request, env, async () => handleLogin(request, env));
+            return withCors(await rateLimit(request, env, async () => handleLogin(request, env)), request);
         }
 
         if (path === '/v1/auth/register' && method === 'POST') {
-            return rateLimit(request, env, async () => handleRegister(request, env));
+            return withCors(await rateLimit(request, env, async () => handleRegister(request, env)), request);
         }
 
-        // Admin-only password reset — requires X-Admin-Token header
         if (path === '/v1/auth/reset-password' && method === 'POST') {
-            return handleAdminResetPassword(request, env);
+            return withCors(await handleAdminResetPassword(request, env), request);
         }
 
-        // ── Order (D1-backed rate limited — 20 req/min per IP) ──────────────
+        // ── Order (rate limited) ─────────────────────────────────────────────
         if (path === '/v1/order' && method === 'POST') {
-            return rateLimit(request, env, async () => handleCreateOrder(request, env));
+            return withCors(await rateLimit(request, env, async () => handleCreateOrder(request, env)), request);
         }
 
         if (path.match(/^\/v1\/order\/.+\/status$/) && method === 'GET') {
             const orderId = path.split('/')[3];
-            return handleGetOrderStatus(orderId, env);
+            return withCors(await handleGetOrderStatus(orderId, env), request);
         }
 
         // ════════════════════════════════════════════════════════════════════
         //  ADMIN DASHBOARD
         //  Requires X-Admin-Token header matching ADMIN_SECRET env secret.
         //  Access: curl -H "X-Admin-Token: YOUR_SECRET" https://api.janishammer.com/admin
-        //  Setup:  npx wrangler secret put ADMIN_SECRET
         // ════════════════════════════════════════════════════════════════════
         const ADMIN_PATH = env.ADMIN_PATH || '/admin';
 
@@ -124,61 +154,50 @@ export default {
             }
 
             if (method === 'GET' && path === ADMIN_PATH) {
-                return await handleAdminDashboard(env, ADMIN_PATH);
+                return withCors(await handleAdminDashboard(env, ADMIN_PATH), request);
             }
 
             if (method === 'GET' && path.startsWith(ADMIN_PATH + '/api/')) {
                 const tableName = path.split('/').pop();
-                return await handleAdminTableData(tableName, env);
+                return withCors(await handleAdminTableData(tableName, env), request);
             }
         }
 
         // ── JWT-protected routes ─────────────────────────────────────────────
         const auth = await authenticateJWT(request, env);
         if (!auth.valid) {
-            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+            return withCors(Response.json({ error: 'Unauthorized' }, { status: 401 }), request);
         }
 
         if (path === '/v1/dashboard/devices' && method === 'GET') {
-            return handleGetUserDevices(auth.userId, env);
+            return withCors(await handleGetUserDevices(auth.userId, env), request);
         }
 
         if (path === '/v1/admin/device/disable' && method === 'POST') {
-            if (!await requireAdmin(auth.userId, env)) return Response.json({ error: 'Admin required' }, { status: 403 });
-            return handleDisableDevice(request, env, auth.userId);
+            if (!await requireAdmin(auth.userId, env)) return withCors(Response.json({ error: 'Admin required' }, { status: 403 }), request);
+            return withCors(await handleDisableDevice(request, env, auth.userId), request);
         }
 
         if (path === '/v1/admin/device/enable' && method === 'POST') {
-            if (!await requireAdmin(auth.userId, env)) return Response.json({ error: 'Admin required' }, { status: 403 });
-            return handleEnableDevice(request, env, auth.userId);
+            if (!await requireAdmin(auth.userId, env)) return withCors(Response.json({ error: 'Admin required' }, { status: 403 }), request);
+            return withCors(await handleEnableDevice(request, env, auth.userId), request);
         }
 
         if (path === '/v1/admin/device/reassign' && method === 'POST') {
-            if (!await requireAdmin(auth.userId, env)) return Response.json({ error: 'Admin required' }, { status: 403 });
-            return handleReassignDevice(request, env, auth.userId);
+            if (!await requireAdmin(auth.userId, env)) return withCors(Response.json({ error: 'Admin required' }, { status: 403 }), request);
+            return withCors(await handleReassignDevice(request, env, auth.userId), request);
         }
 
         if (path === '/v1/admin/devices' && method === 'GET') {
-            if (!await requireAdmin(auth.userId, env)) return Response.json({ error: 'Admin required' }, { status: 403 });
-            return handleGetAllDevices(request, env);
+            if (!await requireAdmin(auth.userId, env)) return withCors(Response.json({ error: 'Admin required' }, { status: 403 }), request);
+            return withCors(await handleGetAllDevices(request, env), request);
         }
 
-        return Response.json({ error: 'Not found' }, { status: 404 });
+        return withCors(Response.json({ error: 'Not found' }, { status: 404 }), request);
     },
 
     // ════════════════════════════════════════════════════════════════════════
     //  CRON HANDLER
-    //  Triggered by Cloudflare Cron Triggers defined in wrangler.toml.
-    //  Currently handles:
-    //    "*/30 * * * *" → expire stale pending orders + clean rate limit table
-    //
-    //  WHY HERE AND NOT A SEPARATE WORKER:
-    //    Same D1 binding, same deploy, zero extra infrastructure.
-    //    For a solo founder this is the right call — one codebase to maintain.
-    //
-    //  TO ENABLE: Add to wrangler.toml (see wrangler.toml in this release):
-    //    [triggers]
-    //    crons = ["*/30 * * * *"]
     // ════════════════════════════════════════════════════════════════════════
     async scheduled(event, env, ctx) {
         ctx.waitUntil(runScheduledJobs(event, env));
@@ -186,40 +205,25 @@ export default {
 };
 
 // ════════════════════════════════════════════════════════════════════════════
-//  SCHEDULED JOB RUNNER
+//  SCHEDULED JOBS
 // ════════════════════════════════════════════════════════════════════════════
 async function runScheduledJobs(event, env) {
     const now = Math.floor(Date.now() / 1000);
     console.log(`[cron] Scheduled trigger fired at ${now} (cron: ${event.cron})`);
-
-    // Run both jobs — don't let one failure block the other
     await Promise.allSettled([
         expireStaleOrders(env, now),
         cleanupRateLimitCounters(env, now)
     ]);
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-//  JOB 1: Expire stale pending orders
-//
-//  Any order still 'pending' after 30 minutes is abandoned.
-//  Mark it 'expired' so it doesn't pollute dashboards or confuse machines.
-//  This does NOT affect Omise — if Omise somehow sends a webhook for an
-//  expired order, webhook.js will log it but not double-dispense (the
-//  order status check prevents that).
-// ────────────────────────────────────────────────────────────────────────────
 async function expireStaleOrders(env, now) {
     const logId = await startCronLog(env, 'expire_orders', now);
     try {
-        const cutoff = now - (30 * 60); // 30 minutes ago
-
+        const cutoff = now - (30 * 60);
         const result = await env.DB.prepare(`
-            UPDATE orders
-            SET status = 'expired'
-            WHERE status = 'pending'
-              AND created_at < ?
+            UPDATE orders SET status = 'expired'
+            WHERE status = 'pending' AND created_at < ?
         `).bind(cutoff).run();
-
         const rowsAffected = result.meta?.changes ?? 0;
         console.log(`[cron] expire_orders: ${rowsAffected} orders expired`);
         await finishCronLog(env, logId, 'ok', rowsAffected);
@@ -229,25 +233,13 @@ async function expireStaleOrders(env, now) {
     }
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-//  JOB 2: Clean up stale rate limit counter rows
-//
-//  Each row covers a 1-minute window. Rows older than 5 minutes are useless.
-//  Without cleanup the table grows unboundedly. At 100 IPs/min × 60min/day
-//  = 144,000 rows/day. D1 handles this fine, but there's no reason to keep
-//  them — they'll never be queried again.
-// ────────────────────────────────────────────────────────────────────────────
 async function cleanupRateLimitCounters(env, now) {
     const logId = await startCronLog(env, 'cleanup_rate_limits', now);
     try {
-        const currentWindowKey = Math.floor(now / 60);
-        const cutoffWindowKey = currentWindowKey - 5; // keep last 5 minutes
-
+        const cutoffWindowKey = Math.floor(now / 60) - 5;
         const result = await env.DB.prepare(`
-            DELETE FROM rate_limit_counters
-            WHERE window_key < ?
+            DELETE FROM rate_limit_counters WHERE window_key < ?
         `).bind(cutoffWindowKey).run();
-
         const rowsAffected = result.meta?.changes ?? 0;
         console.log(`[cron] cleanup_rate_limits: ${rowsAffected} rows deleted`);
         await finishCronLog(env, logId, 'ok', rowsAffected);
@@ -257,19 +249,13 @@ async function cleanupRateLimitCounters(env, now) {
     }
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-//  CRON LOG HELPERS
-// ────────────────────────────────────────────────────────────────────────────
 async function startCronLog(env, jobName, now) {
     try {
         const result = await env.DB.prepare(`
-            INSERT INTO cron_log (job_name, started_at, status)
-            VALUES (?, ?, 'running')
+            INSERT INTO cron_log (job_name, started_at, status) VALUES (?, ?, 'running')
         `).bind(jobName, now).run();
         return result.meta?.last_row_id ?? null;
-    } catch {
-        return null; // Non-fatal — don't break the actual job
-    }
+    } catch { return null; }
 }
 
 async function finishCronLog(env, logId, status, rowsAffected, errorMsg = null) {
@@ -277,19 +263,14 @@ async function finishCronLog(env, logId, status, rowsAffected, errorMsg = null) 
     try {
         const now = Math.floor(Date.now() / 1000);
         await env.DB.prepare(`
-            UPDATE cron_log
-            SET finished_at = ?, status = ?, rows_affected = ?, error_msg = ?
-            WHERE id = ?
+            UPDATE cron_log SET finished_at = ?, status = ?, rows_affected = ?, error_msg = ? WHERE id = ?
         `).bind(now, status, rowsAffected, errorMsg, logId).run();
-    } catch {
-        // Non-fatal
-    }
+    } catch {}
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  ADMIN DASHBOARD HANDLER
+//  ADMIN DASHBOARD
 // ════════════════════════════════════════════════════════════════════════════
-
 function escapeJson(obj) {
     return JSON.stringify(obj).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/\//g, '\\u002f');
 }
@@ -321,8 +302,8 @@ async function handleAdminDashboard(env, adminPath) {
         FROM devices ORDER BY last_heartbeat DESC LIMIT 20
     `).all();
 
-    const adminPathJson   = escapeJson(adminPath);
-    const tableNamesJson  = escapeJson(tableNames);
+    const adminPathJson     = escapeJson(adminPath);
+    const tableNamesJson    = escapeJson(tableNames);
     const recentOrdersJson  = escapeJson(recentOrders.results  || []);
     const recentDevicesJson = escapeJson(recentDevices.results || []);
 
@@ -352,12 +333,12 @@ async function handleAdminDashboard(env, adminPath) {
         th, td { text-align: left; padding: 10px; border-bottom: 1px solid #2a2a3e; }
         th { background: #2a2a3e; position: sticky; top: 0; color: #667eea; }
         tr:hover { background: #2a2a3e; }
-        .status-active { color: #10b981; }
-        .status-pending { color: #f59e0b; }
-        .status-disabled { color: #ef4444; }
-        .status-paid { color: #10b981; }
+        .status-active { color: #10b981; } .status-pending { color: #f59e0b; }
+        .status-disabled { color: #ef4444; } .status-paid { color: #10b981; }
         .footer { text-align: center; color: #666; margin-top: 30px; font-size: 12px; }
         .auth-note { background: #10b98115; border: 1px solid #10b981; border-radius: 8px; padding: 10px 15px; margin-bottom: 20px; font-size: 13px; color: #10b981; }
+        .pages-note { background: #667eea15; border: 1px solid #667eea; border-radius: 8px; padding: 10px 15px; margin-bottom: 20px; font-size: 13px; color: #667eea; }
+        .pages-note a { color: #667eea; }
     </style>
 </head>
 <body>
@@ -365,6 +346,11 @@ async function handleAdminDashboard(env, adminPath) {
     <h1>🔐 Satu Admin</h1>
     <div class="subtitle">System Dashboard</div>
     <div class="auth-note">✅ Authenticated via X-Admin-Token header</div>
+    <div class="pages-note">
+      📺 <a href="/simulator.html" target="_blank">Machine Simulator</a> &nbsp;|&nbsp;
+      🧪 <a href="/satu-system-tester.html" target="_blank">System Tester</a> &nbsp;|&nbsp;
+      🎮 <a href="/satu-machine-tester.html" target="_blank">Machine Tester</a>
+    </div>
 
     <div class="stats-grid">
         <div class="stat-card"><div class="stat-number">${orders?.count || 0}</div><div class="stat-label">Total Orders</div></div>
@@ -377,105 +363,61 @@ async function handleAdminDashboard(env, adminPath) {
         <h2>📋 Recent Orders</h2>
         <div class="table-container" id="recent-orders"></div>
     </div>
-
     <div class="section">
         <h2>🖥️ Recent Devices</h2>
         <div class="table-container" id="recent-devices"></div>
     </div>
-
     <div class="section">
         <h2>🗄️ Database Browser</h2>
         <div class="tabs" id="tabs"></div>
         <div id="table-content"></div>
     </div>
-
     <div class="footer">Satu Admin | Restricted Access</div>
 </div>
-
 <script>
     const ADMIN_PATH = ${adminPathJson};
     const tableNames    = ${tableNamesJson};
     const recentOrders  = ${recentOrdersJson};
     const recentDevices = ${recentDevicesJson};
-
-    function h(str) {
-        return String(str ?? '-')
-            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-
+    function h(str) { return String(str ?? '-').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
     function renderRecentOrders() {
         const c = document.getElementById('recent-orders');
         if (!recentOrders.length) { c.innerHTML = '<p>No orders yet</p>'; return; }
         c.innerHTML = '<table><thead><tr><th>Order ID</th><th>Device</th><th>Amount</th><th>Status</th><th>Time (UTC+7)</th></tr></thead><tbody>'
-            + recentOrders.map(o => \`<tr>
-                <td>\${h(o.order_id)}</td>
-                <td>\${h(o.device_id)}</td>
-                <td>\${h(o.amount)} THB</td>
-                <td class="status-\${h(o.status)}">\${h(o.status)}</td>
-                <td>\${h(o.created)}</td>
-            </tr>\`).join('')
+            + recentOrders.map(o => \`<tr><td>\${h(o.order_id)}</td><td>\${h(o.device_id)}</td><td>\${h(o.amount)} THB</td><td class="status-\${h(o.status)}">\${h(o.status)}</td><td>\${h(o.created)}</td></tr>\`).join('')
             + '</tbody></table>';
     }
-
     function renderRecentDevices() {
         const c = document.getElementById('recent-devices');
         if (!recentDevices.length) { c.innerHTML = '<p>No devices yet</p>'; return; }
         c.innerHTML = '<table><thead><tr><th>Device ID</th><th>Temple</th><th>Status</th><th>Last Seen (UTC+7)</th></tr></thead><tbody>'
-            + recentDevices.map(d => \`<tr>
-                <td>\${h(d.device_id)}</td>
-                <td>\${h(d.temple_name)}</td>
-                <td class="status-\${h(d.status)}">\${h(d.status)}</td>
-                <td>\${h(d.last_seen)}</td>
-            </tr>\`).join('')
+            + recentDevices.map(d => \`<tr><td>\${h(d.device_id)}</td><td>\${h(d.temple_name)}</td><td class="status-\${h(d.status)}">\${h(d.status)}</td><td>\${h(d.last_seen)}</td></tr>\`).join('')
             + '</tbody></table>';
     }
-
     function renderTabs() {
         const tabsDiv = document.getElementById('tabs');
-        tabsDiv.innerHTML = tableNames.map(name =>
-            \`<button class="tab" onclick="showTab('\${h(name)}')">\${h(name)}</button>\`
-        ).join('');
+        tabsDiv.innerHTML = tableNames.map(name => \`<button class="tab" onclick="showTab('\${h(name)}')">\${h(name)}</button>\`).join('');
         if (tableNames.length > 0) showTab(tableNames[0]);
     }
-
     async function showTab(tableName) {
         const c = document.getElementById('table-content');
         c.innerHTML = '<div class="table-container">Loading...</div>';
         const token = sessionStorage.getItem('adminToken') || prompt('Enter Admin Token:');
         if (token) sessionStorage.setItem('adminToken', token);
         try {
-            const res = await fetch(ADMIN_PATH + '/api/' + tableName, {
-                headers: { 'X-Admin-Token': token }
-            });
-            if (res.status === 403) {
-                sessionStorage.removeItem('adminToken');
-                c.innerHTML = '<p style="color:#ef4444;">❌ Invalid token</p>';
-                return;
-            }
+            const res = await fetch(ADMIN_PATH + '/api/' + tableName, { headers: { 'X-Admin-Token': token } });
+            if (res.status === 403) { sessionStorage.removeItem('adminToken'); c.innerHTML = '<p style="color:#ef4444;">❌ Invalid token</p>'; return; }
             const data = await res.json();
             if (!data || data.length === 0) { c.innerHTML = '<p>No data found</p>'; return; }
             let html = '<div class="table-container"><table><thead><tr>';
             Object.keys(data[0]).forEach(key => { html += \`<th>\${h(key)}</th>\`; });
             html += '</tr></thead><tbody>';
-            data.forEach(row => {
-                html += '<tr>';
-                Object.values(row).forEach(val => {
-                    const display = typeof val === 'object' ? JSON.stringify(val) : val;
-                    html += \`<td>\${h(String(display ?? '-').substring(0, 100))}</td>\`;
-                });
-                html += '</tr>';
-            });
+            data.forEach(row => { html += '<tr>'; Object.values(row).forEach(val => { const display = typeof val === 'object' ? JSON.stringify(val) : val; html += \`<td>\${h(String(display ?? '-').substring(0, 100))}</td>\`; }); html += '</tr>'; });
             html += '</tbody></table></div>';
             c.innerHTML = html;
-        } catch(e) {
-            c.innerHTML = '<p style="color:#ef4444;">Error loading data</p>';
-        }
+        } catch(e) { c.innerHTML = '<p style="color:#ef4444;">Error loading data</p>'; }
     }
-
-    renderRecentOrders();
-    renderRecentDevices();
-    renderTabs();
+    renderRecentOrders(); renderRecentDevices(); renderTabs();
 </script>
 </body>
 </html>`;
@@ -485,23 +427,17 @@ async function handleAdminDashboard(env, adminPath) {
 
 // ════════════════════════════════════════════════════════════════════════════
 //  ADMIN TABLE DATA
-//  Whitelist prevents SQL injection via table name.
-//  UPDATED: added rate_limit_counters and cron_log
 // ════════════════════════════════════════════════════════════════════════════
 async function handleAdminTableData(tableName, env) {
     const validTables = [
         'users', 'devices', 'orders', 'setup_codes', 'donor_consent',
         'data_access_log', 'device_commands', 'admin_log', 'ownership_log',
         'connection_logs', 'firmware_versions', 'test_payments',
-        'rate_limit_counters',  // Added: rate limiter backing store
-        'cron_log'              // Added: scheduled job audit trail
+        'rate_limit_counters', 'cron_log'
     ];
-
     if (!validTables.includes(tableName)) {
         return Response.json({ error: 'Invalid table' }, { status: 400 });
     }
-
-    // Safe: tableName is whitelisted above
     const data = await env.DB.prepare(`SELECT * FROM ${tableName} ORDER BY rowid DESC LIMIT 200`).all();
     return Response.json(data.results);
 }
