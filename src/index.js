@@ -193,7 +193,13 @@ export default {
             return withCors(await handleGetAllDevices(request, env), request);
         }
 
+       // Serve static assets (public/ folder) for anything not matched above
+        if (env.ASSETS) {
+            return env.ASSETS.fetch(request);
+        }
         return withCors(Response.json({ error: 'Not found' }, { status: 404 }), request);
+    
+    
     },
 
     // ════════════════════════════════════════════════════════════════════════
