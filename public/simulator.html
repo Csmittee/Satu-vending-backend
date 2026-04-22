@@ -1045,12 +1045,17 @@ canvas#qr-canvas { display: block; }
   <button class="sim-btn danger" onclick="simRebootCmd()">💥 Reboot Cmd</button>
 </div>
 
-<div class="api-row">
+<div class="api-row" style="opacity:0.55; pointer-events:none;">
   <label>API BASE URL:</label>
-  <input type="text" id="api-url" value="https://api.janishammer.com" placeholder="https://api.janishammer.com">
-  <button class="sim-btn" onclick="reconnect()">Connect</button>
-  <label style="margin-left:8px;">MAC:</label>
-  <input type="text" id="sim-mac" value="" style="width:160px;" placeholder="Auto">
+  <input type="text" id="api-url" value="https://api.janishammer.com" readonly
+    style="color:#444; cursor:not-allowed;">
+  <button class="sim-btn" style="opacity:0.3;">Connect</button>
+  <label style="margin-left:8px;">MAC (fixed):</label>
+  <input type="text" id="sim-mac" value="AA:BB:CC:DD:EE:01" readonly
+    style="width:160px; color:#444; cursor:not-allowed;">
+  <span style="pointer-events:none; color:#f59e0b; font-size:10px; margin-left:12px;">
+    🔒 SATU-SIM01 — fixed test device, change requires code edit
+  </span>
 </div>
 
 <div class="sim-log" id="sim-log">
@@ -1164,11 +1169,10 @@ async function apiGet(path) {
 // ═══════════════════════════════════════════════════════════════════════════
 //  BOOT SEQUENCE
 // ═══════════════════════════════════════════════════════════════════════════
-function genMac() {
-  return Array.from({length:6}, () =>
-    Math.floor(Math.random()*256).toString(16).padStart(2,'0').toUpperCase()
-  ).join(':');
-}
+// Fixed test MAC — always SATU-SIM01 in DB. Never random.
+// Prevents ghost devices accumulating. Change requires deliberate code edit.
+const FIXED_TEST_MAC = 'AA:BB:CC:DD:EE:01';
+function genMac() { return FIXED_TEST_MAC; }
 
 async function bootSequence() {
   showScreen('boot');
