@@ -253,6 +253,9 @@
                         status.textContent = '● Pending';
                         status.removeAttribute('style');  // clear any inline overrides
                     }
+                    const resp = card.querySelector('.test-response');
+                    if (resp) resp.innerHTML = 'Not yet tested';
+                    
                 } else {
                     card.style.opacity = '0.35';
                     card.style.pointerEvents = 'none';
