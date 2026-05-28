@@ -26,8 +26,7 @@ export default {
                 status: 'ok',
                 timestamp: Date.now(),
                 environment: env.ENVIRONMENT || 'production',
-                payment_gateway: env.PAYMENT_GATEWAY || 'fake_omise',
-                system_mode:     env.SYSTEM_MODE    || 'online'
+                payment_mode: env.PAYMENT_MODE || 'fake'
             });
         }
 
@@ -39,33 +38,26 @@ export default {
             });
         }
 
-        // ── Test / Demo pages ────────────────────────────────────────────────
-        // TODO: Move these to Worker assets (wrangler.toml [assets]) to remove
-        // the GitHub fetch dependency (supply-chain risk). For now keep with error handling.
+        // ── Test / Demo / Simulator pages ────────────────────────────────────
+        // Served directly by Cloudflare Assets from ./public/ (wrangler.toml [assets]).
+        // Bundled on every deploy — no GitHub fetch, no external dependency.
+        //
+        // Direct URLs (auto-served by Cloudflare Assets):
+        //   /satu-system-tester.html  → 14-test system tester
+        //   /satu-machine-tester.html → machine flow tester
+        //   /simulator.html           → payment simulator
+        //
+        // Short aliases for backward compatibility with old bookmarks:
         if (path === '/test' && method === 'GET') {
-            try {
-                const html = await fetch('https://raw.githubusercontent.com/Csmittee/Satu-vending-backend/main/satu-system-tester.html');
-                if (!html.ok) throw new Error('upstream');
-                const text = await html.text();
-                return new Response(text, {
-                    headers: { 'Content-Type': 'text/html', 'Cache-Control': 'max-age=60' }
-                });
-            } catch {
-                return new Response('Test page unavailable', { status: 503 });
-            }
+            return Response.redirect('https://api.janishammer.com/satu-system-tester.html', 302);
         }
 
         if (path === '/demo' && method === 'GET') {
-            try {
-                const html = await fetch('https://raw.githubusercontent.com/Csmittee/Satu-vending-backend/main/satu-machine-tester.html');
-                if (!html.ok) throw new Error('upstream');
-                const text = await html.text();
-                return new Response(text, {
-                    headers: { 'Content-Type': 'text/html', 'Cache-Control': 'max-age=60' }
-                });
-            } catch {
-                return new Response('Demo page unavailable', { status: 503 });
-            }
+            return Response.redirect('https://api.janishammer.com/satu-machine-tester.html', 302);
+        }
+
+        if (path === '/simulator' && method === 'GET') {
+            return Response.redirect('https://api.janishammer.com/simulator.html', 302);
         }
 
         // ── Omise Webhook (public — signature verified inside) ───────────────
