@@ -1,215 +1,247 @@
-# PROJECT STATE — Chaijohn OS
-> Last updated: 2026-05-28 — System migration from masterseed to new lean system
+# PROJECT_STATE.md — Satu 1.0 Live Status
+<!-- CC updates phase status after Build sessions · Chat updates after design decisions locked -->
+<!-- Last updated: 2026-05-29 — Firmware R3 session + Cloudflare variable audit -->
+
+## Current Goal
+Flash firmware R3 to ESP32-S3 board. Confirm display + touch. Then fix Cloudflare variables.
 
 ---
 
-## IDENTITY
+## Phase Status
 
-**Full name:** Chaijohn Personal Diary (CPD)
-**What it is:** A private, AI-powered command center for one Thai entrepreneur in Rayong.
-Replaces: paper diary, scattered project notes, Excel cashflow tracker, Obsidian, Google Photos receipts.
-
-**Who it's for:** Owner only. Single user. PIN-protected.
-
-**Live URL:** https://chaijohn-dashboard.pages.dev
-**Repo:** https://github.com/Csmittee/chaijohn-personal (main branch)
-
-**The Five Pillars (Vision):**
-1. Finance Command Center — cashflow, debt, assets, decision support
-2. Knowledge & Diary (Obsidian replacement) — entries, AI assist, blog push
-3. Collection Asset Registry — knives, vices, plants, dolls (photo → value → legacy)
-4. AI Strategy Advisor — auto-loads live snapshot, strategic questions, session history
-5. Project Management Hub — full lifecycle from idea to launch (NOT YET BUILT)
+| Phase | What | Status |
+|-------|------|--------|
+| P1 | Backend API | ✅ DONE — 14/14 tests pass |
+| P2 | Payment Gateway | 🟡 TEST KEYS ACTIVE — KYC/bank pending |
+| P3 | Firmware R3 | ✅ WRITTEN — ready to flash, not yet validated on board |
+| P4 | Hardware Build | 🔵 DESIGN DONE — components arrived, build not started |
+| P5 | Temple Owner Dashboard | 🟡 PARTIAL — HTML built, backend patches not applied |
+| P6 | Omise Live Keys | 🔴 BLOCKED — KYC incomplete |
+| P7 | First Machine Field Test | ⬜ NOT STARTED |
 
 ---
 
-## BUILD PHASES
+## ⚠️ CRITICAL: Cloudflare Variables — Action Required
 
-| Phase | Scope | Status |
-|---|---|---|
-| Phase 0 | Full initial build — all 5 modules in one CC pass | ✅ COMPLETE |
-| Phase 1–4 | LESSONS.md + Dashboard fixes 1–8 + Risk Simulator + Diary fixes 9–13 | ✅ COMPLETE |
-| Fix A | Liabilities collapse form + Budgets inline edit | ✅ COMPLETE |
-| Fix B | Liabilities expandable row + payment history + Budgets card/group view | ✅ COMPLETE |
-| Fix C | Budget meter proportional scale + Utilities YoY charts + FT note + import script v2 | ✅ COMPLETE |
-| Fix D | Dropzone text files · Diary AI undo · Forecast cashflow · Alert bubbles · Category create · One-time budget | ✅ COMPLETE |
-| Fix E | Category hierarchy · Entity autocomplete · Liability cashflow direction · KV sync point · In-vs-out toggle · Period-aware budget meters · 4-panel layout | ✅ COMPLETE |
-| Fix F | Category group 422 · Debts→Income tx · Transaction DELETE · Budget meter filter · Dashboard graph train + dynamic content zone | ✅ COMPLETE |
-| Fix G | Transactions API budget_id · Budgets API category enrichment · Budget dropdown = Expense only · Dashboard resolveCatId | ✅ COMPLETE |
-| Fix 9A | Sidebar Shell Part 1 — Chairit OS layout, hash routing, 15 route panels, auth overlay, theme toggle | ✅ COMPLETE |
-| Fix 9B | Sidebar Shell Part 2 — M2 panel stat chips + charts + cards; entry drawer; dashboard mini charts; redirects; budget delete typed confirm | ✅ COMPLETE |
-| Fix 9B2 | QA fixes: cashflow toggle+range+view; expenses chart order+period+responsive; liabilities chart swap; utility chart toggle+collapse | ✅ COMPLETE |
-| Fix 9B3 | Card section bands, proportional card sizing, Bundle/Details toggle, bar chart single-month, FAB fixed, frosted glass drawer | ✅ COMPLETE |
-| Fix 9E | Budget panel full redesign — 12-mo matrix, analysis collapsible, graph/data filter zones, edit mode batch save, pending bar, card view · Diary Memo type + badges + thumbnails · Ideas panel full redesign · Dashboard stat spans | ✅ COMPLETE |
-| Fix 9E-R2 | Budget: custom start month picker, GAP actual (no debtMonthly, — for empty months), GAP cumulative row · Ideas: KPI strip, resizable list panel, Write/AI tab toggle, 3-dot pin | ✅ COMPLETE |
-| Fix budget | Fix budget save (removed window.confirm), entry category dropdown retry, duplicate period check, input font 0.62rem | ✅ COMPLETE |
-| Fix 9B4 | Cashflow card restoration + X-days due tool + cut cost simulation | ⬜ NEXT |
-| Fix 9C | Full M3.4 Projects module (schema, API, projects.injector.js, panel) — SCHEDULED NEXT WEEK | ⬜ SCHEDULED |
-| Pillar 3 | Collection module — full test + buyer tags + social share | ⬜ FUTURE |
-| Pillar 4 | AI Advisor — full test + permanent memory context | ⬜ FUTURE |
-| Pillar 5 | Project Management Hub — design first, build later | ⬜ FUTURE |
+### Must change from Secret → plain Variable (no damage if visible):
+| Name | Change to | Value |
+|------|-----------|-------|
+| `FAKE_OMISE_URL` | Variable | `https://fake-omise.csmittee.workers.dev` |
+| `PAYMENT_GATEWAY` | Variable | `fake_omise` |
+| `SYSTEM_MODE` | Variable | `online` |
+
+### Keep as Secret (real damage if leaked):
+| Name | Why |
+|------|-----|
+| `ADMIN_SECRET` | Grants full DB access |
+| `OMISE_SECRET_KEY` | Payment API — can charge cards |
+| `OMISE_WEBHOOK_SECRET` | HMAC key — fake payments injectable if leaked |
+| `ADMIN_PATH` | Fine either way, keep secret for obscurity |
+
+### Old variable — delete if still present:
+- `PAYMENT_MODE` — replaced by `PAYMENT_GATEWAY`. Delete from Cloudflare.
 
 ---
 
-## CURRENT STATE
+## ⚠️ CRITICAL: Omise Gateway Architecture — LOCKED DECISION
 
-**Working (confirmed):**
-- PIN auth, sessions (KV)
-- Schema: all 11 tables + seeded categories/liabilities/budgets
-- Sidebar shell (9B): hash-routed panels, panelactivated lazy-init, entry drawer, Time Management placeholder
-- M2 panels: Cashflow (range toggle, date window, list/card view) · Expenses (trend+pareto, period selector, responsive, list/card/bundle/details) · Liabilities (trend+bar, static cards with proportional sizing) · Budget (12-month matrix, analysis collapsible, GAP rows, edit mode, pending bar, card view, custom start month) ✅
-- Dashboard overview: 4 stats + TODAY PRIORITY placeholder + 4 mini charts + stat spans ✅
-- Entry drawer: all 4 tabs, context-aware, pin-able, frosted glass ✅
-- Ideas panel: KPI strip, resizable list, Write/AI tab toggle, 3-dot pin-to-top ✅
-- Drop Zone: image/PDF + text/markdown support, AI extract, Approve → Airtable ✅
-- Collection + AI panels: embedded in shell ✅ (not end-to-end tested)
-- Diary (diary.html): list + editor + preview + AI modal + AI bottom pane + Undo + Memo type ✅
+Three modes, controlled by `PAYMENT_GATEWAY` variable in Cloudflare:
 
-**In progress / broken:**
-- Cashflow card view: missing budget spending cards, debt payback cards, project funding cards, presale income cards, borrow cards (only actual transactions and sales income show)
-- Cashflow simulation layer: not yet built
+| Value | Calls | QR Code | Webhook | Money | Use for |
+|-------|-------|---------|---------|-------|---------|
+| `fake_omise` | fake-omise.csmittee.workers.dev | Fake URL | Auto-called by fake worker (no HMAC) | ❌ None | All dev, all automated tests |
+| `omise_test` | api.omise.co (test keys) | **Real scannable PromptPay QR** | Only fires when someone actually scans & pays | ❌ None | Demos, presentations, real QR testing |
+| `omise_live` | api.omise.co (live keys) | Real QR | Fires on real payment | ✅ Real money | After KYC complete only |
 
-**Pending phases:**
-- Fix 9B4: Cashflow card restoration + X-days due tool + cut cost simulation
-- Fix 9C: Projects module (next week)
+### Why 14-test suite uses fake_omise:
+Tests 8, 10, 11 test the webhook → payment_confirmed → door unlock chain.
+In omise_test/live mode, Omise only calls our webhook when a real human scans and pays.
+This cannot be automated. Those 3 tests are skipped/greyed in True Omise mode.
+All other 11 tests pass in both modes.
 
----
+### To get real scannable QR in simulator:
+Change `PAYMENT_GATEWAY` → `omise_test` in Cloudflare. No code change needed.
+Change back to `fake_omise` for automated testing.
 
-## CONFIRMED WORKING — DO NOT BREAK
-
-Every CC session must preserve:
-- PIN auth flow — index.html → verify → session cookie → dashboard
-- KV session handling — HttpOnly cookie, 7-day expiry
-- All 11 Airtable table structures — never rename fields CC didn't create
-- Dashboard T1/T2/T3 charts + Risk Simulator
-- Drop Zone panel (fixed bottom-right, all pages)
-- Transaction create + read + inline edit
-- Blog push logic: publish_to_web=true + entry_type=Blog → business base Blogs table
-- One dedicated injector JS per page — no shared mega-bundle
-- No React, no Tailwind — pure CSS variables + vanilla JS only
+### What was confirmed working via curl (historical):
+- Real Omise account active with test keys
+- PromptPay enabled (1.65% fee)
+- Real QR URL returned and reachable — confirmed in system tester Tests 3 & 4
+- 502 error previously was wrong API key in Cloudflare (now fixed)
 
 ---
 
-## FILE INVENTORY
+## ⚠️ CRITICAL: Hardware Lane Count
+Default: **10 slots (5×2 grid)** — this is what gets flashed now
+Maximum: 21 slots (7×3 grid) — future expansion, scrollable UX needed if >10
 
-```
-/                                         ← repo root (keep clean)
-├── CLAUDE.md                             ✅ NEW — primary CC entry point (30 lines)
-├── RULES.md                              ✅ NEW — compact one-liner rules (L001–L067)
-├── PROJECT_STATE.md                      ✅ NEW — this file, phases + roadmap + inventory
-├── WORKFLOW_SKILL.md                     ✅ operating model reference
-├── README.md                             ✅
-├── wrangler.toml                         ✅
-├── package.json                          ✅
-├── docs/
-│   ├── archive/
-│   │   ├── masterseed_archived_2026-05-28.md     ✅ archived (was masterseed.md)
-│   │   └── lessons_learned_archived_2026-05-28.md ✅ archived (was lessons_learned.md)
-│   ├── LESSONS.md                        ✅ legacy, superseded
-│   ├── DECISIONS.md                      ✅
-│   ├── PROGRESS.md                       ✅
-│   └── prompts/                          ✅ all completed CC prompts archived here
-└── public/
-    ├── index.html                        ✅ single-page shell (sidebar + panels + entry drawer)
-    ├── dashboard.html                    ✅ redirect to /#dashboard
-    ├── entry.html                        ✅ redirect to /
-    ├── diary.html                        ✅ working
-    ├── collection.html                   ⬜ built, not tested
-    └── assets/
-        ├── css/global.css                ✅
-        └── js/
-            ├── auth.js                   ✅
-            ├── dropzone.js               ✅
-            ├── cashflow.injector.js      ✅ IIFE, lazy via panelactivated
-            ├── expenses.injector.js      ✅ IIFE, lazy via panelactivated
-            ├── liabilities-panel.injector.js ✅ IIFE, lazy via panelactivated
-            ├── budget-panel.injector.js  ✅ 9E-R2 — 12-mo matrix, GAP rows, edit mode
-            ├── ideas-panel.injector.js   ✅ 9E-R2 — KPI strip, resizable list, Write/AI toggle
-            ├── dash-overview.injector.js ✅ IIFE, lazy via panelactivated
-            ├── entry.injector.js         ✅ binds entry drawer form
-            ├── diary.injector.js         ✅
-            ├── collection.injector.js    ✅ embedded in panel-collection
-            ├── ai.injector.js            ✅ embedded in panel-ai
-            └── dashboard.injector.js     ✅ retired from shell, kept for reference
-functions/
-├── _middleware.js                        ✅ auth check for all /api/*
-├── _airtable.js                          ✅ ALL shared Airtable helpers
-└── api/
-    ├── auth.js + auth/check.js           ✅
-    ├── transactions.js                   ✅ GET/POST (PATCH/DELETE check pending)
-    ├── categories.js                     ✅
-    ├── liabilities.js                    ✅ loan received → Income tx
-    ├── liabilities/[id].js               ✅ payment → Expense tx
-    ├── cashflow-sync.js                  ✅ GET/POST KV sync point
-    ├── budgets.js                        ✅ GET/POST with period duplicate check
-    ├── budgets/[id].js                   ✅ PATCH/DELETE
-    ├── assets.js                         ✅
-    ├── diary.js                          ✅
-    ├── utilities.js                      ✅
-    ├── quotes.js                         ✅
-    ├── debts.js                          ✅
-    ├── dropzone.js                       ✅
-    ├── upload-image.js                   ✅
-    ├── ai-chat.js                        ✅
-    └── setup/schema.js                   ✅ two-phase: tables + seed
+config.h is set to NUM_SLOTS=10, NUM_COLS=5 — correct for first build.
+21-slot design is validated in UI simulator only. Physical machine starts at 10.
+
+---
+
+## Firmware R3 — File Status (all files in one Arduino sketch folder)
+
+| File | Version | Status | Action |
+|------|---------|--------|--------|
+| `satu_vending.ino` | R3 | ✅ Ready | Replace in repo |
+| `ui.h` | R3 | ✅ Ready | Replace in repo |
+| `state_machine.h` | R3 | ✅ Ready | Replace in repo |
+| `config.h` | R3 | ✅ Ready | **Edit WiFi SSID/password first**, then replace |
+| `network.h` | R3 | ✅ Ready | Replace in repo |
+| `hardware.h` | R2 | ⚠️ Keep old | Do NOT replace — R2 still correct for 10-lane |
+
+### Key R3 changes from R2:
+- `ui.h`: TFT_eSPI → Arduino_GFX. getTouchedProduct() → getTouchedSlot(). 21-slot grid.
+- `satu_vending.ino`: STATE_GIFT_OPTION added. wantSacredWater flag. loadSlotsFromJson() called after /hello.
+- `state_machine.h`: STATE_GIFT_OPTION + STATE_SERVICE added. Arrays sized to NUM_SLOTS.
+- `config.h`: NUM_SLOTS=10 default, max 21. 3×MCP stubs. Correct API URL.
+- `network.h`: initWiFi() returns JsonDocument for slot loading. createOrder() accepts sacredWater + donorName.
+
+### Arduino IDE settings (DO NOT CHANGE):
+- Board: ESP32S3 Dev Module
+- Flash: 16MB (128Mb)
+- Partition: 16M Flash (3MB APP/9.9MB FATFS)
+- PSRAM: **OPI PSRAM** ← NEVER change this or display breaks
+- Upload Speed: 460800
+- Port: /dev/cu.usbserial-1420
+
+### Display init (confirmed working):
+```cpp
+Arduino_ESP32RGBPanel *bus = new Arduino_ESP32RGBPanel(
+  41, 40, 39, 42,
+  14, 21, 47, 48, 45,
+  9, 46, 3, 8, 16, 1,
+  15, 7, 6, 5, 4,
+  0, 8, 2, 43,
+  0, 8, 2, 12,
+  1, 16000000
+);
+Arduino_RGB_Display *gfx = new Arduino_RGB_Display(800, 480, bus, 0, true);
+TAMC_GT911 touch(19, 20, -1, -1, 800, 480);
+Wire.begin(19, 20);
+touch.begin();
+touch.setRotation(ROTATION_INVERTED);
 ```
 
 ---
 
-## AIRTABLE TABLES
+## Donor Flow — LOCKED DECISION (2026-05-29)
 
-**Base ID:** `apphBGWfSPL45oSFd` (chaijohn-core)
-**Business Base:** `appMBjlfYyVd8I7ML` (blog push only — one-way)
+```
+IDLE (product grid, 10 slots default)
+  ↓ single tap on slot → 300ms → auto-advance
+DONOR (ID card screen)
+  ↓ insert Thai ID card (auto-confirm after read)  OR  tap Skip (anonymous)
+GIFT OPTION
+  ↓ tap "Item Only"  OR  tap "+ Sacred Water (+20 THB)"
+QR PAYMENT (real or fake QR depending on PAYMENT_GATEWAY)
+  ↓ donor scans & pays  →  Omise calls webhook  →  backend sends payment_confirmed command
+  [if Sacred Water selected]
+SACRED WATER COUNTDOWN (3-2-1 spray animation)
+  ↓ auto-advance after spray
+VENDING (relay fires, progress bar, door opens, beep until pickup)
+  ↓ IR sensor clears when item removed
+LUCKY NUMBER + THANK YOU (8s, then auto-reset)
+  ↓ auto
+IDLE
+```
 
-| Table | Key Fields |
-|---|---|
-| Categories | name, group, type (Earn/Expense/Loan/Investment), expense_type, is_business, cash_flow, active |
-| Transactions | date, type, amount, budget_id→Budgets, category_id→Categories (legacy), entity, description, note, source, fixed_variable, period |
-| Liabilities | name, creditor_type, loan_size, interest_rate, monthly_payment, current_balance, active |
-| Liability_Payments | liability_id→Liabilities, date, amount, note |
-| Assets | name, category, cost_price, estimated_value, status, velocity, date_acquired, sold_price, sold_date, cloudinary_image_url, notes |
-| Diary | date, title, content, entry_type (Story/Idea/Blog/Project/Skill), tags, publish_to_web, connected_concept, cloudinary_image_url |
-| AI_Chats | session_id, messages_json, topic, created_at, summary |
-| Utilities | month, electricity_units, electricity_charge, water_units, water_charge, notes |
-| Quotes | text, author, source, date_added, mood_tag, active, cloudinary_image_url |
-| Drop_Zone_Queue | cloudinary_url, filename, mime_type, status, ai_result, suggested_type |
-| Budgets | label, category_id→Categories, amount, period, start_date, end_date, active |
-
-**Category groups (seeded):** Loan / Family / Basic Living / Car / Service / Personal / Basic IT / Bus IT / Business / Per-earn / Bus-earn / Investment
-
----
-
-## ROADMAP
-
-**Immediate next:**
-1. Fix 9B4 — Cashflow card restoration + X-days due window tool + cut cost simulation
-2. Expense pareto cut-off date input (deferred from 9B3)
-
-**Next week:**
-3. Fix 9C — Full M3.4 Projects module (Airtable schema, API endpoints, projects.injector.js, panel)
-
-**After that:**
-4. Collection module full test + buyer tags + social share
-5. AI Advisor full test + verify financial context loads
-6. Diary → social push (FB/IG) with image capability
-
-**Medium term:**
-7. Project Management Hub — design session with Chat first, then build
-8. Ploikong.com sync from Collection (when Ploikong reaches 100%)
-
-**Long term:**
-9. Business earnings inject (Janis i-flex → this diary)
-10. Stock earnings inject (Trade-simulation → this diary)
-11. AI agent global memory — diary as structured context for all AI tools
+Key rules:
+- Donor name: ID card slot only, NO keyboard input ever
+- Skip always allowed → anonymous donation
+- Sacred water: +20 THB, fires separate relay (WATER_PUMP_RELAY)
+- Lucky number: random 10-99, generated locally on ESP32
 
 ---
 
-## CRITICAL RULES
+## Slot Config — Remote Config Architecture (LOCKED DECISION 2026-05-29)
 
-(All in CLAUDE.md rules 1–5 + RULES.md L001–L067. No additional rules beyond those.)
+Machine pulls slot names/prices from backend on boot via `/hello` response.
+Owner configures slots via temple dashboard (web). No flashing needed.
 
-**Environment vars (Cloudflare Pages dashboard):**
-- AIRTABLE_API_KEY (secret) · CLOUDINARY_API_KEY/SECRET (secrets) · ANTHROPIC_API_KEY (secret)
-- CHAIJOHN_KV binding id: 7e2dcb214e17435c9ec808cb6e3b7e74
+Backend needs (CC job — not yet done):
+- New D1 table: `machine_slots` (machine_id, slot, name_th, name_en, price, enabled)
+- Add `slots[]` array to `/hello` response
+- Dashboard: 7×3 slot editor grid for temple owners
 
-**Deployment reminder:** Cloudflare Pages auto-deploys from main. Never merge broken code to main.
+Firmware side: `loadSlotsFromJson(doc["slots"])` already implemented in network.h R3.
+Fallback if no slots from backend: show "Slot N" greyed out (disabled).
+Price: owner-defined free input. Color auto-tiers by value (50/100/200/300/500).
+
+---
+
+## Simulator — File Status
+
+| File | Version | Location | Status |
+|------|---------|----------|--------|
+| `public/simulator.html` | R1 | Cloudflare | ✅ Live at /simulator — original flow |
+| `public/simulator_r3.html` | R3.1 | Cloudflare | ✅ Live at /simulator_r3 |
+
+R3.1 features:
+- Flow Mode (linear, natural journey) + Free Mode (jump anywhere)
+- Sacred water 3-2-1 countdown screen restored
+- Context-sensitive gesture panel (highlights active section)
+- Gateway badge reads from /health — shows fake_omise / omise_test / omise_live
+- Real API calls: /hello, /order, /heartbeat, /commands, /completion
+- Configurable grid: 1-21 slots, 1-7 cols
+
+---
+
+## Backend — Endpoint Inventory (api.janishammer.com)
+
+| Endpoint | Status | Notes |
+|----------|--------|-------|
+| POST /v1/machine/hello | ✅ | Device registration + credential return |
+| POST /v1/machine/heartbeat | ⚠️ | HTTP 500 — connection_logs column mismatch |
+| GET /v1/machine/commands | ✅ | 30-sec poll |
+| POST /v1/machine/command-ack | ✅ | Queue acknowledgment |
+| POST /v1/machine/completion | ❌ | Missing — firmware calls it, 404 |
+| POST /v1/order | ✅ | Creates order + QR |
+| GET /v1/order/:id/status | ✅ | Payment poll fallback |
+| POST /v1/webhook/omise | ✅ | HMAC skipped on fake_omise |
+| POST /v1/auth/login | ✅ | PBKDF2 |
+| POST /v1/auth/register | ✅ | ALLOW_REGISTRATION gated |
+| GET /v1/dashboard/* | 🟡 | /dashboard/orders endpoint missing |
+| POST /v1/machine/claim | ✅ | Route wired |
+
+**Pending CC jobs (backend):**
+1. Add `machine_slots` table + slots[] in /hello response
+2. Add `/v1/machine/completion` endpoint
+3. Fix heartbeat HTTP 500 (connection_logs column)
+4. Add `/v1/dashboard/orders` route
+
+---
+
+## Known Risks (priority order)
+
+| Item | Severity | Owner |
+|------|----------|-------|
+| Omise KYC incomplete | 🔴 BLOCKS LAUNCH | You |
+| Heartbeat HTTP 500 | 🟡 | CC |
+| /v1/machine/completion missing | 🟡 | CC |
+| machine_slots table not yet created | 🟡 | CC |
+| PDPA consent incomplete | 🔴 Legal risk | Before any live install |
+| Dashboard backend patches not applied | 🟡 | CC |
+| IP (utility model) not filed | 🔴 File before public demo | You |
+| hardware.h still R2 (10-lane) | ✅ Correct for now | Update when scaling to 21 |
+
+---
+
+## Next 3 Actions (in order)
+
+1. **Cloudflare** — convert FAKE_OMISE_URL, PAYMENT_GATEWAY, SYSTEM_MODE from Secret → Variable. Delete PAYMENT_MODE if still present.
+2. **Flash firmware R3** — edit config.h WiFi credentials → replace 5 files → compile → flash
+3. **Validate board** — confirm display shows boot screen, touch responds on product grid
+
+---
+
+## Business Context
+- P&L: ฿10,470 COGS per machine, break-even at 150 tx/mo = 6 months
+- Revenue model: 15% revenue share (beats outright sale 5.4× over 3 years)
+- Company registration: Thai Ltd. target May 2026 (may be delayed)
+- BOI application: Category 4.1, target June 2026
+- Omise: Test keys active, real QR confirmed via curl, KYC meeting not yet held
+- Single vs dual ESP32: still undecided — does not block current work
+- PDPA legal review: not started
+- Utility model (IP): not filed — file before any public demo
