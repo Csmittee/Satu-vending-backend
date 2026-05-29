@@ -38,3 +38,17 @@
 - R-51: CC reads source files fresh from repo — no download/upload cycle needed
 - R-52: Chat gives file + line + old text + new text for Direct Override (no CC, no PR, 2 min)
 - R-53: Bug tickets require: MODULE · FILE · SYMPTOM · CONSOLE output · NETWORK response · EXPECTED
+
+## Firmware Library Rules (added 2026-05-29)
+- R-60: ESP32 Arduino core = 2.0.17 ONLY — 3.x breaks WiFi library completely
+- R-61: GFX Library for Arduino (moononournation) = 1.4.9 ONLY — 1.6.5 requires core 3.x
+- R-62: TFT_eSPI = REMOVE if installed — incompatible with RGB panel, causes compile errors
+- R-63: Arduino sketch folder = let IDE create it via File→New, NEVER create manually in Finder
+- R-64: /hello body field = "firmware" NOT "firmware_version" — backend expects exact name
+- R-65: Omise gateway = 3 modes: fake_omise (dev) / omise_test (real QR) / omise_live (KYC done)
+- R-66: PAYMENT_GATEWAY + SYSTEM_MODE + FAKE_OMISE_URL = plain Variables not Secrets
+- R-67: Slot grid default = 10 (5×2) · max 21 (7×3) · scrollable if >10 · never tiny cells
+
+## Firmware Arduino IDE Settings (add to CLAUDE.md stack section)
+Board: ESP32S3 Dev Module · Flash: 16MB · Partition: 16M Flash (3MB APP/9.9MB FATFS)
+PSRAM: OPI PSRAM (CRITICAL — never change) · Upload: 460800 · Port: /dev/cu.usbserial-1420
