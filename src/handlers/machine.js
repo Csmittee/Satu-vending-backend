@@ -135,9 +135,10 @@ export async function handleHeartbeat(request, env) {
             `UPDATE devices SET last_heartbeat = ?, firmware_version = COALESCE(?, firmware_version) WHERE device_id = ?`
         ).bind(now, firmware || null, device_id).run();
 
+       
         await env.DB.prepare(
-            `INSERT INTO connection_logs (device_id, free_heap, uptime, logged_at) VALUES (?, ?, ?, ?)`
-        ).bind(device_id, free_heap || null, uptime || null, now).run();
+            `INSERT INTO connection_logs (device_id, event_type, details, created_at) VALUES (?, ?, ?, ?)`
+        ).bind(device_id, 'heartbeat', JSON.stringify({ free_heap: free_heap || null, uptime: uptime || null }), now).run();
 
         return Response.json({ status: 'ok', server_time: now });
 
