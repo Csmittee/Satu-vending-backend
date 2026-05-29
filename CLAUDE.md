@@ -7,7 +7,8 @@
 - **Hardware**: ESP32-S3 (ESP32-8048S070C) · MCP23017 ×2 · relays · IR sensors (E18-D80NK)
 - **Firmware**: Arduino/C++ · satu_vending.ino + .h headers
 - **Frontend**: Vanilla HTML/JS · Cloudflare Pages
-
+- **Firmware IDE**: Arduino 1.8.19 · ESP32 core 2.0.17 · GFX lib 1.4.9
+- 
 ## 5 Rules (non-negotiable)
 1. **Never hardcode secrets** — always Cloudflare secrets manager
 2. **Security = non-negotiable** — real money at religious institutions · flag issues immediately
