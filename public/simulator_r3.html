@@ -2,239 +2,193 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Satu Machine Simulator R3</title>
+<title>Satu Simulator R3.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #111; color: #eee; font-family: 'Share Tech Mono', monospace; display: flex; gap: 12px; padding: 12px; min-height: 100vh; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#111;color:#eee;font-family:'Share Tech Mono',monospace;display:flex;gap:12px;padding:12px;min-height:100vh}
+#left-col{display:flex;flex-direction:column;gap:8px;width:820px;flex-shrink:0}
+#right-col{flex:1;display:flex;flex-direction:column;gap:8px;min-width:260px}
 
-/* ══ LAYOUT ══ */
-#left-col  { display: flex; flex-direction: column; gap: 10px; width: 820px; flex-shrink: 0; }
-#right-col { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 280px; }
+/* MODE BAR */
+#mode-bar{background:#0d0d1a;border:1px solid #2a1f4a;border-radius:6px;padding:7px 12px;display:flex;align-items:center;gap:10px}
+#mode-bar span{font-size:9px;color:#444;text-transform:uppercase;letter-spacing:1px}
+.mode-btn{padding:4px 14px;border-radius:4px;border:1px solid #333;background:#111;color:#555;font-family:'Share Tech Mono',monospace;font-size:10px;cursor:pointer;transition:all .15s}
+.mode-btn.active{background:#1a1530;border-color:#C9A84C;color:#C9A84C}
+#mode-hint{font-size:9px;color:#333;flex:1;text-align:right}
 
-/* ══ MACHINE FRAME ══ */
-#machine-frame {
-  width: 800px; height: 480px;
-  background: #0a0812;
-  border: 2px solid #2a1f4a;
-  border-radius: 8px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 0 40px rgba(201,168,76,0.15);
-}
+/* MACHINE */
+#machine-frame{width:800px;height:480px;background:#0a0812;border:2px solid #2a1f4a;border-radius:8px;position:relative;overflow:hidden;box-shadow:0 0 40px rgba(201,168,76,.12)}
 
-/* ══ STATUS BAR ══ */
-#status-bar {
-  position: absolute; top: 0; left: 0; right: 0; height: 44px;
-  background: linear-gradient(90deg, #7a5a14 0%, #C9A84C 50%, #7a5a14 100%);
-  display: flex; align-items: center; z-index: 10;
-  padding: 0 12px;
-}
-#sb-logo { font-family: 'Kanit',sans-serif; font-weight: 900; font-size: 22px; color: #fff; letter-spacing: 2px; }
-#sb-label { flex: 1; text-align: center; font-family: 'Kanit',sans-serif; font-size: 15px; color: #fff; font-weight: 700; }
-#sb-right { font-size: 9px; color: rgba(255,255,255,0.85); text-align: right; line-height: 1.5; }
+/* STATUS BAR */
+#status-bar{position:absolute;top:0;left:0;right:0;height:44px;background:linear-gradient(90deg,#7a5a14,#C9A84C 50%,#7a5a14);display:flex;align-items:center;z-index:10;padding:0 12px}
+#sb-logo{font-family:'Kanit',sans-serif;font-weight:900;font-size:22px;color:#fff;letter-spacing:2px}
+#sb-label{flex:1;text-align:center;font-family:'Kanit',sans-serif;font-size:15px;color:#fff;font-weight:700}
+#sb-right{font-size:9px;color:rgba(255,255,255,.85);text-align:right;line-height:1.5}
 
-/* ══ SCREENS ══ */
-.screen { position: absolute; top: 44px; left: 0; right: 0; bottom: 0; display: none; flex-direction: column; }
-.screen.active { display: flex; }
+/* SCREENS */
+.screen{position:absolute;top:44px;left:0;right:0;bottom:0;display:none;flex-direction:column}
+.screen.active{display:flex}
 
-/* ─ BOOT ─ */
-#scr-boot { align-items: center; justify-content: center; gap: 10px; background: #0a0812; }
-.boot-logo { font-family:'Kanit',sans-serif; font-weight:900; font-size:72px; color:#C9A84C;
-  text-shadow: 0 0 60px rgba(201,168,76,0.5); animation: logoPulse 2s ease-in-out infinite; }
-@keyframes logoPulse { 0%,100%{text-shadow:0 0 40px rgba(201,168,76,0.4)} 50%{text-shadow:0 0 80px rgba(201,168,76,0.8)} }
-.boot-sub  { font-size:11px; color:#8B6914; letter-spacing:3px; text-transform:uppercase; }
-.boot-status { font-size:10px; color:#4fc3f7; }
-.boot-bar-wrap { width:260px; height:2px; background:#1a1a2e; border-radius:1px; overflow:hidden; }
-.boot-bar { height:100%; background:linear-gradient(90deg,#C9A84C,#FFD700); width:0%; transition:width 0.3s; }
+/* BOOT */
+#scr-boot{align-items:center;justify-content:center;gap:10px;background:#0a0812}
+.boot-logo{font-family:'Kanit',sans-serif;font-weight:900;font-size:72px;color:#C9A84C;text-shadow:0 0 60px rgba(201,168,76,.5);animation:lp 2s ease-in-out infinite}
+@keyframes lp{0%,100%{text-shadow:0 0 40px rgba(201,168,76,.4)}50%{text-shadow:0 0 80px rgba(201,168,76,.8)}}
+.boot-sub{font-size:11px;color:#8B6914;letter-spacing:3px;text-transform:uppercase}
+.boot-status{font-size:10px;color:#4fc3f7}
+.boot-bar-wrap{width:260px;height:2px;background:#1a1a2e;border-radius:1px;overflow:hidden}
+.boot-bar{height:100%;background:linear-gradient(90deg,#C9A84C,#FFD700);width:0%;transition:width .3s}
 
-/* ─ IDLE / PRODUCT GRID ─ */
-#scr-idle { background:#0a0812; padding: 6px; }
-#product-grid {
-  display: grid;
-  gap: 5px;
-  flex: 1;
-  /* columns set dynamically by JS */
-}
-.product-cell {
-  background: linear-gradient(135deg,#0f0e1a,#0a0812);
-  border: 1px solid #2a1f4a;
-  border-radius: 6px;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  cursor: pointer;
-  transition: all 0.12s;
-  position: relative; overflow: hidden;
-  padding: 6px 2px;
-}
-.product-cell:hover:not(.disabled) { border-color:#C9A84C; transform:scale(1.03); }
-.product-cell.selected { border-color:#FFD700; background:linear-gradient(135deg,#1f1500,#120e00); box-shadow:0 0 18px rgba(201,168,76,0.35); }
-.product-cell.disabled { opacity:0.28; pointer-events:none; }
-.cell-badge { font-size:9px; color:#555; background:#1a1530; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; position:absolute; top:5px; left:50%; transform:translateX(-50%); }
-.cell-price { font-family:'Kanit',sans-serif; font-weight:900; font-size:28px; line-height:1; margin-top:14px; }
-.cell-thb { font-size:9px; color:#555; margin-top:2px; }
-.cell-name { font-size:8px; color:#666; text-align:center; margin-top:3px; line-height:1.2; }
+/* IDLE */
+#scr-idle{background:#0a0812;padding:5px}
+#product-grid{display:grid;gap:5px;flex:1}
+.product-cell{background:linear-gradient(135deg,#0f0e1a,#0a0812);border:1px solid #2a1f4a;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .12s;position:relative;overflow:hidden;padding:3px}
+.product-cell:hover:not(.disabled){border-color:#C9A84C;transform:scale(1.03)}
+.product-cell.selected{border-color:#FFD700;background:linear-gradient(135deg,#1f1500,#120e00);box-shadow:0 0 18px rgba(201,168,76,.35)}
+.product-cell.disabled{opacity:.22;pointer-events:none}
+.cell-badge{font-size:8px;color:#3a3050;background:#100e1e;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;position:absolute;top:4px;left:50%;transform:translateX(-50%)}
+.cell-price{font-family:'Kanit',sans-serif;font-weight:900;font-size:26px;line-height:1;margin-top:13px}
+.cell-thb{font-size:8px;color:#333;margin-top:1px}
+.cell-name{font-size:7px;color:#444;text-align:center;margin-top:2px;line-height:1.2}
+.t50{color:#4FC3F7}.t100{color:#C9A84C}.t200{color:#F0A500}.t300{color:#FF8C00}.t500{color:#FF5722}
 
-/* price tiers */
-.tier-50   { color:#4FC3F7; }
-.tier-100  { color:#C9A84C; }
-.tier-200  { color:#F0A500; }
-.tier-300  { color:#FF8C00; }
-.tier-500  { color:#FF5722; }
+/* DONOR */
+#scr-donor{background:#0a0812;align-items:center;justify-content:center;gap:14px}
+.donor-title{font-family:'Kanit',sans-serif;font-size:19px;font-weight:700;color:#C9A84C;text-align:center}
+.donor-sub{font-size:10px;color:#444;text-align:center}
+.donor-id-box{width:340px;height:70px;border:2px dashed #2a1f4a;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:12px;background:#0f0e1a;font-size:12px;color:#444;transition:all .3s}
+.donor-id-box.scanning{border-color:#4fc3f7;color:#4fc3f7;animation:sp 1s ease-in-out infinite}
+.donor-id-box.confirmed{border-color:#4caf50;color:#4caf50;border-style:solid}
+@keyframes sp{0%,100%{opacity:1}50%{opacity:.4}}
+#donor-name-out{font-size:10px;color:#C9A84C;min-height:14px}
+.donor-btns{display:flex;gap:10px}
+.d-btn{padding:8px 20px;border-radius:6px;border:none;cursor:pointer;font-family:'Kanit',sans-serif;font-size:13px;font-weight:700}
+.d-btn.skip{background:#1a1a2e;color:#777;border:1px solid #333}
+.d-btn.confirm{background:#C9A84C;color:#000}
+.d-btn:disabled{opacity:.3;pointer-events:none}
 
-/* ─ DONOR ─ */
-#scr-donor { background:#0a0812; align-items:center; justify-content:center; gap:16px; }
-.donor-title { font-family:'Kanit',sans-serif; font-size:20px; font-weight:700; color:#C9A84C; text-align:center; }
-.donor-sub   { font-size:11px; color:#555; text-align:center; }
-.donor-id-box {
-  width:340px; height:80px;
-  border: 2px dashed #2a1f4a;
-  border-radius:10px;
-  display:flex; align-items:center; justify-content:center;
-  gap:12px;
-  background:#0f0e1a;
-  font-size:13px; color:#444;
-}
-.donor-id-box.scanning { border-color:#4fc3f7; color:#4fc3f7; animation:scanPulse 1s ease-in-out infinite; }
-@keyframes scanPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-.donor-btns { display:flex; gap:12px; }
-.d-btn { padding:10px 24px; border-radius:6px; border:none; cursor:pointer; font-family:'Kanit',sans-serif; font-size:14px; font-weight:700; }
-.d-btn.skip    { background:#1a1a2e; color:#888; border:1px solid #333; }
-.d-btn.confirm { background:#C9A84C; color:#000; }
+/* GIFT */
+#scr-gift{background:#0a0812;align-items:center;justify-content:center;gap:16px}
+.gift-title{font-family:'Kanit',sans-serif;font-size:16px;color:#C9A84C}
+.gift-cards{display:flex;gap:16px}
+.gift-card{width:240px;padding:16px 14px;background:#0f0e1a;border:1px solid #2a1f4a;border-radius:10px;cursor:pointer;text-align:center;transition:all .15s}
+.gift-card:hover{border-color:#C9A84C;transform:scale(1.03)}
+.gift-card.rec{border:2px solid #C9A84C;box-shadow:0 0 18px rgba(201,168,76,.2)}
+.gift-icon{font-size:30px;margin-bottom:7px}
+.gift-name{font-family:'Kanit',sans-serif;font-size:14px;font-weight:700;color:#C9A84C}
+.gift-desc{font-size:9px;color:#444;margin-top:4px;line-height:1.5}
+.gift-price{font-size:12px;color:#FF8C00;margin-top:7px;font-family:'Kanit',sans-serif}
 
-/* ─ GIFT ─ */
-#scr-gift { background:#0a0812; align-items:center; justify-content:center; gap:20px; }
-.gift-title { font-family:'Kanit',sans-serif; font-size:18px; color:#C9A84C; }
-.gift-cards { display:flex; gap:20px; }
-.gift-card {
-  width:250px; padding:20px 16px;
-  background:#0f0e1a; border:1px solid #2a1f4a;
-  border-radius:10px; cursor:pointer; text-align:center;
-  transition:all 0.15s;
-}
-.gift-card:hover { border-color:#C9A84C; transform:scale(1.03); }
-.gift-card.recommended { border:2px solid #C9A84C; box-shadow:0 0 20px rgba(201,168,76,0.2); }
-.gift-icon  { font-size:36px; margin-bottom:8px; }
-.gift-name  { font-family:'Kanit',sans-serif; font-size:16px; font-weight:700; color:#C9A84C; }
-.gift-desc  { font-size:10px; color:#555; margin-top:4px; line-height:1.5; }
-.gift-price { font-size:13px; color:#FF8C00; margin-top:8px; font-family:'Kanit',sans-serif; }
+/* QR */
+#scr-qr{background:#0a0812;flex-direction:row;position:relative}
+.qr-left{flex:1;padding:14px 16px;display:flex;flex-direction:column;gap:9px}
+.qr-amount{font-family:'Kanit',sans-serif;font-weight:900;font-size:52px;color:#C9A84C;line-height:1}
+.qr-amount span{font-size:19px;color:#8B6914}
+.qr-product{font-size:12px;color:#aaa}
+.qr-instr{font-size:10px;color:#555;line-height:1.8;border-left:2px solid #C9A84C44;padding-left:10px}
+.qr-timer{font-size:13px;color:#ff8c00}
+.qr-timer.urgent{color:#f44336;animation:bl .5s step-end infinite}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.2}}
+.qr-right{width:210px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:8px}
+.qr-canvas-wrap{background:#fff;padding:8px;border-radius:6px}
+.qr-label{font-size:9px;color:#555}
+.qr-pp{font-size:10px;color:#4fc3f7}
+.payment-bar{position:absolute;bottom:0;left:0;right:0;height:4px;background:#1a1a2e}
+.payment-bar-fill{height:100%;background:linear-gradient(90deg,#C9A84C,#FFD700);transition:width 1s linear}
 
-/* ─ QR ─ */
-#scr-qr { background:#0a0812; flex-direction:row; position:relative; }
-.qr-left { flex:1; padding:16px 20px; display:flex; flex-direction:column; gap:10px; }
-.qr-amount { font-family:'Kanit',sans-serif; font-weight:900; font-size:56px; color:#C9A84C; line-height:1; }
-.qr-amount span { font-size:20px; color:#8B6914; }
-.qr-product { font-size:14px; color:#aaa; }
-.qr-instr   { font-size:11px; color:#666; line-height:1.8; border-left:2px solid #C9A84C44; padding-left:10px; }
-.qr-timer   { font-size:14px; color:#ff8c00; }
-.qr-timer.urgent { color:#f44336; animation:timerBlink 0.5s step-end infinite; }
-@keyframes timerBlink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-.qr-right { width:240px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:12px; }
-.qr-canvas-wrap { background:#fff; padding:10px; border-radius:6px; }
-canvas#qr-canvas { display:block; }
-.qr-label   { font-size:10px; color:#555; text-align:center; }
-.qr-pp      { font-size:11px; color:#4fc3f7; }
-.payment-bar { position:absolute; bottom:0; left:0; right:0; height:4px; background:#1a1a2e; }
-.payment-bar-fill { height:100%; background:linear-gradient(90deg,#C9A84C,#FFD700); transition:width 1s linear; }
+/* WATER */
+#scr-water{background:#050a14;align-items:center;justify-content:center;gap:12px}
+.water-title{font-size:17px;color:#4fc3f7;letter-spacing:2px;text-transform:uppercase}
+.water-sub{font-size:11px;color:#555;text-align:center}
+.water-drop{font-size:76px;animation:wp .8s ease-in-out infinite alternate}
+@keyframes wp{from{transform:scale(1)}to{transform:scale(1.14)}}
+.water-count{font-family:'Kanit',sans-serif;font-size:88px;font-weight:900;color:#4fc3f7;text-shadow:0 0 40px rgba(79,195,247,.8)}
+.water-sub2{font-size:10px;color:#4fc3f7;opacity:.5}
 
-/* ─ VENDING ─ */
-#scr-vending { background:#0a0812; align-items:center; justify-content:center; gap:20px; }
-.vend-icon  { font-size:60px; animation:vendBounce 0.6s ease-in-out infinite alternate; }
-@keyframes vendBounce { from{transform:translateY(0)} to{transform:translateY(-8px)} }
-.vend-title { font-family:'Kanit',sans-serif; font-size:26px; font-weight:700; color:#C9A84C; }
-.vend-sub   { font-size:13px; color:#555; }
-.vend-bar   { width:380px; height:6px; background:#1a1a2e; border-radius:3px; overflow:hidden; }
-.vend-bar-fill { height:100%; background:linear-gradient(90deg,#4caf50,#8bc34a); border-radius:3px; animation:vendFill 3s ease forwards; }
-@keyframes vendFill { from{width:0} to{width:100%} }
-#beep-banner { display:none; background:#ff8c00; color:#000; font-family:'Kanit',sans-serif; font-weight:700; font-size:14px; padding:8px 20px; border-radius:20px; animation:beepFlash 0.8s ease-in-out infinite; }
-@keyframes beepFlash { 0%,100%{opacity:1} 50%{opacity:0.4} }
+/* VENDING */
+#scr-vending{background:#0a0812;align-items:center;justify-content:center;gap:16px}
+.vend-icon{font-size:54px;animation:vb .6s ease-in-out infinite alternate}
+@keyframes vb{from{transform:translateY(0)}to{transform:translateY(-8px)}}
+.vend-title{font-family:'Kanit',sans-serif;font-size:23px;font-weight:700;color:#C9A84C}
+.vend-sub{font-size:12px;color:#555}
+.vend-bar{width:360px;height:5px;background:#1a1a2e;border-radius:3px;overflow:hidden}
+.vend-bar-fill{height:100%;background:linear-gradient(90deg,#4caf50,#8bc34a);border-radius:3px;animation:vf 3s ease forwards}
+@keyframes vf{from{width:0}to{width:100%}}
+#door-banner{display:none;background:#0a1a0a;border:2px solid #4caf50;border-radius:8px;padding:9px 22px;font-size:12px;color:#4caf50;text-align:center}
+#beep-banner{display:none;background:#ff8c00;color:#000;font-family:'Kanit',sans-serif;font-weight:700;font-size:12px;padding:6px 18px;border-radius:16px;animation:bf .8s ease-in-out infinite}
+@keyframes bf{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* ─ LUCKY / COMPLETION ─ */
-#scr-lucky { background:radial-gradient(ellipse at center,#1a0a2e 0%,#0a0812 100%); align-items:center; justify-content:center; gap:10px; }
-.lucky-th   { font-family:'Kanit',sans-serif; font-size:18px; color:#C9A84C; }
-.lucky-en   { font-size:10px; color:#8B6914; letter-spacing:2px; text-transform:uppercase; }
-.lucky-number { font-family:'Kanit',sans-serif; font-size:120px; font-weight:900; color:#C9A84C;
-  text-shadow:0 0 80px rgba(201,168,76,0.6);
-  animation:luckyReveal 0.8s cubic-bezier(0.34,1.56,0.64,1) both; }
-@keyframes luckyReveal { from{transform:scale(0.3) rotate(-20deg);opacity:0} to{transform:scale(1);opacity:1} }
-.lucky-bless { font-size:11px; color:#666; text-align:center; line-height:1.8; }
-#lucky-water-banner { display:none; background:#0a1828; border:1px solid #4fc3f7; border-radius:20px; padding:6px 20px; font-size:11px; color:#4fc3f7; }
-.lucky-footer { position:absolute; bottom:0; left:0; right:0; background:linear-gradient(90deg,#7a5a14,#C9A84C,#7a5a14); padding:10px; text-align:center; }
-.lucky-footer-main { font-family:'Kanit',sans-serif; font-size:16px; font-weight:700; color:#000; }
-.lucky-footer-sub  { font-size:10px; color:#3a2a00; }
+/* LUCKY */
+#scr-lucky{background:radial-gradient(ellipse at center,#1a0a2e 0%,#0a0812 100%);align-items:center;justify-content:center;gap:8px;position:relative}
+.lucky-th{font-family:'Kanit',sans-serif;font-size:16px;color:#C9A84C}
+.lucky-en{font-size:8px;color:#8B6914;letter-spacing:2px;text-transform:uppercase}
+.lucky-number{font-family:'Kanit',sans-serif;font-size:108px;font-weight:900;color:#C9A84C;text-shadow:0 0 80px rgba(201,168,76,.6);animation:lr .8s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes lr{from{transform:scale(.3) rotate(-20deg);opacity:0}to{transform:scale(1);opacity:1}}
+.lucky-bless{font-size:9px;color:#444;text-align:center;line-height:1.8}
+#lucky-water-banner{display:none;background:#0a1828;border:1px solid #4fc3f7;border-radius:16px;padding:4px 16px;font-size:9px;color:#4fc3f7}
+.lucky-footer{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(90deg,#7a5a14,#C9A84C,#7a5a14);padding:8px;text-align:center}
+.lucky-footer-main{font-family:'Kanit',sans-serif;font-size:14px;font-weight:700;color:#000}
+.lucky-footer-sub{font-size:8px;color:#3a2a00}
 
-/* ─ ERROR ─ */
-#scr-error { background:#0a0812; align-items:center; justify-content:center; gap:16px; }
-.err-icon { font-size:60px; }
-.err-msg  { font-size:15px; color:#fff; text-align:center; line-height:1.8; }
+/* ERROR */
+#scr-error{background:#0a0812;align-items:center;justify-content:center;gap:14px}
+.err-icon{font-size:50px}
+.err-msg{font-size:13px;color:#fff;text-align:center;line-height:1.8}
 
-/* ══ CONTROLS PANEL ══ */
-.panel { background:#161616; border:1px solid #2a2a2a; border-radius:8px; padding:12px; }
-.panel h3 { font-size:10px; color:#C9A84C; text-transform:uppercase; letter-spacing:2px; margin-bottom:10px; border-bottom:1px solid #222; padding-bottom:6px; }
-.ctrl-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; align-items:center; }
-.ctrl-label { font-size:9px; color:#555; width:80px; flex-shrink:0; }
-button.sim-btn {
-  padding: 5px 10px; border-radius:4px; border:1px solid #333;
-  background:#1a1a1a; color:#ccc; font-family:'Share Tech Mono',monospace;
-  font-size:10px; cursor:pointer; transition:all 0.1s;
-}
-button.sim-btn:hover  { background:#252525; border-color:#C9A84C; color:#C9A84C; }
-button.sim-btn.green  { border-color:#4caf50; color:#4caf50; }
-button.sim-btn.red    { border-color:#f44336; color:#f44336; }
-button.sim-btn.blue   { border-color:#4fc3f7; color:#4fc3f7; }
-button.sim-btn.gold   { border-color:#C9A84C; color:#C9A84C; }
-button.sim-btn.orange { border-color:#ff8c00; color:#ff8c00; }
-button.sim-btn:disabled { opacity:0.3; cursor:not-allowed; }
+/* PANELS */
+.panel{background:#161616;border:1px solid #1e1e1e;border-radius:8px;padding:9px 11px}
+.panel h3{font-size:9px;color:#C9A84C;text-transform:uppercase;letter-spacing:2px;margin-bottom:7px;border-bottom:1px solid #1a1a1a;padding-bottom:5px}
+.ctrl-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px;align-items:center}
+button.sb{padding:4px 9px;border-radius:4px;border:1px solid #2a2a2a;background:#151515;color:#aaa;font-family:'Share Tech Mono',monospace;font-size:9px;cursor:pointer;transition:all .1s}
+button.sb:hover{background:#1e1e1e;border-color:#C9A84C;color:#C9A84C}
+button.sb.green{border-color:#4caf50;color:#4caf50}
+button.sb.red{border-color:#f44336;color:#f44336}
+button.sb.blue{border-color:#4fc3f7;color:#4fc3f7}
+button.sb.gold{border-color:#C9A84C;color:#C9A84C}
+button.sb.orange{border-color:#ff8c00;color:#ff8c00}
+button.sb:disabled{opacity:.25;cursor:not-allowed}
 
-/* Config row */
-.cfg-row { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
-.cfg-row label { font-size:9px; color:#666; }
-.cfg-row input, .cfg-row select {
-  background:#111; border:1px solid #333; color:#ccc;
-  font-family:'Share Tech Mono',monospace; font-size:10px;
-  padding:3px 6px; border-radius:3px;
-}
+/* GESTURE SECTIONS */
+.gs{border:1px solid #1a1a1a;border-radius:5px;padding:6px 8px;margin-bottom:4px;transition:all .2s}
+.gs.hot{border-color:#C9A84C44;background:#100e00}
+.gs-label{font-size:8px;color:#2a2a2a;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.gs.hot .gs-label{color:#8B6914}
 
-/* Log */
-#sim-log { background:#0a0a0a; border:1px solid #1a1a1a; border-radius:6px; height:220px; overflow-y:auto; padding:8px; font-size:9px; line-height:1.6; }
-.log-net  { color:#4fc3f7; }
-.log-ok   { color:#4caf50; }
-.log-err  { color:#f44336; }
-.log-warn { color:#ff8c00; }
-.log-ui   { color:#C9A84C; }
-.log-hw   { color:#ab47bc; }
+/* PILLS */
+#status-pills{display:flex;gap:5px;flex-wrap:wrap}
+.pill{font-size:8px;padding:2px 7px;border-radius:9px;border:1px solid}
+.pill.green{color:#4caf50;border-color:#4caf50;background:#0a1a0a}
+.pill.grey{color:#444;border-color:#2a2a2a;background:#111}
+.pill.orange{color:#ff8c00;border-color:#ff8c00;background:#1a0e00}
+.pill.blue{color:#4fc3f7;border-color:#4fc3f7;background:#001a2a}
+.pill.gold{color:#C9A84C;border-color:#C9A84C;background:#110e00}
+.pill.red{color:#f44336;border-color:#f44336;background:#1a0000}
 
-/* Status pills */
-#status-pills { display:flex; gap:6px; flex-wrap:wrap; }
-.pill { font-size:9px; padding:2px 8px; border-radius:10px; border:1px solid; }
-.pill.green  { color:#4caf50; border-color:#4caf50; background:#0a1a0a; }
-.pill.grey   { color:#555; border-color:#333; background:#111; }
-.pill.orange { color:#ff8c00; border-color:#ff8c00; background:#1a0e00; }
-.pill.blue   { color:#4fc3f7; border-color:#4fc3f7; background:#001a2a; }
+/* LOG */
+#sim-log{background:#0a0a0a;border:1px solid #141414;border-radius:5px;height:190px;overflow-y:auto;padding:7px;font-size:8px;line-height:1.65}
+.log-net{color:#4fc3f7}.log-ok{color:#4caf50}.log-err{color:#f44336}.log-warn{color:#ff8c00}.log-ui{color:#C9A84C}.log-hw{color:#ab47bc}.log-pay{color:#FFD700}
 
-/* Slot config grid */
-#slot-cfg-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; }
-.slot-cfg-cell { background:#111; border:1px solid #222; border-radius:4px; padding:4px; font-size:8px; }
-.slot-cfg-cell input { width:100%; background:transparent; border:none; color:#ccc; font-size:8px; font-family:'Share Tech Mono',monospace; }
-.slot-cfg-cell input.price { color:#FF8C00; }
+/* CFG */
+.cfg-row{display:flex;gap:7px;align-items:center;margin-bottom:4px;font-size:9px}
+.cfg-row label{color:#444}
+.cfg-row input,.cfg-row select{background:#111;border:1px solid #2a2a2a;color:#ccc;font-family:'Share Tech Mono',monospace;font-size:9px;padding:3px 6px;border-radius:3px}
 </style>
 </head>
 <body>
-
-<!-- ══════════════════════════════════════════════════════════
-     LEFT: 800×480 MACHINE DISPLAY
-═══════════════════════════════════════════════════════════ -->
 <div id="left-col">
 
-  <!-- Machine frame -->
-  <div id="machine-frame">
+  <div id="mode-bar">
+    <span>Mode:</span>
+    <button class="mode-btn active" id="btn-flow" onclick="setMode('flow')">▶ Flow Mode</button>
+    <button class="mode-btn"        id="btn-free" onclick="setMode('free')">⚡ Free Mode</button>
+    <div id="mode-hint">Flow Mode: tap a product slot to begin the full donor journey</div>
+  </div>
 
-    <!-- Status bar (always visible) -->
+  <div id="machine-frame">
     <div id="status-bar">
       <div id="sb-logo">SATU</div>
       <div id="sb-label">Initializing...</div>
-      <div id="sb-right" id="sb-right">--<br>--:--</div>
+      <div id="sb-right">--<br>--:--</div>
     </div>
 
     <!-- BOOT -->
@@ -245,85 +199,85 @@ button.sim-btn:disabled { opacity:0.3; cursor:not-allowed; }
       <div class="boot-bar-wrap"><div class="boot-bar" id="boot-bar"></div></div>
     </div>
 
-    <!-- IDLE / GRID -->
+    <!-- IDLE -->
     <div class="screen" id="scr-idle">
       <div id="product-grid"></div>
     </div>
 
-    <!-- DONOR / ID SCAN -->
+    <!-- DONOR -->
     <div class="screen" id="scr-donor">
-      <div class="donor-title">บันทึกชื่อผู้ทำบุญ<br><span style="font-size:13px;color:#666;">Donor Registration</span></div>
-      <div class="donor-sub">Insert National ID card — or tap Skip to donate anonymously</div>
-      <div class="donor-id-box" id="donor-id-box">
-        <span style="font-size:24px;">🪪</span>
-        <span id="donor-id-status">Waiting for ID card...</span>
-      </div>
-      <div id="donor-name-display" style="font-size:12px;color:#C9A84C;min-height:18px;"></div>
+      <div class="donor-title">บันทึกชื่อผู้ทำบุญ<br><span style="font-size:12px;color:#555">Donor Registration</span></div>
+      <div class="donor-sub">Insert National ID card · or tap Skip to donate anonymously</div>
+      <div class="donor-id-box" id="donor-id-box"><span style="font-size:20px">🪪</span><span id="donor-id-status">Waiting for ID card...</span></div>
+      <div id="donor-name-out"></div>
       <div class="donor-btns">
-        <button class="d-btn skip" onclick="skipDonor()">Skip / ข้าม</button>
-        <button class="d-btn confirm" id="donor-confirm-btn" onclick="confirmDonor()" disabled>Confirm ✓</button>
+        <button class="d-btn skip"    onclick="flowSkipDonor()">Skip / ข้าม</button>
+        <button class="d-btn confirm" id="donor-ok-btn" onclick="flowConfirmDonor()" disabled>Confirm ✓</button>
       </div>
     </div>
 
-    <!-- GIFT OPTION -->
+    <!-- GIFT -->
     <div class="screen" id="scr-gift">
       <div class="gift-title">Choose your blessing option</div>
       <div class="gift-cards">
-        <div class="gift-card" onclick="selectGift(false)">
+        <div class="gift-card" onclick="flowGift(false)">
           <div class="gift-icon">📦</div>
           <div class="gift-name">Item Only</div>
-          <div class="gift-desc">Receive your chosen donation item from the dispenser</div>
-          <div class="gift-price" id="gift-price-item">— THB</div>
+          <div class="gift-desc">Receive your chosen donation item</div>
+          <div class="gift-price" id="gift-pa">— THB</div>
         </div>
-        <div class="gift-card recommended" onclick="selectGift(true)">
+        <div class="gift-card rec" onclick="flowGift(true)">
           <div class="gift-icon">💧</div>
           <div class="gift-name">+ Sacred Water</div>
-          <div class="gift-desc">Add a sacred water spray blessing<br>น้ำมนต์มงคล</div>
-          <div class="gift-price" id="gift-price-water">— +20 THB</div>
+          <div class="gift-desc">Sacred water spray blessing<br>น้ำมนต์มงคล</div>
+          <div class="gift-price" id="gift-pb">— +20 THB</div>
         </div>
       </div>
     </div>
 
-    <!-- QR PAYMENT -->
-    <div class="screen" id="scr-qr" style="flex-direction:row;position:relative;">
+    <!-- QR -->
+    <div class="screen" id="scr-qr" style="flex-direction:row;position:relative">
       <div class="qr-left">
         <div class="qr-amount"><span>฿</span><span id="qr-amount">—</span></div>
         <div class="qr-product" id="qr-product">—</div>
-        <div class="qr-instr">
-          1. Open your banking app<br>
-          2. Select "PromptPay QR" / สแกน QR<br>
-          3. Scan the code & confirm
-        </div>
+        <div class="qr-instr">1. Open your banking app<br>2. Select "PromptPay QR" / สแกน QR<br>3. Scan the code &amp; confirm</div>
         <div class="qr-timer" id="qr-timer">⏱ 2:00</div>
-        <div id="qr-orderid" style="font-size:9px;color:#333;margin-top:4px;"></div>
+        <div id="qr-orderid" style="font-size:8px;color:#222;margin-top:2px"></div>
+        <div id="qr-gw-badge" style="font-size:8px;margin-top:4px;display:inline-block;padding:2px 8px;border-radius:9px;border:1px solid #333;color:#444"></div>
       </div>
       <div class="qr-right">
-        <div class="qr-canvas-wrap"><canvas id="qr-canvas" width="160" height="160"></canvas></div>
+        <div class="qr-canvas-wrap"><canvas id="qr-canvas" width="150" height="150"></canvas></div>
         <div class="qr-label">PromptPay</div>
         <div class="qr-pp">สแกนเพื่อชำระเงิน</div>
       </div>
-      <div class="payment-bar"><div class="payment-bar-fill" id="payment-bar-fill" style="width:100%"></div></div>
+      <div class="payment-bar"><div class="payment-bar-fill" id="pay-bar" style="width:100%"></div></div>
+    </div>
+
+    <!-- WATER COUNTDOWN -->
+    <div class="screen" id="scr-water">
+      <div class="water-title">Sacred Water Blessing</div>
+      <div class="water-sub">Stand still · face forward<br>ยืนนิ่งและหันหน้ามาข้างหน้า</div>
+      <div class="water-drop">💦</div>
+      <div class="water-count" id="water-count">3</div>
+      <div class="water-sub2">Spray activating / กำลังพ่นน้ำมนต์</div>
     </div>
 
     <!-- VENDING -->
     <div class="screen" id="scr-vending">
       <div class="vend-icon" id="vend-icon">📿</div>
       <div class="vend-title" id="vend-title">Dispensing...</div>
-      <div class="vend-sub" id="vend-sub">Please wait...</div>
+      <div class="vend-sub"  id="vend-sub">กรุณารอสักครู่ · Please wait</div>
       <div class="vend-bar"><div class="vend-bar-fill"></div></div>
+      <div id="door-banner">🚪 Door Open — Please collect your item · กรุณาหยิบของ</div>
       <div id="beep-banner">🔔 กรุณาหยิบของ — Please collect your item</div>
     </div>
 
-    <!-- LUCKY / COMPLETION -->
-    <div class="screen" id="scr-lucky" style="position:relative;">
+    <!-- LUCKY -->
+    <div class="screen" id="scr-lucky" style="position:relative">
       <div class="lucky-th">เลขมงคลประจำวันของท่าน</div>
       <div class="lucky-en">Your Merit Lucky Number</div>
       <div class="lucky-number" id="lucky-number">42</div>
-      <div class="lucky-bless">
-        เปรียบเทียบกับไม้พยากรณ์ของวัด<br>
-        ขอให้ท่านมีความสุข สุขภาพแข็งแรง และโชคดี<br>
-        <span style="color:#444;">Compare with the temple fortune sticks · May blessings be upon you</span>
-      </div>
+      <div class="lucky-bless">เปรียบเทียบกับไม้พยากรณ์ของวัด<br>ขอให้ท่านมีความสุข สุขภาพแข็งแรง และโชคดี<br><span style="color:#2a2a2a">May blessings be upon you</span></div>
       <div id="lucky-water-banner">💧 น้ำมนต์ถูกพรมแล้ว · Sacred water blessing activated</div>
       <div class="lucky-footer">
         <div class="lucky-footer-main">ขอบคุณที่ร่วมทำบุญกับวัด 🙏</div>
@@ -336,764 +290,483 @@ button.sim-btn:disabled { opacity:0.3; cursor:not-allowed; }
       <div class="err-icon">⚠️</div>
       <div class="err-msg" id="err-msg">Error</div>
     </div>
-
-  </div><!-- /machine-frame -->
-
-  <!-- API config bar -->
-  <div class="panel" style="padding:8px 12px;">
-    <div class="cfg-row">
-      <label>API URL</label>
-      <input id="api-url" value="https://api.janishammer.com" style="flex:1;">
-      <label>MAC</label>
-      <input id="cfg-mac" value="3c:dc:75:5d:dd:2c" style="width:140px;">
-      <button class="sim-btn blue" onclick="doConnect()">▶ Connect</button>
-      <span id="api-status" style="font-size:9px;color:#555;">disconnected</span>
-    </div>
-    <div class="cfg-row">
-      <label>Slots</label>
-      <input id="cfg-slots" type="number" min="1" max="21" value="10" style="width:50px;">
-      <label>Cols</label>
-      <input id="cfg-cols"  type="number" min="1" max="7"  value="5"  style="width:40px;">
-      <button class="sim-btn" onclick="rebuildGrid()">↺ Rebuild Grid</button>
-      <label>WiFi</label>
-      <select id="cfg-wifi">
-        <option value="ok">Connected</option>
-        <option value="off">Offline</option>
-      </select>
-      <button class="sim-btn" onclick="toggleWifi()">Apply</button>
-    </div>
   </div>
 
-</div><!-- /left-col -->
+  <!-- API config -->
+  <div class="panel" style="padding:7px 11px">
+    <div class="cfg-row">
+      <label>API</label><input id="api-url" value="https://api.janishammer.com" style="flex:1">
+      <label>MAC</label><input id="cfg-mac" value="3c:dc:75:5d:dd:2c" style="width:140px">
+      <button class="sb blue" onclick="doConnect()">▶ Connect</button>
+      <span id="api-status" style="font-size:8px;color:#333">disconnected</span>
+    </div>
+    <div class="cfg-row">
+      <label>Slots</label><input id="cfg-slots" type="number" min="1" max="21" value="10" style="width:42px" onchange="rebuildGrid()">
+      <label>Cols</label><input id="cfg-cols" type="number" min="1" max="7" value="5" style="width:36px" onchange="rebuildGrid()">
+      <label style="margin-left:8px">Gateway</label>
+      <span id="gw-badge" style="font-size:8px;padding:2px 8px;border-radius:9px;border:1px solid #333;color:#444">checking...</span>
+      <button class="sb" onclick="checkHealth()" style="margin-left:3px">↺</button>
+    </div>
+  </div>
+</div>
 
-<!-- ══════════════════════════════════════════════════════════
-     RIGHT: CONTROLS + LOG
-═══════════════════════════════════════════════════════════ -->
+<!-- RIGHT -->
 <div id="right-col">
 
-  <!-- Status -->
   <div class="panel">
-    <h3>Machine Status</h3>
+    <h3>Status</h3>
     <div id="status-pills">
       <div class="pill grey" id="pill-conn">Disconnected</div>
-      <div class="pill grey" id="pill-wifi">WiFi OK</div>
       <div class="pill grey" id="pill-state">BOOT</div>
+      <div class="pill grey" id="pill-gw">GW: ?</div>
       <div class="pill grey" id="pill-water">Water: OFF</div>
     </div>
-    <div style="margin-top:6px;font-size:9px;color:#444;" id="uptime-display">Uptime: --</div>
+    <div style="margin-top:5px;font-size:8px;color:#2a2a2a" id="uptime-display">Uptime: --</div>
   </div>
 
-  <!-- Hardware simulation -->
+  <!-- GESTURES - context sensitive -->
   <div class="panel">
-    <h3>Hardware Simulation</h3>
+    <h3>Hardware Gestures &nbsp;<span id="gest-hint" style="color:#333;font-size:8px;font-weight:normal;letter-spacing:0;text-transform:none">tap a product to begin</span></h3>
 
-    <div class="ctrl-row">
-      <span class="ctrl-label">IR Sensor</span>
-      <button class="sim-btn orange" onclick="simIR('block')">🖐 Block IR</button>
-      <button class="sim-btn green"  onclick="simIR('clear')">✋ Clear IR</button>
-      <span style="font-size:9px;color:#555;" id="ir-status">CLEAR</span>
+    <div class="gs" id="gs-donor">
+      <div class="gs-label">📍 Donor screen</div>
+      <div class="ctrl-row">
+        <button class="sb blue"   onclick="gestInsertID()">🪪 Insert ID Card</button>
+        <button class="sb"        onclick="gestRemoveID()">↩ Remove Card</button>
+      </div>
     </div>
 
-    <div class="ctrl-row">
-      <span class="ctrl-label">ID Card</span>
-      <button class="sim-btn blue"  onclick="simIDCard('insert')">🪪 Insert Card</button>
-      <button class="sim-btn"       onclick="simIDCard('remove')">↩ Remove Card</button>
+    <div class="gs" id="gs-qr">
+      <div class="gs-label">📍 QR payment screen</div>
+      <div class="ctrl-row">
+        <button class="sb green"  onclick="gestScan()">📱 Donor Scanned QR</button>
+        <button class="sb red"    onclick="gestPayExpire()">⏰ Payment Expire</button>
+        <button class="sb orange" onclick="gestPayFail()">✗ Failed</button>
+      </div>
     </div>
 
-    <div class="ctrl-row">
-      <span class="ctrl-label">Door</span>
-      <button class="sim-btn green" onclick="simDoor('open')">🔓 Open Door</button>
-      <button class="sim-btn red"   onclick="simDoor('close')">🔒 Close Door</button>
-      <span style="font-size:9px;color:#555;" id="door-status">LOCKED</span>
+    <div class="gs" id="gs-vend">
+      <div class="gs-label">📍 Vending screen</div>
+      <div class="ctrl-row">
+        <button class="sb green"  onclick="gestPickup()">✋ Item Picked Up (IR clear)</button>
+      </div>
+      <div class="ctrl-row">
+        <button class="sb red"    onclick="gestDoorStuck()">🚪 Door Stuck</button>
+        <button class="sb orange" onclick="gestHandBlock()">🖐 Hand Blocking Exit</button>
+      </div>
     </div>
 
-    <div class="ctrl-row">
-      <span class="ctrl-label">Water Pump</span>
-      <button class="sim-btn blue"  onclick="simPump('on')">💧 Fire Pump</button>
-      <button class="sim-btn"       onclick="simPump('off')">⏹ Stop Pump</button>
-      <span style="font-size:9px;color:#555;" id="pump-status">OFF</span>
-    </div>
-
-    <div class="ctrl-row">
-      <span class="ctrl-label">Relay test</span>
-      <input id="relay-num" type="number" min="1" max="24" value="1" style="width:40px;background:#111;border:1px solid #333;color:#ccc;padding:2px 4px;font-size:10px;">
-      <button class="sim-btn orange" onclick="simRelay('pulse')">⚡ Pulse</button>
-      <button class="sim-btn green"  onclick="simRelay('on')">ON</button>
-      <button class="sim-btn red"    onclick="simRelay('off')">OFF</button>
-    </div>
-
-    <div class="ctrl-row">
-      <span class="ctrl-label">Service</span>
-      <button class="sim-btn gold" onclick="simServiceGesture()">👆×3 Service Entry</button>
+    <div class="gs" id="gs-any">
+      <div class="gs-label">📍 Any time</div>
+      <div class="ctrl-row">
+        <button class="sb gold"   onclick="gestServiceEntry()">👆×3 Service Entry</button>
+        <button class="sb"        onclick="gestReboot()">⟳ Reboot</button>
+        <button class="sb red"    onclick="gestDisable()">🚫 Disable</button>
+      </div>
     </div>
   </div>
 
-  <!-- Payment simulation -->
-  <div class="panel">
-    <h3>Payment Simulation</h3>
+  <!-- FREE MODE PANEL -->
+  <div class="panel" id="free-panel" style="display:none">
+    <h3>Free Mode — Jump To Screen</h3>
     <div class="ctrl-row">
-      <button class="sim-btn green"  onclick="simPayment('paid')"    id="btn-pay-ok">✅ Payment Confirmed</button>
-      <button class="sim-btn red"    onclick="simPayment('expired')" id="btn-pay-exp">⏰ Payment Expired</button>
-      <button class="sim-btn orange" onclick="simPayment('failed')"  id="btn-pay-fail">✗ Payment Failed</button>
+      <button class="sb" onclick="gotoScreen('idle')">Idle</button>
+      <button class="sb" onclick="gotoScreen('donor')">Donor</button>
+      <button class="sb" onclick="gotoScreen('gift')">Gift</button>
+      <button class="sb" onclick="gotoScreen('qr')">QR</button>
+      <button class="sb" onclick="gotoScreen('water')">Water</button>
     </div>
     <div class="ctrl-row">
-      <span class="ctrl-label">Order ID</span>
-      <span id="display-orderid" style="font-size:9px;color:#C9A84C;">none</span>
+      <button class="sb" onclick="gotoScreen('vending')">Vending</button>
+      <button class="sb" onclick="gotoScreen('lucky')">Lucky</button>
+      <button class="sb red" onclick="gotoScreen('error')">Error</button>
+      <button class="sb gold" onclick="flowReset()">↺ Reset</button>
     </div>
-  </div>
-
-  <!-- Flow navigation (for presentation) -->
-  <div class="panel">
-    <h3>Flow Navigation (Presentation)</h3>
-    <div class="ctrl-row">
-      <button class="sim-btn" onclick="gotoScreen('boot')">Boot</button>
-      <button class="sim-btn" onclick="gotoScreen('idle')">Idle</button>
-      <button class="sim-btn" onclick="gotoScreen('donor')">Donor</button>
-      <button class="sim-btn" onclick="gotoScreen('gift')">Gift</button>
-      <button class="sim-btn" onclick="gotoScreen('qr')">QR Pay</button>
-    </div>
-    <div class="ctrl-row">
-      <button class="sim-btn" onclick="gotoScreen('vending')">Vending</button>
-      <button class="sim-btn" onclick="gotoScreen('lucky')">Lucky</button>
-      <button class="sim-btn red"  onclick="gotoScreen('error')">Error</button>
-      <button class="sim-btn gold" onclick="resetToIdle()">↺ Reset</button>
+    <div class="ctrl-row" style="margin-top:3px;border-top:1px solid #1a1a1a;padding-top:5px">
+      <span style="font-size:8px;color:#444">Simulate payment:</span>
+      <button class="sb green"  onclick="gestScan()">✅ Paid</button>
+      <button class="sb red"    onclick="gestPayExpire()">⏰ Expire</button>
+      <button class="sb orange" onclick="gestPayFail()">✗ Fail</button>
     </div>
   </div>
 
-  <!-- Log -->
-  <div class="panel" style="flex:1;">
-    <h3>System Log <button class="sim-btn" style="float:right;margin-top:-2px;" onclick="document.getElementById('sim-log').innerHTML=''">Clear</button></h3>
+  <div class="panel" style="flex:1">
+    <h3>System Log <button class="sb" style="float:right;margin-top:-2px" onclick="document.getElementById('sim-log').innerHTML=''">Clear</button></h3>
     <div id="sim-log"></div>
   </div>
-
-</div><!-- /right-col -->
+</div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════════════════════════════════════
-const S = {
-  screen: 'boot',
-  deviceId: '', deviceSecret: '', mac: '',
-  selectedSlot: -1,
-  donorName: '', donorId: '', idCardInserted: false,
-  wantWater: false,
-  orderId: '', qrUrl: '', amount: 0,
-  paymentTimer: null, paymentSecs: 120,
-  paymentConfirmedFired: false,
-  vendingTimer: null,
-  beepInterval: null,
-  heartbeatTimer: null, cmdPollTimer: null,
-  uptimeTimer: null, uptimeSecs: 0,
-  wifiOk: true,
-  irBlocked: false, doorOpen: false, pumpOn: false,
+// ═══════ STATE ═══════
+const S={
+  mode:'flow', screen:'boot',
+  deviceId:'',deviceSecret:'',mac:'',
+  selectedSlot:-1, donorName:'',donorId:'',idInserted:false,
+  wantWater:false, orderId:'',qrUrl:'',amount:0,
+  payTimer:null,paySecs:120,payFired:false,
+  vendTimer:null, beepIv:null,
+  uptimeTimer:null,uptimeSecs:0,
+  gateway:'unknown'
 };
+let SLOTS=[];
 
-// Slot config — loaded from /hello or defaults
-let SLOTS = [];
-let NUM_SLOTS = 10;
-let GRID_COLS  = 5;
-
-function initDefaultSlots(n) {
-  SLOTS = [];
-  for (let i = 0; i < n; i++) {
-    SLOTS.push({
-      slot: i+1,
-      name_en: `Slot ${i+1}`,
-      name_th: '',
-      price: [50,100,100,50,200,100,300,50,200,100,500,50,200,300,100,50,200,100,300,200,500][i] || 100,
-      enabled: true,
-      configured: false
-    });
-  }
+function initSlots(n){
+  const P=[50,100,100,50,200,100,300,50,200,100,500,50,200,300,100,50,200,100,300,200,500];
+  const N=['Blessing Card','Small Amulet','Med Amulet','Large Amulet','Monk Blessing','Gold Leaf','Merit Set','Incense','Sacred Oil','Temple Coin','Buddha Statue','Lotus','Prayer Bead','Dharma Book','Holy Water','Candle Set','Offering Bowl','Spirit House','Amulet Cord','Temple Bell','Grand Merit'];
+  SLOTS=Array.from({length:n},(_,i)=>({slot:i+1,name_en:N[i]||`Slot ${i+1}`,price:P[i]||100,enabled:true,configured:true}));
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  LOG
-// ═══════════════════════════════════════════════════════════════════════════
-function log(msg, type='') {
-  const el = document.getElementById('sim-log');
-  const ts = new Date().toTimeString().slice(0,8);
-  const d  = document.createElement('div');
-  d.className = `log-${type}`;
-  d.textContent = `[${ts}] ${msg}`;
-  el.appendChild(d);
-  el.scrollTop = el.scrollHeight;
+// ═══════ MODE ═══════
+function setMode(m){
+  S.mode=m;
+  document.getElementById('btn-flow').classList.toggle('active',m==='flow');
+  document.getElementById('btn-free').classList.toggle('active',m==='free');
+  document.getElementById('free-panel').style.display=m==='free'?'block':'none';
+  document.getElementById('mode-hint').textContent=m==='flow'?'Flow Mode: tap a product slot to begin the full donor journey':'Free Mode: jump to any screen, trigger any event';
+  log(`[SIM] Mode: ${m.toUpperCase()}`,'ui');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  SCREEN MANAGEMENT
-// ═══════════════════════════════════════════════════════════════════════════
-const ALL_SCREENS = ['boot','idle','donor','gift','qr','vending','lucky','error'];
+// ═══════ LOG ═══════
+function log(msg,type=''){
+  const el=document.getElementById('sim-log');
+  const d=document.createElement('div');
+  d.className=`log-${type}`;
+  d.textContent=`[${new Date().toTimeString().slice(0,8)}] ${msg}`;
+  el.appendChild(d); el.scrollTop=el.scrollHeight;
+}
 
-function showScreen(name, statusLabel='', sbState='') {
-  ALL_SCREENS.forEach(s => {
-    const el = document.getElementById(`scr-${s}`);
-    if (el) el.classList.remove('active');
+// ═══════ SCREENS ═══════
+const ALL=['boot','idle','donor','gift','qr','water','vending','lucky','error'];
+const SBL={boot:'Connecting...',idle:'เลือกสิ่งที่ต้องการ',donor:'ยืนยันตัวตน',gift:'ยืนยันการเลือก',qr:'ชำระเงิน',water:'น้ำมนต์มงคล',vending:'กำลังจ่ายของ',lucky:'เลขมงคล',error:'ข้อผิดพลาด'};
+
+function showScreen(name,label){
+  ALL.forEach(s=>{const e=document.getElementById(`scr-${s}`);if(e)e.classList.remove('active')});
+  document.getElementById(`scr-${name}`)?.classList.add('active');
+  S.screen=name;
+  document.getElementById('sb-label').textContent=label||SBL[name]||name;
+  updateGestures(); updatePills();
+}
+
+// ═══════ GESTURE HIGHLIGHT ═══════
+function updateGestures(){
+  ['gs-donor','gs-qr','gs-vend','gs-any'].forEach(id=>document.getElementById(id)?.classList.remove('hot'));
+  const map={donor:'gs-donor',qr:'gs-qr',vending:'gs-vend'};
+  if(map[S.screen]) document.getElementById(map[S.screen])?.classList.add('hot');
+  document.getElementById('gs-any').classList.add('hot'); // always active
+  const hints={idle:'tap a product slot to begin',donor:'← Insert ID card or tap Skip',gift:'← tap a card on the machine screen',qr:'← tap "Donor Scanned QR"',water:'— auto countdown 3-2-1 —',vending:'← tap "Item Picked Up" after door opens',lucky:'— auto-reset in 8s —',error:'— auto-reset in 5s —'};
+  document.getElementById('gest-hint').textContent=hints[S.screen]||'';
+}
+
+function updatePills(){
+  const sl={boot:'BOOT',idle:'IDLE',donor:'ID_SCAN',gift:'GIFT',qr:'PAYMENT',water:'WATER',vending:'VENDING',lucky:'COMPLETING',error:'ERROR'};
+  setPill('pill-state',sl[S.screen]||S.screen,'blue');
+  setPill('pill-water',S.wantWater?'Water: ON':'Water: OFF',S.wantWater?'blue':'grey');
+  const gc={fake_omise:'grey',omise_test:'orange',omise_live:'green'};
+  setPill('pill-gw',`GW: ${S.gateway}`,gc[S.gateway]||'grey');
+}
+function setPill(id,text,cls){const e=document.getElementById(id);if(e){e.textContent=text;e.className=`pill ${cls}`}}
+
+// ═══════ TIER ═══════
+function tc(p){return p<=50?'t50':p<=100?'t100':p<=200?'t200':p<=300?'t300':'t500'}
+
+// ═══════ GRID ═══════
+function rebuildGrid(){
+  const n=parseInt(document.getElementById('cfg-slots').value)||10;
+  const cols=parseInt(document.getElementById('cfg-cols').value)||5;
+  initSlots(n);
+  const grid=document.getElementById('product-grid');
+  grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+  grid.innerHTML='';
+  const rows=Math.ceil(n/cols);
+  const cellH=Math.floor((436-5-5*(rows-1))/rows);
+  SLOTS.forEach((sl,i)=>{
+    const c=document.createElement('div');
+    c.className='product-cell'+(sl.enabled?'':' disabled');
+    c.dataset.slot=i; c.style.height=cellH+'px';
+    c.innerHTML=`<div class="cell-badge">${i+1}</div><div class="cell-price ${tc(sl.price)}">${sl.price}</div><div class="cell-thb">THB</div><div class="cell-name">${sl.name_en}</div>`;
+    c.addEventListener('click',()=>onSlotTap(i));
+    grid.appendChild(c);
   });
-  const t = document.getElementById(`scr-${name}`);
-  if (t) t.classList.add('active');
-  S.screen = name;
-
-  const labels = {
-    boot:    'Connecting...',
-    idle:    'เลือกสิ่งที่ต้องการ',
-    donor:   'ยืนยันตัวตน',
-    gift:    'ยืนยันการเลือก',
-    qr:      'ชำระเงิน',
-    vending: 'กำลังจ่ายของ',
-    lucky:   'เลขมงคล',
-    error:   'ข้อผิดพลาด',
-  };
-  document.getElementById('sb-label').textContent = statusLabel || labels[name] || name;
-  updatePills();
+  log(`[UI] Grid: ${n} slots × ${cols} cols`,'ui');
 }
 
-function updatePills() {
-  const labels = { boot:'BOOT', idle:'IDLE', donor:'ID_SCAN', gift:'GIFT', qr:'PAYMENT', vending:'VENDING', lucky:'COMPLETING', error:'ERROR' };
-  setPill('pill-state', labels[S.screen] || S.screen, 'blue');
-  setPill('pill-water', S.wantWater ? 'Water: ON' : 'Water: OFF', S.wantWater ? 'blue' : 'grey');
-  setPill('pill-wifi',  S.wifiOk ? 'WiFi OK' : 'No WiFi', S.wifiOk ? 'green' : 'orange');
-  document.getElementById('ir-status').textContent   = S.irBlocked ? 'BLOCKED' : 'CLEAR';
-  document.getElementById('door-status').textContent = S.doorOpen  ? 'OPEN'    : 'LOCKED';
-  document.getElementById('pump-status').textContent = S.pumpOn    ? 'FIRING'  : 'OFF';
+// ═══════ FLOW: SLOT TAP ═══════
+function onSlotTap(idx){
+  if(S.screen!=='idle') return;
+  const sl=SLOTS[idx]; if(!sl?.enabled) return;
+  S.selectedSlot=idx;
+  document.querySelectorAll('.product-cell').forEach(c=>c.classList.remove('selected'));
+  document.querySelector(`[data-slot="${idx}"]`)?.classList.add('selected');
+  log(`[UI] Slot ${idx+1}: ${sl.name_en} ${sl.price} THB`,'ui');
+  document.getElementById('gift-pa').textContent=`${sl.price} THB`;
+  document.getElementById('gift-pb').textContent=`${sl.price+20} THB`;
+  setTimeout(()=>{
+    S.idInserted=false; S.donorName=''; S.donorId='';
+    document.getElementById('donor-id-box').className='donor-id-box';
+    document.getElementById('donor-id-status').textContent='Waiting for ID card...';
+    document.getElementById('donor-name-out').textContent='';
+    document.getElementById('donor-ok-btn').disabled=true;
+    showScreen('donor');
+  },280);
 }
 
-function setPill(id, text, cls) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = text;
-  el.className = `pill ${cls}`;
-}
+// ═══════ FLOW: DONOR ═══════
+function flowSkipDonor(){S.donorName='';S.donorId='';log('[UI] Donor: Anonymous','ui');showScreen('gift')}
+function flowConfirmDonor(){log(`[UI] Donor: ${S.donorName}`,'ui');showScreen('gift')}
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  PRICE → TIER CLASS
-// ═══════════════════════════════════════════════════════════════════════════
-function priceClass(p) {
-  if (p <= 50)  return 'tier-50';
-  if (p <= 100) return 'tier-100';
-  if (p <= 200) return 'tier-200';
-  if (p <= 300) return 'tier-300';
-  return                'tier-500';
-}
+// ═══════ FLOW: GIFT ═══════
+function flowGift(w){S.wantWater=w;log(`[UI] Gift: ${w?'+Sacred Water':'Item Only'}`,'ui');createOrder()}
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  BUILD PRODUCT GRID
-// ═══════════════════════════════════════════════════════════════════════════
-function rebuildGrid() {
-  NUM_SLOTS  = parseInt(document.getElementById('cfg-slots').value) || 10;
-  GRID_COLS  = parseInt(document.getElementById('cfg-cols').value)  || 5;
-  initDefaultSlots(NUM_SLOTS);
-
-  const grid = document.getElementById('product-grid');
-  grid.style.gridTemplateColumns = `repeat(${GRID_COLS}, 1fr)`;
-  grid.innerHTML = '';
-
-  // Compute cell size based on available space (800w × 436h minus padding)
-  const cellH = Math.floor((436 - 6 - 5*(Math.ceil(NUM_SLOTS/GRID_COLS)-1)) / Math.ceil(NUM_SLOTS/GRID_COLS));
-
-  SLOTS.forEach((sl, i) => {
-    const cell = document.createElement('div');
-    cell.className = 'product-cell' + (sl.enabled ? '' : ' disabled');
-    cell.dataset.slot = i;
-    cell.style.height = cellH + 'px';
-
-    if (!sl.configured && !sl.enabled) {
-      cell.innerHTML = `<div class="cell-badge" style="font-size:10px;color:#333;position:relative;width:auto;height:auto;transform:none;">${i+1}</div>`;
-      cell.classList.add('disabled');
-    } else {
-      cell.innerHTML = `
-        <div class="cell-badge">${i+1}</div>
-        <div class="cell-price ${priceClass(sl.price)}">${sl.price}</div>
-        <div class="cell-thb">THB</div>
-        <div class="cell-name">${sl.name_en}</div>`;
-      cell.addEventListener('click', () => onSlotTap(i));
-    }
-    grid.appendChild(cell);
-  });
-
-  log(`[UI] Grid rebuilt: ${NUM_SLOTS} slots, ${GRID_COLS} cols`, 'ui');
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-//  SLOT TAP
-// ═══════════════════════════════════════════════════════════════════════════
-function onSlotTap(idx) {
-  if (S.screen !== 'idle') return;
-  const sl = SLOTS[idx];
-  if (!sl.enabled) return;
-
-  if (S.selectedSlot === idx) {
-    // Second tap → confirm → donor screen
-    log(`[UI] Slot ${idx+1} confirmed: ${sl.name_en} ${sl.price} THB`, 'ui');
-    S.selectedSlot = idx;
-    document.getElementById('gift-price-item').textContent  = `${sl.price} THB`;
-    document.getElementById('gift-price-water').textContent = `${sl.price+20} THB (incl. water)`;
-    gotoScreen('donor');
-  } else {
-    // First tap → highlight
-    document.querySelectorAll('.product-cell').forEach(c => c.classList.remove('selected'));
-    document.querySelector(`[data-slot="${idx}"]`)?.classList.add('selected');
-    S.selectedSlot = idx;
-    log(`[UI] Slot ${idx+1} selected — tap again to confirm`, 'ui');
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-//  DONOR / ID SCAN
-// ═══════════════════════════════════════════════════════════════════════════
-function skipDonor() {
-  S.donorName = ''; S.donorId = '';
-  log('[UI] Donor: Anonymous / skipped', 'ui');
-  gotoScreen('gift');
-}
-
-function confirmDonor() {
-  if (!S.idCardInserted) return;
-  log(`[UI] Donor confirmed: ${S.donorName} (${S.donorId})`, 'ui');
-  gotoScreen('gift');
-}
-
-// ── simulate ID card insert (from hardware panel) ────────────────────────
-function simIDCard(action) {
-  if (action === 'insert') {
-    S.idCardInserted = true;
-    S.donorName = 'สมชาย ใจดี';   // mock name
-    S.donorId   = '3-1234-56789-01-0';
-    const box = document.getElementById('donor-id-box');
-    box.classList.add('scanning');
-    document.getElementById('donor-id-status').textContent = 'Reading card...';
-    log('[HW] ID card inserted — reading...', 'hw');
-    setTimeout(() => {
-      box.classList.remove('scanning');
-      document.getElementById('donor-id-status').textContent = `✓ ${S.donorName}`;
-      document.getElementById('donor-name-display').textContent = S.donorId;
-      document.getElementById('donor-confirm-btn').disabled = false;
-      log(`[HW] ID card read OK: ${S.donorName}`, 'ok');
-    }, 1200);
-  } else {
-    S.idCardInserted = false;
-    document.getElementById('donor-id-box').classList.remove('scanning');
-    document.getElementById('donor-id-status').textContent = 'Waiting for ID card...';
-    document.getElementById('donor-name-display').textContent = '';
-    document.getElementById('donor-confirm-btn').disabled = true;
-    log('[HW] ID card removed', 'hw');
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-//  GIFT OPTION
-// ═══════════════════════════════════════════════════════════════════════════
-function selectGift(wantWater) {
-  S.wantWater = wantWater;
-  log(`[UI] Gift: ${wantWater ? '+Sacred Water' : 'Item Only'}`, 'ui');
-  createOrder();
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-//  CREATE ORDER
-// ═══════════════════════════════════════════════════════════════════════════
-async function createOrder() {
-  if (!S.deviceId) { showError('Not registered', 'Device not registered.\nClick Connect first.'); return; }
-
-  const sl          = SLOTS[S.selectedSlot];
-  const totalAmount = sl.price + (S.wantWater ? 20 : 0);
-  const apiUrl      = document.getElementById('api-url').value.trim();
-
-  log(`[NET] POST /v1/order  slot=${S.selectedSlot+1} amount=${totalAmount} water=${S.wantWater}`, 'net');
+// ═══════ CREATE ORDER ═══════
+async function createOrder(){
+  if(!S.deviceId){showErr('Not connected','Click Connect first');return}
+  const sl=SLOTS[S.selectedSlot],total=sl.price+(S.wantWater?20:0);
+  const api=document.getElementById('api-url').value.trim();
+  log(`[NET] POST /v1/order  slot=${S.selectedSlot+1}  total=${total}  water=${S.wantWater}`,'net');
   showScreen('qr');
-  document.getElementById('qr-amount').textContent  = totalAmount.toLocaleString();
-  document.getElementById('qr-product').textContent = sl.name_en;
-  document.getElementById('display-orderid').textContent = 'creating...';
-  drawFakeQR();
-
-  try {
-    const body = {
-      device_id:   S.deviceId,
-      product_id:  S.selectedSlot + 1,
-      amount:       totalAmount,
-      donor_name:   S.donorName  || null,
-      donor_id:     S.donorId    || null,
-      sacred_water: S.wantWater,
-    };
-    const res  = await fetch(`${apiUrl}/v1/order`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body)
-    });
-    const data = await res.json();
-
-    if (data.order_id) {
-      S.orderId = data.order_id;
-      S.amount  = totalAmount;
-      S.qrUrl   = data.qr_url || data.payment_url || '';
-      S.paymentConfirmedFired = false;
-
-      document.getElementById('qr-orderid').textContent = `Order: ${S.orderId}`;
-      document.getElementById('display-orderid').textContent = S.orderId;
-      log(`[NET] Order created: ${S.orderId} — ${totalAmount} THB`, 'ok');
-
-      if (S.qrUrl) drawRealQR(S.qrUrl);
-      startPaymentTimer();
-    } else {
-      showError('Order failed', data.error || 'Backend returned no order_id');
-    }
-  } catch(e) {
-    log(`[NET] Order exception: ${e.message}`, 'err');
-    showError('Network error', e.message);
-  }
+  document.getElementById('qr-amount').textContent=total.toLocaleString();
+  document.getElementById('qr-product').textContent=sl.name_en;
+  document.getElementById('qr-orderid').textContent='';
+  S.payFired=false; drawFakeQR();
+  // Gateway badge
+  const gwC={fake_omise:'#555',omise_test:'#ff8c00',omise_live:'#4caf50'};
+  const b=document.getElementById('qr-gw-badge');
+  b.textContent=`Gateway: ${S.gateway}`;b.style.cssText=`font-size:8px;display:inline-block;padding:2px 8px;border-radius:9px;border:1px solid ${gwC[S.gateway]||'#333'};color:${gwC[S.gateway]||'#444'}`;
+  try{
+    const res=await fetch(`${api}/v1/order`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({device_id:S.deviceId,product_id:S.selectedSlot+1,amount:total,sacred_water:S.wantWater,donor_name:S.donorName||null,donor_id:S.donorId||null})});
+    const data=await res.json();
+    if(data.order_id){
+      S.orderId=data.order_id; S.qrUrl=data.qr_code_url||data.payment_url||'';
+      document.getElementById('qr-orderid').textContent=`Order: ${S.orderId}`;
+      log(`[NET] Order ${S.orderId} — ${total} THB — gw:${S.gateway}`,'ok');
+      if(S.qrUrl) loadQR(S.qrUrl);
+      startPayTimer(120);
+    } else showErr('Order failed',data.error||'No order_id');
+  }catch(e){log(`[NET] Order error: ${e.message}`,'err');showErr('Network error',e.message)}
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  PAYMENT TIMER
-// ═══════════════════════════════════════════════════════════════════════════
-function startPaymentTimer() {
-  clearInterval(S.paymentTimer);
-  S.paymentSecs = 120;
-
-  S.paymentTimer = setInterval(() => {
-    S.paymentSecs--;
-    if (S.paymentSecs < 0) { clearInterval(S.paymentTimer); return; }
-
-    const m   = Math.floor(S.paymentSecs/60);
-    const sec = S.paymentSecs % 60;
-    const el  = document.getElementById('qr-timer');
-    el.textContent = `⏱ ${m}:${String(sec).padStart(2,'0')}`;
-    el.className   = 'qr-timer' + (S.paymentSecs < 30 ? ' urgent' : '');
-
-    const pct = (S.paymentSecs / 120) * 100;
-    document.getElementById('payment-bar-fill').style.width = pct + '%';
-
-    if (S.paymentSecs === 0) {
-      log('[PAY] Payment timeout', 'warn');
-      showError('Payment timeout\nPlease try again');
-    }
-  }, 1000);
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-//  QR DRAWING
-// ═══════════════════════════════════════════════════════════════════════════
-function drawFakeQR() {
-  const canvas = document.getElementById('qr-canvas');
-  const ctx    = canvas.getContext('2d');
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0,0,160,160);
-  ctx.fillStyle = '#000';
-  // fake QR pattern
-  for (let r=0;r<21;r++) for (let c=0;c<21;c++) {
-    const isEdge = r<3||r>17||c<3||c>17;
-    if (Math.random() < (isEdge?0.5:0.4)) ctx.fillRect(8+c*7,8+r*7,6,6);
-  }
-  // corner markers
-  [[0,0],[14,0],[0,14]].forEach(([cx,cy])=>{
-    ctx.fillStyle='#000';ctx.fillRect(8+cx*7,8+cy*7,42,42);
-    ctx.fillStyle='#fff';ctx.fillRect(14+cx*7,14+cy*7,30,30);
-    ctx.fillStyle='#000';ctx.fillRect(20+cx*7,20+cy*7,18,18);
+// ═══════ QR ═══════
+function drawFakeQR(){
+  const cv=document.getElementById('qr-canvas'),ctx=cv.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,150,150);ctx.fillStyle='#000';
+  const cell=7;
+  for(let r=0;r<21;r++)for(let c=0;c<21;c++){if(Math.random()<.40)ctx.fillRect(c*cell,r*cell,cell-1,cell-1)}
+  [[0,0],[0,14],[14,0]].forEach(([r,c])=>{
+    ctx.fillStyle='#000';ctx.fillRect(c*cell,r*cell,7*cell,7*cell);
+    ctx.fillStyle='#fff';ctx.fillRect(c*cell+cell,r*cell+cell,5*cell,5*cell);
+    ctx.fillStyle='#000';ctx.fillRect(c*cell+2*cell,r*cell+2*cell,3*cell,3*cell);
   });
 }
-
-function drawRealQR(url) {
-  // Use Google Charts QR if available
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.onload = () => {
-    const canvas = document.getElementById('qr-canvas');
-    const ctx    = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, 160, 160);
-  };
-  img.src = `https://chart.googleapis.com/chart?cht=qr&chs=160x160&chl=${encodeURIComponent(url)}`;
-  img.onerror = () => {}; // keep fake QR
+function loadQR(url){
+  const img=new Image();img.crossOrigin='anonymous';
+  img.onload=()=>{document.getElementById('qr-canvas').getContext('2d').drawImage(img,0,0,150,150);log('[UI] Real QR loaded from backend','ok')};
+  img.onerror=()=>log('[UI] QR load failed — using pattern','warn');
+  img.src=url;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  PAYMENT SIM (buttons)
-// ═══════════════════════════════════════════════════════════════════════════
-async function simPayment(status) {
-  if (S.paymentConfirmedFired && status==='paid') return;
-  clearInterval(S.paymentTimer);
-  log(`[SIM] Payment status: ${status}`, status==='paid'?'ok':'warn');
-
-  if (status === 'paid') {
-    S.paymentConfirmedFired = true;
-    showVending();
-  } else if (status === 'expired') {
-    showError('Payment expired\nPlease start again');
-  } else {
-    showError('Payment failed\nPlease try again');
-  }
+// ═══════ PAYMENT TIMER ═══════
+function startPayTimer(secs){
+  clearInterval(S.payTimer);S.paySecs=secs;
+  S.payTimer=setInterval(async()=>{
+    S.paySecs--;
+    const pct=(S.paySecs/secs)*100,m=Math.floor(S.paySecs/60),s=S.paySecs%60;
+    document.getElementById('pay-bar').style.width=pct+'%';
+    const el=document.getElementById('qr-timer');
+    el.textContent=`⏱ ${m}:${String(s).padStart(2,'0')}`;
+    el.className='qr-timer'+(S.paySecs<30?' urgent':'');
+    if(S.paySecs<=0){clearInterval(S.payTimer);showErr('Payment timeout','Please start again');return}
+    if(S.paySecs%3===0&&S.orderId){
+      try{const r=await fetch(`${document.getElementById('api-url').value}/v1/order/${S.orderId}/status`);const d=await r.json();if(d.status==='paid'){clearInterval(S.payTimer);onPayConfirmed()}}catch(e){}
+    }
+  },1000);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  VENDING FLOW
-// ═══════════════════════════════════════════════════════════════════════════
-function showVending() {
-  const sl = SLOTS[S.selectedSlot] || {name_en:'Item',price:0};
-  document.getElementById('vend-icon').textContent  = '📿';
-  document.getElementById('vend-title').textContent = `Dispensing: ${sl.name_en}`;
-  document.getElementById('vend-sub').textContent   = 'กรุณารอสักครู่ · Please wait...';
-  document.getElementById('beep-banner').style.display = 'none';
+// ═══════ PAYMENT CONFIRMED ═══════
+function onPayConfirmed(){
+  if(S.payFired){log('[PAY] Duplicate — ignored','warn');return}
+  S.payFired=true;clearInterval(S.payTimer);
+  log('[PAY] Payment confirmed! 🎉','pay');
+  if(S.wantWater) startWaterCountdown(); else startVending();
+}
+
+// ═══════ WATER COUNTDOWN ═══════
+function startWaterCountdown(){
+  showScreen('water');log('[HW] Water pump relay ON','hw');
+  let n=3;document.getElementById('water-count').textContent=n;
+  const iv=setInterval(()=>{
+    n--;
+    if(n>0){document.getElementById('water-count').textContent=n;log(`[HW] Spraying... ${n}`,'hw')}
+    else{clearInterval(iv);document.getElementById('water-count').textContent='🙏';log('[HW] Water pump OFF — complete','hw');setTimeout(()=>startVending(),1400)}
+  },1000);
+}
+
+// ═══════ VENDING ═══════
+function startVending(){
+  const sl=SLOTS[S.selectedSlot]||{name_en:'Item'};
+  document.getElementById('vend-icon').textContent='📿';
+  document.getElementById('vend-title').textContent=`กำลังจ่าย: ${sl.name_en}`;
+  document.getElementById('vend-sub').textContent='Dispensing... กำลังจ่ายของ';
+  document.getElementById('door-banner').style.display='none';
+  document.getElementById('beep-banner').style.display='none';
   showScreen('vending');
-
-  log(`[HW] Relay FIRED → slot ${(S.selectedSlot||0)+1}`, 'hw');
-  if (S.wantWater) {
-    setTimeout(() => { log('[HW] Water pump relay FIRED', 'hw'); S.pumpOn=true; updatePills(); }, 1200);
-    setTimeout(() => { S.pumpOn=false; updatePills(); log('[HW] Water pump OFF', 'hw'); }, 2500);
-  }
-
-  // After 3s → wait for IR (hand-block) or auto-advance after 6s
-  S.vendingTimer = setTimeout(() => {
-    document.getElementById('beep-banner').style.display = 'block';
-    log('[HW] Waiting for item removal (block IR or auto-advance 5s)', 'warn');
-    S.irBlocked = true;
-    updatePills();
-    // Auto-advance if user doesn't manually clear IR
-    setTimeout(() => { if (S.screen==='vending') onIRCleared(); }, 5000);
-  }, 3000);
+  log(`[HW] Relay ${(S.selectedSlot||0)+1} FIRED — 800ms pulse`,'hw');
+  setTimeout(()=>{
+    log('[HW] Item dropped — IR triggered','hw');
+    log('[HW] Door lock relay ON — OPEN','hw');
+    document.getElementById('door-banner').style.display='block';
+    document.getElementById('vend-sub').textContent='Please collect your item · กรุณาหยิบของ';
+    startBeep();
+  },1500);
+  S.vendTimer=setTimeout(()=>{log('[SIM] Pickup timeout — auto-advancing','warn');gestPickup()},30000);
 }
 
-function onIRCleared() {
-  if (S.screen !== 'vending') return;
-  clearTimeout(S.vendingTimer);
-  document.getElementById('beep-banner').style.display = 'none';
-  S.irBlocked = false;
-  S.doorOpen  = false;
-  updatePills();
-  log('[HW] Item removed — door locked', 'hw');
+let beepIv=null;
+function startBeep(){
+  let on=true;const el=document.getElementById('beep-banner');el.style.display='block';
+  clearInterval(beepIv);beepIv=setInterval(()=>{on=!on;el.style.opacity=on?'1':'0.3'},800);
+}
+function stopBeep(){clearInterval(beepIv);document.getElementById('beep-banner').style.display='none'}
+
+// ═══════ LUCKY ═══════
+function showLucky(){
+  clearTimeout(S.vendTimer);stopBeep();
+  const lucky=Math.floor(Math.random()*90)+10;
+  document.getElementById('lucky-number').textContent=lucky;
+  document.getElementById('lucky-water-banner').style.display=S.wantWater?'block':'none';
+  showScreen('lucky');
+  log(`[UI] Lucky number: ${lucky}`,'ui');
+  reportCompletion();
+  setTimeout(()=>flowReset(),8000);
+}
+
+async function reportCompletion(){
+  if(!S.orderId) return;
+  try{await fetch(`${document.getElementById('api-url').value}/v1/machine/completion`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order_id:S.orderId,success:true,device_id:S.deviceId})});log('[NET] Completion reported','ok')}
+  catch(e){log(`[NET] Completion failed: ${e.message}`,'err')}
+}
+
+// ═══════ RESET ═══════
+function flowReset(){
+  clearInterval(S.payTimer);clearTimeout(S.vendTimer);stopBeep();
+  S.selectedSlot=-1;S.wantWater=false;S.orderId='';S.payFired=false;S.idInserted=false;S.donorName='';S.donorId='';
+  document.querySelectorAll('.product-cell').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('door-banner').style.display='none';
+  rebuildGrid();showScreen('idle');log('[UI] Reset to idle','ui');
+}
+function showErr(title,detail=''){
+  document.getElementById('err-msg').innerHTML=`<b>${title}</b>${detail?'<br><span style="font-size:10px;color:#555">'+detail+'</span>':''}`;
+  showScreen('error');log(`[ERR] ${title}`,'err');
+  setTimeout(()=>{if(S.screen==='error')flowReset()},5000);
+}
+
+// ═══════ GESTURES ═══════
+function gestInsertID(){
+  if(S.screen!=='donor') return;
+  S.idInserted=true;
+  document.getElementById('donor-id-box').className='donor-id-box scanning';
+  document.getElementById('donor-id-status').textContent='Reading card...';
+  log('[HW] ID card inserted — reading...','hw');
+  const names=['สมชาย ใจดี','สมศรี วงศ์กระจ่าง','วิชัย ทองประเสริฐ','นงนุช สุขสม','ชัยวัฒน์ ขำสิงห์'];
+  S.donorName=names[Math.floor(Math.random()*names.length)];
+  S.donorId=`3-${Math.floor(1000+Math.random()*9000)}-${Math.floor(10000+Math.random()*90000)}-01-0`;
+  setTimeout(()=>{
+    document.getElementById('donor-id-box').className='donor-id-box confirmed';
+    document.getElementById('donor-id-status').textContent=`✓ ${S.donorName}`;
+    document.getElementById('donor-name-out').textContent=S.donorId;
+    document.getElementById('donor-ok-btn').disabled=false;
+    log(`[HW] ID card OK: ${S.donorName}`,'ok');
+    log('[SEC] National ID hashed (PDPA) — name only stored','warn');
+    if(S.mode==='flow') setTimeout(()=>flowConfirmDonor(),1500);
+  },1200);
+}
+function gestRemoveID(){
+  S.idInserted=false;
+  document.getElementById('donor-id-box').className='donor-id-box';
+  document.getElementById('donor-id-status').textContent='Waiting for ID card...';
+  document.getElementById('donor-name-out').textContent='';
+  document.getElementById('donor-ok-btn').disabled=true;
+  log('[HW] ID card removed','hw');
+}
+function gestScan(){
+  if(S.screen!=='qr') return;
+  log('[GESTURE] Donor scanned QR — simulating payment...','ui');
+  clearInterval(S.payTimer);setTimeout(()=>onPayConfirmed(),700);
+}
+function gestPayExpire(){clearInterval(S.payTimer);showErr('Payment expired','Please start a new transaction')}
+function gestPayFail(){clearInterval(S.payTimer);showErr('Payment failed','Please try again')}
+function gestPickup(){
+  if(S.screen!=='vending') return;
+  clearTimeout(S.vendTimer);stopBeep();
+  document.getElementById('door-banner').style.display='none';
+  log('[HW] Item picked up — IR cleared — door locking','hw');
   showLucky();
 }
+function gestDoorStuck(){clearTimeout(S.vendTimer);stopBeep();log('[GESTURE] Door stuck — mechanical jam','err');showErr('Door Error / ประตูติด','Please contact temple staff\nกรุณาติดต่อเจ้าหน้าที่')}
+function gestHandBlock(){clearTimeout(S.vendTimer);log('[GESTURE] Hand blocking exit — safety hold','warn');showErr('Safety Hold','Object detected blocking exit\nPlease clear and retry')}
+function gestServiceEntry(){log('[GESTURE] Service entry (3× tap top-right)','ui');log('[SIM] Service mode — not yet implemented','warn')}
+function gestReboot(){log('[CMD] Reboot — resetting','warn');setTimeout(()=>{flowReset();doConnect()},800)}
+function gestDisable(){showErr('Machine disabled','Contact admin to re-enable')}
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  LUCKY SCREEN
-// ═══════════════════════════════════════════════════════════════════════════
-function showLucky() {
-  const lucky = Math.floor(Math.random() * 90) + 10;
-  document.getElementById('lucky-number').textContent = lucky;
-  document.getElementById('lucky-water-banner').style.display = S.wantWater ? 'block' : 'none';
-  showScreen('lucky');
-  log(`[UI] Lucky number: ${lucky}`, 'ui');
-
-  // Report completion to backend
-  reportCompletion();
-
-  setTimeout(() => resetToIdle(), 8000);
-}
-
-async function reportCompletion() {
-  if (!S.orderId) return;
-  const apiUrl = document.getElementById('api-url').value.trim();
-  try {
-    await fetch(`${apiUrl}/v1/machine/completion`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ order_id: S.orderId, success: true, device_id: S.deviceId })
-    });
-    log('[NET] Completion reported', 'ok');
-  } catch(e) { log(`[NET] Completion report failed: ${e.message}`, 'err'); }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-//  RESET
-// ═══════════════════════════════════════════════════════════════════════════
-function resetToIdle() {
-  clearInterval(S.paymentTimer);
-  clearTimeout(S.vendingTimer);
-  S.selectedSlot = -1; S.donorName = ''; S.donorId = '';
-  S.wantWater = false; S.orderId = ''; S.paymentConfirmedFired = false;
-  S.idCardInserted = false;
-  document.getElementById('donor-confirm-btn').disabled = true;
-  document.getElementById('donor-id-status').textContent = 'Waiting for ID card...';
-  document.getElementById('donor-name-display').textContent = '';
-  document.getElementById('donor-id-box').classList.remove('scanning');
-  document.getElementById('display-orderid').textContent = 'none';
-  document.querySelectorAll('.product-cell').forEach(c=>c.classList.remove('selected'));
-  rebuildGrid();
-  showScreen('idle');
-  log('[UI] Reset to idle', 'ui');
-}
-
-function showError(title, detail='') {
-  document.getElementById('err-msg').innerHTML = `<b>${title}</b>${detail?'<br><span style="font-size:11px;color:#888;">'+detail+'</span>':''}`;
-  showScreen('error');
-  log(`[ERR] ${title}`, 'err');
-  setTimeout(() => { if(S.screen==='error') resetToIdle(); }, 5000);
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-//  HARDWARE SIMULATION BUTTONS
-// ═══════════════════════════════════════════════════════════════════════════
-function simIR(action) {
-  if (action === 'block') {
-    S.irBlocked = true;
-    log('[HW] IR sensor BLOCKED (hand/item in beam)', 'hw');
-  } else {
-    S.irBlocked = false;
-    log('[HW] IR sensor CLEARED', 'hw');
-    if (S.screen === 'vending') onIRCleared();
-  }
-  updatePills();
-}
-
-function simDoor(action) {
-  S.doorOpen = (action === 'open');
-  log(`[HW] Door ${action.toUpperCase()}`, 'hw');
-  updatePills();
-}
-
-function simPump(action) {
-  S.pumpOn = (action === 'on');
-  log(`[HW] Water pump ${action.toUpperCase()}`, 'hw');
-  updatePills();
-}
-
-function simRelay(action) {
-  const num = document.getElementById('relay-num').value;
-  log(`[HW] Relay ${num} ${action.toUpperCase()}`, 'hw');
-}
-
-function simServiceGesture() {
-  log('[UI] Service gesture triggered (3× top-right tap)', 'ui');
-  // For now just log — service screen implementation is a separate session
-  log('[UI] SERVICE MODE — not yet implemented in simulator', 'warn');
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-//  FLOW NAV (presentation)
-// ═══════════════════════════════════════════════════════════════════════════
-function gotoScreen(name) {
-  if (name === 'idle')    { rebuildGrid(); showScreen('idle'); return; }
-  if (name === 'vending') { showVending(); return; }
-  if (name === 'lucky')   { showLucky();   return; }
-  if (name === 'qr') {
-    document.getElementById('qr-amount').textContent  = '100';
-    document.getElementById('qr-product').textContent = 'Large Amulet';
-    drawFakeQR();
-    startPaymentTimer();
-  }
+// ═══════ FREE MODE ═══════
+function gotoScreen(name){
+  if(name==='idle'){rebuildGrid();showScreen('idle');return}
+  if(name==='vending'){startVending();return}
+  if(name==='lucky'){showLucky();return}
+  if(name==='water'){startWaterCountdown();return}
+  if(name==='qr'){document.getElementById('qr-amount').textContent='100';document.getElementById('qr-product').textContent='Large Amulet';drawFakeQR();startPayTimer(120)}
   showScreen(name);
 }
 
-function toggleWifi() {
-  S.wifiOk = document.getElementById('cfg-wifi').value === 'ok';
-  log(`[NET] WiFi ${S.wifiOk ? 'CONNECTED' : 'OFFLINE'} (simulated)`, S.wifiOk?'ok':'warn');
-  updatePills();
+// ═══════ CONNECT ═══════
+async function doConnect(){
+  const api=document.getElementById('api-url').value.trim();
+  S.mac=document.getElementById('cfg-mac').value.trim();
+  document.getElementById('api-status').textContent='connecting...';
+  log(`[NET] POST /v1/machine/hello  mac=${S.mac}`,'net');
+  try{
+    const res=await fetch(`${api}/v1/machine/hello`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mac:S.mac,firmware_version:'1.0.0-r3.1',num_slots:parseInt(document.getElementById('cfg-slots').value)||10})});
+    const data=await res.json();
+    S.deviceId=data.device_id||''; S.deviceSecret=data.device_secret||'';
+    document.getElementById('sb-right').innerHTML=S.deviceId+'<br>WiFi OK';
+    document.getElementById('api-status').textContent='connected';
+    setPill('pill-conn',S.deviceId,'green');
+    log(`[NET] Hello OK — device_id=${S.deviceId}`,'ok');
+    if(data.slots?.length){data.slots.forEach(sl=>{const i=sl.slot-1;if(i>=0&&i<SLOTS.length)Object.assign(SLOTS[i],sl,{configured:true})});rebuildGrid();log(`[NET] ${data.slots.length} slots from backend`,'ok')}
+    clearInterval(S.uptimeTimer);S.uptimeSecs=0;
+    S.uptimeTimer=setInterval(()=>{S.uptimeSecs++;const h=Math.floor(S.uptimeSecs/3600),m=Math.floor((S.uptimeSecs%3600)/60),s=S.uptimeSecs%60;document.getElementById('uptime-display').textContent=`Uptime: ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`},1000);
+    await checkHealth();
+    showScreen('idle');rebuildGrid();
+  }catch(e){log(`[NET] Hello failed: ${e.message}`,'err');document.getElementById('api-status').textContent='offline';showErr('Cannot connect',`${api}\n${e.message}`)}
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  CONNECT / HELLO
-// ═══════════════════════════════════════════════════════════════════════════
-async function doConnect() {
-  const apiUrl = document.getElementById('api-url').value.trim();
-  S.mac        = document.getElementById('cfg-mac').value.trim();
-
-  document.getElementById('api-status').textContent = 'connecting...';
-  log(`[NET] POST /v1/machine/hello  mac=${S.mac}`, 'net');
-
-  try {
-    const res  = await fetch(`${apiUrl}/v1/machine/hello`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ mac: S.mac, firmware_version:'1.0.0-sim', capabilities:['qr','water'] })
-    });
-    const data = await res.json();
-
-    S.deviceId     = data.device_id     || '';
-    S.deviceSecret = data.device_secret || '';
-    document.getElementById('sb-right').textContent = S.deviceId + '\nWiFi OK';
-    document.getElementById('api-status').textContent = 'connected';
-    setPill('pill-conn', S.deviceId, 'green');
-    log(`[NET] Hello OK — device_id=${S.deviceId}`, 'ok');
-
-    // Load slots from /hello if backend returns them
-    if (data.slots && Array.isArray(data.slots)) {
-      data.slots.forEach(sl => {
-        const idx = sl.slot - 1;
-        if (idx >= 0 && idx < SLOTS.length) {
-          SLOTS[idx] = { ...SLOTS[idx], ...sl, configured: true };
-        }
-      });
-      log(`[NET] ${data.slots.length} slots loaded from backend`, 'ok');
-      rebuildGrid();
-    }
-
-    // Start heartbeat + cmd poll
-    clearInterval(S.heartbeatTimer);
-    clearInterval(S.cmdPollTimer);
-    S.heartbeatTimer = setInterval(sendHeartbeat, 300000);
-    S.cmdPollTimer   = setInterval(pollCommands,  30000);
-    S.uptimeTimer    = setInterval(() => {
-      S.uptimeSecs++;
-      const h=Math.floor(S.uptimeSecs/3600), m=Math.floor((S.uptimeSecs%3600)/60), s=S.uptimeSecs%60;
-      document.getElementById('uptime-display').textContent = `Uptime: ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-    }, 1000);
-
-    showScreen('idle');
-    rebuildGrid();
-  } catch(e) {
-    log(`[NET] Hello failed: ${e.message}`, 'err');
-    document.getElementById('api-status').textContent = 'offline';
-    setPill('pill-conn', 'Disconnected', 'grey');
-    showError('Cannot connect', `${apiUrl}\n${e.message}`);
-  }
+async function checkHealth(){
+  try{
+    const r=await fetch(`${document.getElementById('api-url').value}/health`);
+    const d=await r.json();
+    // Support both old PAYMENT_MODE and new PAYMENT_GATEWAY variable
+    S.gateway=d.payment_gateway||(d.payment_mode==='live'?'omise_live':d.payment_mode==='fake'?'fake_omise':'unknown')||'unknown';
+    const gwC={fake_omise:'#555',omise_test:'#ff8c00',omise_live:'#4caf50'};
+    const col=gwC[S.gateway]||'#555';
+    const badge=document.getElementById('gw-badge');
+    badge.textContent=S.gateway;badge.style.cssText=`font-size:8px;padding:2px 8px;border-radius:9px;border:1px solid ${col};color:${col}`;
+    log(`[NET] Gateway: ${S.gateway} ${S.gateway==='fake_omise'?'(no real QR)':S.gateway==='omise_test'?'(real QR, test keys, no real money)':'(LIVE — real money)'}`,'net');
+    updatePills();
+  }catch(e){log('[NET] Health check failed','warn')}
 }
 
-async function sendHeartbeat() {
-  const apiUrl = document.getElementById('api-url').value.trim();
-  try {
-    const r = await fetch(`${apiUrl}/v1/machine/heartbeat`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ device_id:S.deviceId, status:'online', uptime:S.uptimeSecs })
-    });
-    log(`[NET] Heartbeat ${r.status}`, r.ok?'net':'warn');
-  } catch(e) { log(`[NET] Heartbeat failed: ${e.message}`, 'err'); }
-}
-
-async function pollCommands() {
-  if (!S.deviceId) return;
-  const apiUrl = document.getElementById('api-url').value.trim();
-  try {
-    const r    = await fetch(`${apiUrl}/v1/machine/commands?device_id=${S.deviceId}`);
-    const data = await r.json();
-    const cmds = data.commands || [];
-    if (cmds.length) log(`[NET] Commands: ${cmds.join(', ')}`, 'net');
-    cmds.forEach(cmd => {
-      if (cmd === 'payment_confirmed' && S.screen==='qr' && !S.paymentConfirmedFired) {
-        S.paymentConfirmedFired = true;
-        clearInterval(S.paymentTimer);
-        showVending();
-      }
-      if (cmd === 'disable') showError('Machine disabled', 'Contact admin');
-      if (cmd === 'reboot') { log('[CMD] Reboot — resetting sim', 'warn'); setTimeout(resetToIdle, 1000); }
-      if (cmd === 'reload_slots') { doConnect(); }
-    });
-  } catch(e) { /* silent */ }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-//  INIT
-// ═══════════════════════════════════════════════════════════════════════════
-window.onload = () => {
-  initDefaultSlots(10);
-  rebuildGrid();
-  showScreen('boot');
-
-  // Boot sequence
-  let pct = 0;
-  const msgs = ['Initializing hardware...','Starting display...','Connecting WiFi...','Loading config...','Ready'];
-  let mi = 0;
-  const bootInterval = setInterval(() => {
-    pct = Math.min(pct + Math.random()*25, 100);
-    document.getElementById('boot-bar').style.width = pct + '%';
-    if (mi < msgs.length) document.getElementById('boot-msg').textContent = msgs[mi++];
-    if (pct >= 100) {
-      clearInterval(bootInterval);
-      setTimeout(() => {
-        log('[SYS] Boot complete — click Connect to register with backend', 'ok');
-        showScreen('idle');
-        rebuildGrid();
-      }, 400);
-    }
-  }, 400);
+// ═══════ BOOT ═══════
+window.onload=()=>{
+  initSlots(10);rebuildGrid();showScreen('boot');
+  const msgs=['Initializing hardware...','Starting display (EK9716)...','Connecting WiFi...','Loading config...','Ready'];
+  let pct=0,mi=0;
+  const iv=setInterval(()=>{
+    pct=Math.min(pct+Math.random()*22,100);
+    document.getElementById('boot-bar').style.width=pct+'%';
+    if(mi<msgs.length) document.getElementById('boot-msg').textContent=msgs[mi++];
+    if(pct>=100){clearInterval(iv);setTimeout(()=>{log('[SYS] Boot complete — click Connect to register with backend','ok');showScreen('idle');rebuildGrid()},400)}
+  },420);
 };
 </script>
 </body>
