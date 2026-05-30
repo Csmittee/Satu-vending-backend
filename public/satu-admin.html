@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Satu Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#0a0b0e; --surface:#111318; --surface2:#181b22; --surface3:#1f2330;
+  --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.10);
+  --text:#e8eaf0; --text-muted:#6b7385; --text-dim:#3d4558;
+  --yellow:#f0c040; --yellow-dim:rgba(240,192,64,0.12); --accent:#f0c040;
+  --green:#4ade80; --green-dim:rgba(74,222,128,0.10);
+  --red:#f87171; --red-dim:rgba(248,113,113,0.10);
+  --blue:#60a5fa; --blue-dim:rgba(96,165,250,0.10);
+  --purple:#c084fc; --purple-dim:rgba(192,132,252,0.10);
+  --orange:#fb923c; --orange-dim:rgba(251,146,60,0.10);
+  --mono:'IBM Plex Mono',monospace; --body:'Space Grotesk',sans-serif; --display:'Syne',sans-serif;
+  --radius:8px; --radius-lg:14px; --sidebar-w:220px; --transition:0.18s ease;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:14px;-webkit-font-smoothing:antialiased;}
+body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;overflow-x:hidden;}
+a{color:inherit;text-decoration:none;}
+button{cursor:pointer;border:none;background:none;font-family:inherit;color:inherit;}
+input,select{font-family:inherit;color:inherit;}
+
+/* ── LOGIN SCREEN ───────────────────────────────────────────── */
+#login-screen {
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  padding:24px;
+  background: radial-gradient(ellipse at 30% 20%, rgba(240,192,64,0.04) 0%, transparent 60%);
+}
+.login-card {
+  width:100%; max-width:400px;
+  background:var(--surface); border:1px solid var(--border);
+  border-top:2px solid var(--yellow); border-radius:var(--radius-lg);
+  padding:36px;
+}
+.login-logo { text-align:center; margin-bottom:28px; }
+.login-logo-mark { font-family:var(--display); font-size:26px; font-weight:800; color:var(--yellow); letter-spacing:2px; }
+.login-logo-sub { font-family:var(--mono); font-size:9px; color:var(--text-dim); letter-spacing:3px; margin-top:3px; text-transform:uppercase; }
+
+.tab-row { display:flex; gap:0; margin-bottom:24px; border:1px solid var(--border2); border-radius:var(--radius); overflow:hidden; }
+.tab-btn { flex:1; padding:8px; font-family:var(--mono); font-size:11px; color:var(--text-muted); background:none; letter-spacing:1px; transition:all var(--transition); text-transform:uppercase; }
+.tab-btn.active { background:var(--yellow-dim); color:var(--yellow); }
+
+.form-group { margin-bottom:14px; }
+.form-label { display:block; font-family:var(--mono); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin-bottom:6px; }
+.form-input { width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:var(--radius); padding:9px 12px; font-size:13px; color:var(--text); outline:none; transition:border-color var(--transition); }
+.form-input:focus { border-color:var(--yellow); }
+.form-input::placeholder { color:var(--text-dim); }
+
+.btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:var(--radius); font-size:12px; font-weight:600; font-family:var(--mono); transition:all var(--transition); cursor:pointer; border:1px solid transparent; white-space:nowrap; }
+.btn-primary { background:var(--yellow); color:#0a0b0e; border-color:var(--yellow); width:100%; justify-content:center; }
+.btn-primary:hover { background:#e6b830; }
+.btn-primary:disabled { opacity:0.5; cursor:not-allowed; }
+.btn-ghost { background:transparent; color:var(--text-muted); border-color:var(--border2); }
+.btn-ghost:hover { color:var(--text); border-color:var(--border); }
+.btn-sm { padding:4px 10px; font-size:11px; }
+.btn-secondary { background:var(--surface2); color:var(--text); border-color:var(--border2); }
+.btn-secondary:hover { border-color:var(--text-muted); }
+.btn-danger { background:var(--red-dim); color:var(--red); border-color:rgba(248,113,113,0.3); }
+
+.login-err { margin-top:12px; padding:8px 12px; background:var(--red-dim); border:1px solid rgba(248,113,113,0.3); border-radius:var(--radius); font-family:var(--mono); font-size:11px; color:var(--red); display:none; }
+.login-err.show { display:block; }
+.login-footer { margin-top:20px; text-align:center; font-family:var(--mono); font-size:10px; color:var(--text-dim); }
+
+/* secret token panel */
+.token-panel { margin-top:16px; padding:12px; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); }
+.token-note { font-family:var(--mono); font-size:10px; color:var(--text-dim); margin-bottom:8px; }
+
+/* ── APP SHELL ───────────────────────────────────────────────── */
+#app-shell { display:none; grid-template-columns:var(--sidebar-w) 1fr; min-height:100vh; }
+#app-shell.visible { display:grid; }
+
+/* ── SIDEBAR ─────────────────────────────────────────────────── */
+.sidebar { background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; position:sticky; top:0; height:100vh; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; }
+.sidebar::-webkit-scrollbar { display:none; }
+.sidebar-logo { padding:18px 16px 14px; border-bottom:1px solid var(--border); flex-shrink:0; }
+.app-name { font-family:var(--display); font-size:16px; font-weight:800; color:var(--yellow); }
+.app-sub { font-family:var(--mono); font-size:9px; color:var(--text-dim); margin-top:2px; text-transform:uppercase; letter-spacing:0.08em; }
+.sidebar-section { padding:14px 0 4px; }
+.sidebar-section-label { font-family:var(--mono); font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-dim); padding:0 16px 6px; }
+.nav-item { display:flex; align-items:center; gap:10px; padding:8px 16px; font-size:13px; font-weight:500; color:var(--text-muted); transition:all var(--transition); cursor:pointer; border-left:2px solid transparent; }
+.nav-item:hover { background:rgba(255,255,255,0.03); color:var(--text); }
+.nav-item.active { color:var(--yellow); border-left-color:var(--yellow); background:var(--yellow-dim); }
+.nav-icon { font-size:13px; width:18px; text-align:center; flex-shrink:0; }
+.nav-badge { margin-left:auto; font-family:var(--mono); font-size:9px; font-weight:700; padding:1px 6px; border-radius:20px; background:var(--yellow-dim); color:var(--yellow); }
+.sidebar-bottom { margin-top:auto; padding:12px 16px; border-top:1px solid var(--border); }
+.user-row { display:flex; align-items:center; gap:10px; }
+.user-avatar { width:28px; height:28px; border-radius:50%; background:var(--yellow-dim); border:1px solid var(--yellow); display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:11px; color:var(--yellow); flex-shrink:0; }
+.user-name { font-size:12px; font-weight:600; color:var(--text); }
+.user-role { font-family:var(--mono); font-size:9px; color:var(--text-dim); }
+.logout-btn { margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--text-dim); cursor:pointer; padding:4px 6px; border-radius:4px; }
+.logout-btn:hover { color:var(--red); }
+
+/* ── MAIN ────────────────────────────────────────────────────── */
+.main { display:flex; flex-direction:column; min-width:0; min-height:100vh; }
+.main-header { display:flex; align-items:center; justify-content:space-between; padding:13px 24px; border-bottom:1px solid var(--border); background:var(--surface); position:sticky; top:0; z-index:10; flex-shrink:0; }
+.header-left { display:flex; align-items:center; gap:10px; }
+.hamburger { display:none; font-size:18px; color:var(--text-muted); padding:4px; }
+.breadcrumb { font-family:var(--mono); font-size:10px; color:var(--text-dim); margin-bottom:2px; }
+.header-title { font-family:var(--display); font-size:15px; font-weight:800; color:var(--text); }
+.header-actions { display:flex; gap:8px; align-items:center; }
+.main-content { padding:24px; flex:1; }
+
+/* ── KPI GRID ────────────────────────────────────────────────── */
+.kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:24px; }
+.kpi-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px 18px; }
+.kpi-label { font-family:var(--mono); font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); margin-bottom:8px; }
+.kpi-value { font-family:var(--mono); font-size:22px; font-weight:600; color:var(--text); }
+.kpi-value.accent { color:var(--yellow); }
+.kpi-value.green { color:var(--green); }
+.kpi-value.red { color:var(--red); }
+.kpi-delta { font-family:var(--mono); font-size:10px; margin-top:4px; color:var(--text-dim); }
+
+/* ── TABLE ───────────────────────────────────────────────────── */
+.table-wrap { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:20px; }
+.table-header { display:flex; align-items:center; justify-content:space-between; padding:13px 18px; border-bottom:1px solid var(--border); }
+.table-title { font-family:var(--mono); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); }
+table { width:100%; border-collapse:collapse; }
+th { font-family:var(--mono); font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-dim); padding:8px 18px; text-align:left; border-bottom:1px solid var(--border); background:var(--surface2); }
+td { padding:11px 18px; font-size:13px; border-bottom:1px solid var(--border); color:var(--text); }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:rgba(255,255,255,0.015); }
+.td-mono { font-family:var(--mono); font-size:12px; }
+.td-muted { color:var(--text-muted); font-size:12px; }
+
+/* ── PILLS ───────────────────────────────────────────────────── */
+.pill { display:inline-flex; align-items:center; font-family:var(--mono); font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; white-space:nowrap; }
+.pill-yellow { background:var(--yellow-dim); color:var(--yellow); }
+.pill-green  { background:var(--green-dim);  color:var(--green); }
+.pill-red    { background:var(--red-dim);    color:var(--red); }
+.pill-blue   { background:var(--blue-dim);   color:var(--blue); }
+.pill-muted  { background:var(--surface3);   color:var(--text-muted); }
+.pill-orange { background:var(--orange-dim); color:var(--orange); }
+
+/* ── SECTION ─────────────────────────────────────────────────── */
+.section-label { font-family:var(--mono); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-dim); margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+
+/* ── D1 BROWSER ──────────────────────────────────────────────── */
+.d1-shell { display:grid; grid-template-columns:180px 1fr; gap:16px; height:calc(100vh - 130px); }
+.d1-sidebar-list { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow-y:auto; scrollbar-width:none; }
+.d1-sidebar-list::-webkit-scrollbar { display:none; }
+.d1-table-btn { display:block; width:100%; text-align:left; padding:9px 14px; font-family:var(--mono); font-size:11px; color:var(--text-muted); background:none; border:none; cursor:pointer; transition:all var(--transition); border-left:2px solid transparent; }
+.d1-table-btn:hover { background:rgba(255,255,255,0.03); color:var(--text); }
+.d1-table-btn.active { background:var(--yellow-dim); color:var(--yellow); border-left-color:var(--yellow); }
+.d1-main { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; display:flex; flex-direction:column; }
+.d1-toolbar { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--border); flex-shrink:0; }
+.d1-table-name { font-family:var(--mono); font-size:12px; color:var(--yellow); font-weight:600; }
+.d1-count { font-family:var(--mono); font-size:10px; color:var(--text-dim); }
+.d1-table-scroll { overflow:auto; flex:1; }
+
+/* ── LOADING / EMPTY ─────────────────────────────────────────── */
+.loading { display:flex; align-items:center; gap:8px; color:var(--text-muted); font-family:var(--mono); font-size:12px; }
+.spinner { width:14px; height:14px; border:2px solid var(--border2); border-top-color:var(--yellow); border-radius:50%; animation:spin 0.7s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg);} }
+.empty-state { text-align:center; padding:60px 20px; }
+.empty-icon { font-size:28px; margin-bottom:10px; opacity:0.3; }
+.empty-text { font-family:var(--mono); font-size:11px; color:var(--text-dim); }
+
+/* ── TOAST ───────────────────────────────────────────────────── */
+.toast-container { position:fixed; bottom:24px; right:24px; display:flex; flex-direction:column; gap:8px; z-index:9999; }
+.toast { background:var(--surface2); border:1px solid var(--border2); border-radius:var(--radius); padding:10px 16px; font-family:var(--mono); font-size:12px; max-width:320px; animation:slideIn 0.2s ease; }
+.toast.ok   { border-color:rgba(74,222,128,0.4);  color:var(--green); }
+.toast.err  { border-color:rgba(248,113,113,0.4); color:var(--red); }
+.toast.warn { border-color:rgba(251,146,60,0.4);  color:var(--orange); }
+@keyframes slideIn { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+
+/* ── PAGE VISIBILITY ─────────────────────────────────────────── */
+.page { display:none; }
+.page.active { display:block; }
+
+/* ── QUICK TOOLS ─────────────────────────────────────────────── */
+.tool-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; }
+.tool-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px; cursor:pointer; transition:all var(--transition); }
+.tool-card:hover { border-color:var(--border2); background:var(--surface2); }
+.tool-icon { font-size:20px; margin-bottom:8px; }
+.tool-name { font-weight:600; font-size:13px; color:var(--text); margin-bottom:4px; }
+.tool-desc { font-size:11px; color:var(--text-muted); line-height:1.5; }
+
+/* ── MOBILE ──────────────────────────────────────────────────── */
+@media(max-width:768px) {
+  #app-shell.visible { grid-template-columns:1fr; }
+  .sidebar { display:none; position:fixed; top:0; left:0; width:240px; height:100vh; z-index:100; }
+  .sidebar.open { display:flex; }
+  .hamburger { display:block; }
+  .main-content { padding:14px; }
+  .d1-shell { grid-template-columns:1fr; height:auto; }
+  .d1-sidebar-list { height:120px; display:flex; overflow-x:auto; overflow-y:hidden; }
+  .d1-table-btn { white-space:nowrap; min-width:max-content; border-left:none; border-bottom:2px solid transparent; }
+  .d1-table-btn.active { border-bottom-color:var(--yellow); border-left:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN SCREEN ══════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-mark">SATU</div>
+      <div class="login-logo-sub">Admin Console</div>
+    </div>
+
+    <!-- Mode tabs -->
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="setLoginMode('email')" id="lt-email">Email Login</button>
+      <button class="tab-btn" onclick="setLoginMode('token')" id="lt-token">Admin Token</button>
+    </div>
+
+    <!-- Email login panel -->
+    <div id="panel-email">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="inp-email" type="email" placeholder="admin@satu.com" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="inp-pw" type="password" placeholder="••••••••"
+               onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <button class="btn btn-primary" id="login-btn" onclick="doLogin()">Sign In</button>
+      <div class="login-err" id="login-err"></div>
+    </div>
+
+    <!-- Admin token panel (for super admin direct access) -->
+    <div id="panel-token" style="display:none;">
+      <div class="token-panel">
+        <div class="token-note">Use your ADMIN_SECRET and ADMIN_PATH from Cloudflare</div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label class="form-label">Admin Path</label>
+          <input class="form-input" id="inp-path" type="text" placeholder="/Satu-daje-6415"/>
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label class="form-label">Admin Secret</label>
+          <input class="form-input" id="inp-secret" type="password" placeholder="Paste ADMIN_SECRET"/>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:12px;" onclick="doTokenLogin()">Access with Token</button>
+      <div class="login-err" id="token-err"></div>
+    </div>
+
+    <div class="login-footer">Satu Temple Donation System · Restricted</div>
+  </div>
+</div>
+
+<!-- ══ APP SHELL ═════════════════════════════════════════════════ -->
+<div id="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="app-name">SATU</div>
+      <div class="app-sub">Admin Console</div>
+    </div>
+    <nav>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Overview</div>
+        <div class="nav-item active" onclick="goPage('dashboard',this)">
+          <span class="nav-icon">⬡</span> Dashboard
+        </div>
+        <div class="nav-item" onclick="goPage('orders',this)">
+          <span class="nav-icon">💳</span> Orders
+          <span class="nav-badge" id="badge-orders">—</span>
+        </div>
+        <div class="nav-item" onclick="goPage('devices',this)">
+          <span class="nav-icon">🖥</span> Devices
+          <span class="nav-badge" id="badge-devices">—</span>
+        </div>
+        <div class="nav-item" onclick="goPage('users',this)">
+          <span class="nav-icon">👤</span> Users
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Database</div>
+        <div class="nav-item" onclick="goPage('d1',this)">
+          <span class="nav-icon">🗄</span> D1 Browser
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Tools</div>
+        <div class="nav-item" onclick="goPage('tools',this)">
+          <span class="nav-icon">🔧</span> Quick Tools
+        </div>
+        <div class="nav-item" onclick="window.open('https://api.janishammer.com/test','_blank')">
+          <span class="nav-icon">✅</span> 14-Test Suite ↗
+        </div>
+        <div class="nav-item" onclick="window.open('https://api.janishammer.com/simulator','_blank')">
+          <span class="nav-icon">🕹</span> Simulator ↗
+        </div>
+      </div>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="user-row">
+        <div class="user-avatar" id="user-avatar">A</div>
+        <div>
+          <div class="user-name" id="user-name-disp">—</div>
+          <div class="user-role" id="user-role-disp">—</div>
+        </div>
+        <span class="logout-btn" onclick="doLogout()" title="Logout">⏻</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="main-header">
+      <div class="header-left">
+        <button class="hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+        <div>
+          <div class="breadcrumb">Satu Admin <span>›</span> <span id="page-breadcrumb">Dashboard</span></div>
+          <div class="header-title" id="page-title">Dashboard</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span id="health-pill" class="pill pill-muted">Checking...</span>
+        <button class="btn btn-ghost btn-sm" onclick="refreshCurrentPage()">↺ Refresh</button>
+      </div>
+    </header>
+
+    <div class="main-content">
+
+      <!-- DASHBOARD PAGE -->
+      <div id="page-dashboard" class="page active">
+        <div class="kpi-grid" id="kpi-row">
+          <div class="kpi-card"><div class="kpi-label">Total Orders</div><div class="kpi-value accent" id="kpi-orders">—</div><div class="kpi-delta">All time</div></div>
+          <div class="kpi-card"><div class="kpi-label">Today Paid</div><div class="kpi-value green" id="kpi-today">—</div><div class="kpi-delta" id="kpi-today-thb">—</div></div>
+          <div class="kpi-card"><div class="kpi-label">Devices</div><div class="kpi-value" id="kpi-devices">—</div><div class="kpi-delta" id="kpi-dev-active">—</div></div>
+          <div class="kpi-card"><div class="kpi-label">Temple Owners</div><div class="kpi-value" id="kpi-users">—</div><div class="kpi-delta">Registered</div></div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-header">
+            <div class="table-title">Recent Orders</div>
+            <button class="btn btn-ghost btn-sm" onclick="goPage('orders',null)">View All →</button>
+          </div>
+          <div id="dash-orders-table"><div style="padding:20px 18px;" class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-header">
+            <div class="table-title">Devices</div>
+            <button class="btn btn-ghost btn-sm" onclick="goPage('devices',null)">View All →</button>
+          </div>
+          <div id="dash-devices-table"><div style="padding:20px 18px;" class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+      </div>
+
+      <!-- ORDERS PAGE -->
+      <div id="page-orders" class="page">
+        <div class="table-wrap">
+          <div class="table-header">
+            <div class="table-title">All Orders</div>
+            <button class="btn btn-ghost btn-sm" onclick="loadPage('orders')">↺ Refresh</button>
+          </div>
+          <div id="orders-table-body"><div style="padding:20px 18px;" class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+      </div>
+
+      <!-- DEVICES PAGE -->
+      <div id="page-devices" class="page">
+        <div class="table-wrap">
+          <div class="table-header">
+            <div class="table-title">All Devices</div>
+            <button class="btn btn-ghost btn-sm" onclick="loadPage('devices')">↺ Refresh</button>
+          </div>
+          <div id="devices-table-body"><div style="padding:20px 18px;" class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+      </div>
+
+      <!-- USERS PAGE -->
+      <div id="page-users" class="page">
+        <div class="table-wrap">
+          <div class="table-header">
+            <div class="table-title">Users</div>
+          </div>
+          <div id="users-table-body"><div style="padding:20px 18px;" class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+      </div>
+
+      <!-- D1 BROWSER PAGE -->
+      <div id="page-d1" class="page">
+        <div class="d1-shell">
+          <div class="d1-sidebar-list" id="d1-sidebar"></div>
+          <div class="d1-main">
+            <div class="d1-toolbar">
+              <span class="d1-table-name" id="d1-table-name">Select a table</span>
+              <span class="d1-count" id="d1-count"></span>
+              <button class="btn btn-ghost btn-sm" onclick="loadD1Table(currentD1Table)" style="margin-left:auto;">↺ Refresh</button>
+            </div>
+            <div class="d1-table-scroll">
+              <div id="d1-content" style="padding:20px;">
+                <div class="empty-state"><div class="empty-icon">🗄</div><div class="empty-text">Select a table from the left panel</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOOLS PAGE -->
+      <div id="page-tools" class="page">
+        <div class="section-label" style="margin-bottom:16px;">Quick Actions</div>
+        <div class="tool-grid">
+          <div class="tool-card" onclick="window.open('https://api.janishammer.com/health','_blank')">
+            <div class="tool-icon">🟢</div>
+            <div class="tool-name">API Health</div>
+            <div class="tool-desc">Check backend status and payment mode</div>
+          </div>
+          <div class="tool-card" onclick="window.open('https://api.janishammer.com/test','_blank')">
+            <div class="tool-icon">✅</div>
+            <div class="tool-name">14-Test Suite</div>
+            <div class="tool-desc">Run all backend integration tests</div>
+          </div>
+          <div class="tool-card" onclick="window.open('https://api.janishammer.com/simulator','_blank')">
+            <div class="tool-icon">🕹</div>
+            <div class="tool-name">Machine Simulator</div>
+            <div class="tool-desc">Simulate donor flow with real API</div>
+          </div>
+          <div class="tool-card" onclick="window.open('https://api.janishammer.com/demo','_blank')">
+            <div class="tool-icon">🎬</div>
+            <div class="tool-name">Machine Tester</div>
+            <div class="tool-desc">Full machine flow tester</div>
+          </div>
+          <div class="tool-card" onclick="pingHealth()">
+            <div class="tool-icon">📡</div>
+            <div class="tool-name">Ping Backend</div>
+            <div class="tool-desc">Test connectivity and show payment mode</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /main-content -->
+  </div><!-- /main -->
+</div><!-- /app-shell -->
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+const API = 'https://api.janishammer.com';
+let AUTH = { mode: null, jwt: null, adminPath: null, adminSecret: null };
+let currentPage = 'dashboard';
+let currentD1Table = null;
+
+const D1_TABLES = [
+  'devices','orders','users','machine_slots','setup_codes',
+  'device_commands','connection_logs','donor_consent','ownership_log',
+  'admin_log','rate_limit_counters','cron_log'
+];
+
+// ── Login mode toggle ────────────────────────────────────────────────────────
+function setLoginMode(mode) {
+  document.getElementById('panel-email').style.display  = mode==='email' ? 'block':'none';
+  document.getElementById('panel-token').style.display  = mode==='token' ? 'block':'none';
+  document.getElementById('lt-email').classList.toggle('active', mode==='email');
+  document.getElementById('lt-token').classList.toggle('active', mode==='token');
+}
+
+// ── Email / JWT login ────────────────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('inp-email').value.trim();
+  const pw    = document.getElementById('inp-pw').value;
+  const errEl = document.getElementById('login-err');
+  const btn   = document.getElementById('login-btn');
+  errEl.classList.remove('show');
+  btn.disabled = true; btn.textContent = 'Signing in...';
+  try {
+    const res  = await fetch(`${API}/v1/auth/login`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password: pw })
+    });
+    const data = await res.json();
+    if (!res.ok) { showLoginErr(errEl, data.error || 'Login failed'); btn.disabled=false; btn.textContent='Sign In'; return; }
+    if (data.user.role !== 'admin') { showLoginErr(errEl, 'Admin role required'); btn.disabled=false; btn.textContent='Sign In'; return; }
+    AUTH = { mode:'jwt', jwt: data.token };
+    sessionStorage.setItem('satu_jwt', data.token);
+    sessionStorage.setItem('satu_user', JSON.stringify(data.user));
+    enterApp(data.user);
+  } catch(e) { showLoginErr(errEl, 'Network error'); btn.disabled=false; btn.textContent='Sign In'; }
+}
+
+// ── Admin token login ────────────────────────────────────────────────────────
+async function doTokenLogin() {
+  const path   = document.getElementById('inp-path').value.trim();
+  const secret = document.getElementById('inp-secret').value.trim();
+  const errEl  = document.getElementById('token-err');
+  errEl.classList.remove('show');
+  if (!path || !secret) { showLoginErr(errEl,'Path and secret required'); return; }
+  try {
+    const res = await fetch(`${API}${path}`, { headers:{'X-Admin-Token':secret} });
+    if (res.status===403) { showLoginErr(errEl,'403 — wrong secret or path'); return; }
+    AUTH = { mode:'token', adminPath:path, adminSecret:secret };
+    sessionStorage.setItem('satu_admin_path',   path);
+    sessionStorage.setItem('satu_admin_secret', secret);
+    enterApp({ name:'Admin', email:'token', role:'admin' });
+  } catch(e) { showLoginErr(errEl,'Network error: '+e.message); }
+}
+
+function showLoginErr(el, msg) { el.textContent=msg; el.classList.add('show'); }
+
+// ── Enter app ────────────────────────────────────────────────────────────────
+function enterApp(user) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-shell').classList.add('visible');
+  document.getElementById('user-name-disp').textContent = user.name || user.email;
+  document.getElementById('user-role-disp').textContent = user.role;
+  document.getElementById('user-avatar').textContent    = (user.name||user.email||'A')[0].toUpperCase();
+  loadDashboard();
+  buildD1Sidebar();
+  pingHealth();
+}
+
+// ── Restore session ──────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  const jwt    = sessionStorage.getItem('satu_jwt');
+  const path   = sessionStorage.getItem('satu_admin_path');
+  const secret = sessionStorage.getItem('satu_admin_secret');
+  const userRaw= sessionStorage.getItem('satu_user');
+  if (jwt && userRaw) {
+    const user = JSON.parse(userRaw);
+    AUTH = { mode:'jwt', jwt };
+    enterApp(user);
+  } else if (path && secret) {
+    AUTH = { mode:'token', adminPath:path, adminSecret:secret };
+    enterApp({ name:'Admin', email:'token', role:'admin' });
+  }
+  // Pre-fill saved token fields
+  if (path)   document.getElementById('inp-path').value   = path;
+  if (secret) document.getElementById('inp-secret').value = secret;
+});
+
+// ── Logout ───────────────────────────────────────────────────────────────────
+function doLogout() {
+  sessionStorage.clear();
+  AUTH = { mode:null };
+  document.getElementById('app-shell').classList.remove('visible');
+  document.getElementById('login-screen').style.display = 'flex';
+  showToast('Logged out', 'ok');
+}
+
+// ── API helpers ──────────────────────────────────────────────────────────────
+async function apiGet(url) {
+  const headers = {};
+  if (AUTH.mode==='jwt')   headers['Authorization'] = `Bearer ${AUTH.jwt}`;
+  if (AUTH.mode==='token') headers['X-Admin-Token'] = AUTH.adminSecret;
+  const base = (AUTH.mode==='token') ? `${API}${AUTH.adminPath}` : API;
+  const res = await fetch(base + url, { headers });
+  if (res.status===401) { doLogout(); throw new Error('Session expired'); }
+  return res;
+}
+
+// ── Navigation ───────────────────────────────────────────────────────────────
+function goPage(page, navEl) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  if (navEl) navEl.classList.add('active');
+  const titles = {dashboard:'Dashboard',orders:'Orders',devices:'Devices',users:'Users',d1:'D1 Browser',tools:'Quick Tools'};
+  document.getElementById('page-title').textContent     = titles[page]||page;
+  document.getElementById('page-breadcrumb').textContent= titles[page]||page;
+  currentPage = page;
+  document.getElementById('sidebar').classList.remove('open');
+  loadPage(page);
+}
+
+function refreshCurrentPage() { loadPage(currentPage); }
+
+function loadPage(page) {
+  if (page==='dashboard') loadDashboard();
+  else if (page==='orders')  loadTable('orders',  '/api/orders',  renderOrdersTable,  'orders-table-body');
+  else if (page==='devices') loadTable('devices', '/api/devices', renderDevicesTable, 'devices-table-body');
+  else if (page==='users')   loadTable('users',   '/api/users',   renderUsersTable,   'users-table-body');
+  else if (page==='d1' && currentD1Table) loadD1Table(currentD1Table);
+}
+
+// ── Dashboard ────────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const [ordersRes, devicesRes, usersRes] = await Promise.all([
+      apiGet('/api/orders'),
+      apiGet('/api/devices'),
+      apiGet('/api/users')
+    ]);
+    const orders  = await ordersRes.json();
+    const devices = await devicesRes.json();
+    const users   = await usersRes.json();
+
+    // KPIs
+    const paid = orders.filter(o=>o.status==='paid');
+    const today = paid.filter(o=>{
+      const d = new Date(o.created_at > 9999999999 ? o.created_at : o.created_at*1000);
+      return d.toDateString()===new Date().toDateString();
+    });
+    const todayThb = today.reduce((s,o)=>s+(o.amount||0)/100,0);
+    const active = devices.filter(d=>d.status==='active').length;
+
+    document.getElementById('kpi-orders').textContent   = orders.length;
+    document.getElementById('kpi-today').textContent    = today.length;
+    document.getElementById('kpi-today-thb').textContent= `฿${todayThb.toLocaleString()} THB`;
+    document.getElementById('kpi-devices').textContent  = devices.length;
+    document.getElementById('kpi-dev-active').textContent= `${active} active`;
+    document.getElementById('kpi-users').textContent    = users.length;
+    document.getElementById('badge-orders').textContent = orders.length;
+    document.getElementById('badge-devices').textContent= devices.length;
+
+    // Recent tables
+    document.getElementById('dash-orders-table').innerHTML  = renderOrdersTable(orders.slice(0,10));
+    document.getElementById('dash-devices-table').innerHTML = renderDevicesTable(devices.slice(0,8));
+
+  } catch(e) { showToast('Dashboard load failed: '+e.message,'err'); }
+}
+
+// ── Table loader ─────────────────────────────────────────────────────────────
+async function loadTable(page, apiPath, renderFn, containerId) {
+  document.getElementById(containerId).innerHTML = '<div style="padding:20px 18px;" class="loading"><div class="spinner"></div>Loading...</div>';
+  try {
+    const res  = await apiGet(apiPath);
+    const data = await res.json();
+    document.getElementById(containerId).innerHTML = renderFn(data);
+  } catch(e) { document.getElementById(containerId).innerHTML = `<div style="padding:20px 18px;font-family:var(--mono);font-size:12px;color:var(--red);">Error: ${e.message}</div>`; }
+}
+
+// ── Render functions ─────────────────────────────────────────────────────────
+function statusPill(s) {
+  const map = {active:'green',paid:'green',pending:'yellow',disabled:'red',expired:'muted',failed:'red',claimed:'blue'};
+  return `<span class="pill pill-${map[s]||'muted'}">${s}</span>`;
+}
+
+function fmtTs(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts>9999999999?ts:ts*1000);
+  return d.toLocaleString('th-TH',{timeZone:'Asia/Bangkok',hour12:false,
+    year:'2-digit',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
+function renderOrdersTable(data) {
+  if (!data||!data.length) return emptyState('No orders yet');
+  return `<table><thead><tr><th>Order ID</th><th>Device</th><th>Amount</th><th>Status</th><th>Created (TH)</th></tr></thead><tbody>`+
+    data.map(o=>`<tr>
+      <td class="td-mono">${h(o.order_id)}</td>
+      <td class="td-mono td-muted">${h(o.device_id)}</td>
+      <td class="td-mono">฿${((o.amount||0)/100).toLocaleString()}</td>
+      <td>${statusPill(o.status)}</td>
+      <td class="td-muted td-mono">${fmtTs(o.created_at)}</td>
+    </tr>`).join('')+'</tbody></table>';
+}
+
+function renderDevicesTable(data) {
+  if (!data||!data.length) return emptyState('No devices');
+  return `<table><thead><tr><th>Device ID</th><th>Temple</th><th>Status</th><th>Firmware</th><th>Last Seen (TH)</th></tr></thead><tbody>`+
+    data.map(d=>`<tr>
+      <td class="td-mono">${h(d.device_id)}</td>
+      <td>${h(d.temple_name||'—')}</td>
+      <td>${statusPill(d.status)}</td>
+      <td class="td-mono td-muted">${h(d.firmware_version||'—')}</td>
+      <td class="td-muted td-mono">${fmtTs(d.last_heartbeat)}</td>
+    </tr>`).join('')+'</tbody></table>';
+}
+
+function renderUsersTable(data) {
+  if (!data||!data.length) return emptyState('No users');
+  return `<table><thead><tr><th>ID</th><th>Email</th><th>Name</th><th>Role</th><th>Created (TH)</th></tr></thead><tbody>`+
+    data.map(u=>`<tr>
+      <td class="td-mono td-muted">${h(u.id)}</td>
+      <td class="td-mono">${h(u.email)}</td>
+      <td>${h(u.name||'—')}</td>
+      <td>${statusPill(u.role||'user')}</td>
+      <td class="td-muted td-mono">${fmtTs(u.created_at)}</td>
+    </tr>`).join('')+'</tbody></table>';
+}
+
+function emptyState(msg) {
+  return `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">${msg}</div></div>`;
+}
+
+// ── D1 Browser ───────────────────────────────────────────────────────────────
+function buildD1Sidebar() {
+  const sb = document.getElementById('d1-sidebar');
+  sb.innerHTML = D1_TABLES.map(t=>
+    `<button class="d1-table-btn" onclick="loadD1Table('${t}')">${t}</button>`
+  ).join('');
+}
+
+async function loadD1Table(table) {
+  if (!table) return;
+  currentD1Table = table;
+  document.querySelectorAll('.d1-table-btn').forEach(b=>b.classList.toggle('active',b.textContent===table));
+  document.getElementById('d1-table-name').textContent = table;
+  document.getElementById('d1-count').textContent = '';
+  document.getElementById('d1-content').innerHTML = '<div class="loading" style="padding:20px;"><div class="spinner"></div>Loading...</div>';
+  try {
+    const res  = await apiGet(`/api/${table}`);
+    if (!res.ok) { document.getElementById('d1-content').innerHTML=`<div style="padding:20px;font-family:var(--mono);font-size:12px;color:var(--red);">HTTP ${res.status} — table may not exist yet</div>`; return; }
+    const data = await res.json();
+    document.getElementById('d1-count').textContent = `${data.length} row${data.length!==1?'s':''}`;
+    if (!data.length) { document.getElementById('d1-content').innerHTML=emptyState('No rows yet'); return; }
+    const cols = Object.keys(data[0]);
+    let html = '<table><thead><tr>'+cols.map(c=>`<th>${h(c)}</th>`).join('')+'</tr></thead><tbody>';
+    data.forEach(row=>{
+      html+='<tr>';
+      cols.forEach(col=>{
+        let val = row[col];
+        let display = val===null||val===undefined ? '—' : String(val);
+        // Format timestamps
+        if((col.endsWith('_at')||col==='first_seen'||col==='last_heartbeat')&&typeof val==='number'&&val>1e9)
+          display = fmtTs(val);
+        // Truncate
+        const show = display.length>80 ? display.substring(0,77)+'…' : display;
+        html+=`<td class="td-mono" title="${h(display)}" style="font-size:11px;">${h(show)}</td>`;
+      });
+      html+='</tr>';
+    });
+    html+='</tbody></table>';
+    document.getElementById('d1-content').innerHTML = html;
+  } catch(e) { document.getElementById('d1-content').innerHTML=`<div style="padding:20px;font-family:var(--mono);font-size:12px;color:var(--red);">Error: ${e.message}</div>`; }
+}
+
+// ── Health ping ──────────────────────────────────────────────────────────────
+async function pingHealth() {
+  try {
+    const res  = await fetch(`${API}/health`);
+    const data = await res.json();
+    const pill = document.getElementById('health-pill');
+    pill.className = 'pill pill-green';
+    pill.textContent = `API OK · ${data.payment_mode||'?'}`;
+    showToast(`Backend OK — payment_mode: ${data.payment_mode||'unknown'}`,'ok');
+  } catch(e) {
+    document.getElementById('health-pill').className = 'pill pill-red';
+    document.getElementById('health-pill').textContent = 'API Offline';
+  }
+}
+
+// ── Toast ────────────────────────────────────────────────────────────────────
+function showToast(msg, type='ok', dur=3500) {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className=`toast ${type}`; t.textContent=msg;
+  c.appendChild(t); setTimeout(()=>t.remove(),dur);
+}
+
+// ── Escape ───────────────────────────────────────────────────────────────────
+function h(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>
