@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Satu Firmware Pre-Flight</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0810;
+    --panel: #0f0e1a;
+    --border: #1e1a30;
+    --gold: #C9A84C;
+    --gold-dim: #8B6914;
+    --gold-dark: #3a2e0a;
+    --green: #4caf50;
+    --red: #f44336;
+    --orange: #ff8c00;
+    --grey: #555566;
+    --mid: #888899;
+    --white: #e8e4f0;
+    --teal: #4FC3F7;
+  }
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Courier New', monospace;
+    min-height: 100vh;
+    padding: 24px;
+  }
+  header {
+    border-bottom: 1px solid var(--gold-dim);
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+  header h1 { color: var(--gold); font-size: 22px; letter-spacing: 4px; }
+  header span { color: var(--grey); font-size: 11px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .file-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .file-panel.required { border-color: var(--gold-dim); }
+  .file-panel.readonly { border-color: #1a2a1a; }
+
+  .file-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #0c0b16;
+    border-bottom: 1px solid var(--border);
+  }
+  .file-name { color: var(--gold); font-size: 12px; font-weight: bold; }
+  .file-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+  }
+  .badge-required { background: var(--gold-dark); color: var(--gold); }
+  .badge-readonly  { background: #0a1a0a; color: #4caf50; border: 1px solid #2a4a2a; }
+  .badge-optional  { background: #1a1a2a; color: var(--grey); }
+
+  textarea {
+    width: 100%;
+    height: 120px;
+    background: transparent;
+    border: none;
+    color: var(--mid);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    padding: 10px 12px;
+    resize: vertical;
+    outline: none;
+  }
+  textarea::placeholder { color: #333344; }
+  textarea[readonly] { color: #2a4a2a; cursor: not-allowed; }
+
+  .readonly-note {
+    padding: 10px 12px;
+    color: #2a6a2a;
+    font-size: 10px;
+    font-style: italic;
+  }
+
+  .run-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    align-items: center;
+  }
+  button {
+    background: var(--gold-dark);
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    padding: 10px 24px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+  button:hover { background: #5a4010; border-color: var(--gold); }
+  button.secondary {
+    background: transparent;
+    border-color: var(--grey);
+    color: var(--grey);
+  }
+  button.secondary:hover { border-color: var(--mid); color: var(--mid); }
+
+  #results {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    min-height: 200px;
+    display: none;
+  }
+  #results.visible { display: block; }
+
+  .result-header {
+    font-size: 11px;
+    color: var(--grey);
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+
+  .check { display: flex; align-items: flex-start; gap: 10px; margin: 6px 0; font-size: 12px; }
+  .check .icon { width: 16px; flex-shrink: 0; margin-top: 1px; }
+  .check.pass .icon::before { content: '✓'; color: var(--green); }
+  .check.fail .icon::before { content: '✗'; color: var(--red); }
+  .check.warn .icon::before { content: '⚠'; color: var(--orange); }
+  .check.info .icon::before { content: '·'; color: var(--grey); }
+  .check.pass .msg { color: #88cc88; }
+  .check.fail .msg { color: #ff8888; }
+  .check.warn .msg { color: var(--orange); }
+  .check.info .msg { color: var(--grey); }
+
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--gold-dim);
+    margin: 14px 0 6px;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+
+  .summary {
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-align: center;
+  }
+  .summary.all-pass { background: #0a1e0a; border: 1px solid #2a5a2a; color: var(--green); }
+  .summary.has-fail  { background: #1e0a0a; border: 1px solid #5a2a2a; color: var(--red); }
+  .summary.has-warn  { background: #1e130a; border: 1px solid #5a3a0a; color: var(--orange); }
+
+  .deploy-note {
+    margin-top: 16px;
+    padding: 10px 12px;
+    background: #0a0f1a;
+    border: 1px solid #1a2a3a;
+    border-radius: 4px;
+    font-size: 10px;
+    color: var(--grey);
+    line-height: 1.6;
+  }
+  .deploy-note a { color: var(--teal); text-decoration: none; }
+
+  .stat-bar {
+    display: flex;
+    gap: 20px;
+    margin-left: auto;
+    font-size: 11px;
+  }
+  .stat { display: flex; gap: 4px; }
+  .stat .n { font-weight: bold; }
+  .stat.p .n { color: var(--green); }
+  .stat.f .n { color: var(--red); }
+  .stat.w .n { color: var(--orange); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>SATU · PRE-FLIGHT</h1>
+  <span>Firmware Conflict Validator — paste file contents, run checks before compile</span>
+</header>
+
+<div class="grid">
+  <!-- config.h -->
+  <div class="file-panel required">
+    <div class="file-header">
+      <span class="file-name">config.h</span>
+      <span class="file-badge badge-required">REQUIRED</span>
+    </div>
+    <textarea id="f-config" placeholder="Paste contents of config.h here..."></textarea>
+  </div>
+
+  <!-- hardware.h — readonly instructions -->
+  <div class="file-panel readonly">
+    <div class="file-header">
+      <span class="file-name">hardware.h</span>
+      <span class="file-badge badge-readonly">R2 · NEVER REPLACE</span>
+    </div>
+    <textarea id="f-hardware" placeholder="Paste contents of hardware.h here (read-only reference for validation)..."></textarea>
+  </div>
+
+  <!-- ui.h -->
+  <div class="file-panel required">
+    <div class="file-header">
+      <span class="file-name">ui.h</span>
+      <span class="file-badge badge-required">REQUIRED</span>
+    </div>
+    <textarea id="f-ui" placeholder="Paste contents of ui.h here..."></textarea>
+  </div>
+
+  <!-- network.h -->
+  <div class="file-panel required">
+    <div class="file-header">
+      <span class="file-name">network.h</span>
+      <span class="file-badge badge-required">REQUIRED</span>
+    </div>
+    <textarea id="f-network" placeholder="Paste contents of network.h here..."></textarea>
+  </div>
+
+  <!-- satu_vending.ino -->
+  <div class="file-panel required">
+    <div class="file-header">
+      <span class="file-name">satu_vending.ino</span>
+      <span class="file-badge badge-required">REQUIRED</span>
+    </div>
+    <textarea id="f-ino" placeholder="Paste contents of satu_vending.ino here..."></textarea>
+  </div>
+
+  <!-- state_machine.h -->
+  <div class="file-panel required">
+    <div class="file-header">
+      <span class="file-name">state_machine.h</span>
+      <span class="file-badge badge-optional">OPTIONAL</span>
+    </div>
+    <textarea id="f-sm" placeholder="Paste contents of state_machine.h here (optional)..."></textarea>
+  </div>
+</div>
+
+<div class="run-bar">
+  <button onclick="runChecks()">▶ RUN PRE-FLIGHT</button>
+  <button class="secondary" onclick="clearAll()">✕ CLEAR ALL</button>
+  <div class="stat-bar" id="stat-bar" style="display:none">
+    <div class="stat p"><span class="n" id="s-pass">0</span> PASS</div>
+    <div class="stat f"><span class="n" id="s-fail">0</span> FAIL</div>
+    <div class="stat w"><span class="n" id="s-warn">0</span> WARN</div>
+  </div>
+</div>
+
+<div id="results">
+  <div class="result-header">PRE-FLIGHT RESULTS</div>
+  <div id="result-body"></div>
+</div>
+
+<div class="deploy-note">
+  💡 Deploy tip: host this file on Cloudflare Pages at <strong>api.janishammer.com/preflight</strong>
+  by placing it in the <code>public/</code> folder. No server needed — runs entirely in browser.
+  Share URL with any future team member before they touch firmware.
+</div>
+
+<script>
+// ── Rule definitions ─────────────────────────────────────────────────────────
+// Each rule: { id, section, desc, check(files) → {pass,warn,fail, msg} }
+
+const RULES = [
+
+  // ── SECTION: config.h integrity ───────────────────────────────────────────
+  {
+    section: 'CONFIG.H INTEGRITY',
+    id: 'C1',
+    desc: 'NUM_SLOTS defined',
+    check({ config }) {
+      if (!config) return warn('config.h not pasted');
+      const m = config.match(/#define\s+NUM_SLOTS\s+(\d+)/);
+      if (!m) return fail('NUM_SLOTS not defined in config.h — network.h will fail to compile');
+      return pass(`NUM_SLOTS = ${m[1]}`);
+    }
+  },
+  {
+    section: null,
+    id: 'C2',
+    desc: 'NUM_SLOTS value is 10 (current physical config)',
+    check({ config }) {
+      if (!config) return skip();
+      const m = config.match(/#define\s+NUM_SLOTS\s+(\d+)/);
+      if (!m) return skip();
+      const v = parseInt(m[1]);
+      if (v === 10) return pass('NUM_SLOTS = 10 ✓ matches 5×2 physical machine');
+      if (v <= 21) return warn(`NUM_SLOTS = ${v} — not default 10. Intentional?`);
+      return fail(`NUM_SLOTS = ${v} — exceeds MAX 21`);
+    }
+  },
+  {
+    section: null,
+    id: 'C3',
+    desc: 'mcp2_sensors extern size matches hardware.h',
+    check({ config, hardware }) {
+      if (!config) return skip();
+      const cfgMatch = config.match(/extern\s+const\s+int\s+mcp2_sensors\[(\d+)\]/);
+      const hwMatch  = hardware && hardware.match(/const\s+int\s+mcp2_sensors\[(\d+)\]/);
+      if (!cfgMatch) return fail('mcp2_sensors extern not found in config.h');
+      const cfgSize = cfgMatch[1];
+      if (!hwMatch) return warn(`config.h declares mcp2_sensors[${cfgSize}] — paste hardware.h to verify match`);
+      const hwSize = hwMatch[1];
+      if (cfgSize !== hwSize)
+        return fail(`MISMATCH: config.h mcp2_sensors[${cfgSize}] ≠ hardware.h mcp2_sensors[${hwSize}] — compile error`);
+      return pass(`mcp2_sensors[${cfgSize}] matches in both files`);
+    }
+  },
+  {
+    section: null,
+    id: 'C4',
+    desc: 'RELAY_PUMP / RELAY_DOOR_LOCK not redefined in config.h',
+    check({ config, hardware }) {
+      if (!config) return skip();
+      const hasPump = /^\s*#define\s+RELAY_PUMP\b/m.test(config);
+      const hasLock = /^\s*#define\s+RELAY_DOOR_LOCK\b/m.test(config);
+      const hwHasPump = hardware && /^\s*#define\s+RELAY_PUMP\b/m.test(hardware);
+      if (hasPump && hwHasPump) return fail('RELAY_PUMP defined in BOTH config.h and hardware.h — redefinition conflict');
+      if (hasLock && hardware && /^\s*#define\s+RELAY_DOOR_LOCK\b/m.test(hardware))
+        return fail('RELAY_DOOR_LOCK defined in BOTH config.h and hardware.h — redefinition conflict');
+      if (hasPump || hasLock) return warn('RELAY_PUMP or RELAY_DOOR_LOCK in config.h — verify hardware.h does not also define them');
+      return pass('No relay constant conflicts in config.h');
+    }
+  },
+
+  // ── SECTION: ui.h integrity ───────────────────────────────────────────────
+  {
+    section: 'UI.H INTEGRITY',
+    id: 'U1',
+    desc: 'ui.h does NOT redefine idleAnimation()',
+    check({ ui, hardware }) {
+      if (!ui) return skip();
+      const uiHas = /^(inline\s+)?void\s+idleAnimation\s*\(\s*\)/m.test(ui);
+      const hwHas = hardware && /^void\s+idleAnimation\s*\(\s*\)/m.test(hardware);
+      if (uiHas && hwHas) return fail('idleAnimation() defined in BOTH ui.h and hardware.h — redefinition error');
+      if (uiHas && !hardware) return warn('ui.h defines idleAnimation() — paste hardware.h to verify no conflict');
+      return pass('idleAnimation() not redefined in ui.h');
+    }
+  },
+  {
+    section: null,
+    id: 'U2',
+    desc: 'ui.h does NOT define NUM_SLOTS as a macro',
+    check({ ui }) {
+      if (!ui) return skip();
+      const m = ui.match(/^#define\s+NUM_SLOTS\b/m);
+      if (m) return fail('#define NUM_SLOTS found in ui.h — conflicts with config.h definition');
+      return pass('NUM_SLOTS not redefined in ui.h');
+    }
+  },
+  {
+    section: null,
+    id: 'U3',
+    desc: 'Grid GRID_COLS × GRID_ROWS = NUM_SLOTS',
+    check({ ui, config }) {
+      if (!ui) return skip();
+      const colM = ui.match(/#define\s+GRID_COLS\s+(\d+)/);
+      const rowM = ui.match(/#define\s+GRID_ROWS\s+(\d+)/);
+      if (!colM || !rowM) return warn('GRID_COLS or GRID_ROWS not found in ui.h');
+      const cols = parseInt(colM[1]);
+      const rows = parseInt(rowM[1]);
+      const product = cols * rows;
+      const cfgSlots = config && config.match(/#define\s+NUM_SLOTS\s+(\d+)/);
+      const ns = cfgSlots ? parseInt(cfgSlots[1]) : null;
+      if (ns !== null && product !== ns)
+        return fail(`GRID_COLS(${cols}) × GRID_ROWS(${rows}) = ${product} ≠ config.h NUM_SLOTS(${ns})`);
+      return pass(`Grid ${cols}×${rows} = ${product} slots${ns ? ` ✓ matches NUM_SLOTS` : ''}`);
+    }
+  },
+  {
+    section: null,
+    id: 'U4',
+    desc: 'ui.h uses Arduino_GFX (not TFT_eSPI)',
+    check({ ui }) {
+      if (!ui) return skip();
+      if (/TFT_eSPI/.test(ui)) return fail('TFT_eSPI found in ui.h — incompatible with RGB panel, use Arduino_GFX');
+      if (/Arduino_GFX/.test(ui)) return pass('Arduino_GFX confirmed in ui.h');
+      return warn('Neither TFT_eSPI nor Arduino_GFX found — verify display library');
+    }
+  },
+
+  // ── SECTION: hardware.h integrity ────────────────────────────────────────
+  {
+    section: 'HARDWARE.H (R2)',
+    id: 'H1',
+    desc: 'hardware.h is R2 (do not replace)',
+    check({ hardware }) {
+      if (!hardware) return warn('hardware.h not pasted — cannot verify version');
+      if (/R3/.test(hardware)) return fail('hardware.h appears to be R3 — must stay R2 for 10-lane build');
+      if (/mcp2_sensors\[2\]/.test(hardware)) return pass('hardware.h R2 confirmed (mcp2_sensors[2])');
+      return warn('Cannot confirm hardware.h version — check manually');
+    }
+  },
+  {
+    section: null,
+    id: 'H2',
+    desc: 'idleAnimation() defined in hardware.h (LED breathing)',
+    check({ hardware }) {
+      if (!hardware) return warn('hardware.h not pasted');
+      if (/void\s+idleAnimation\s*\(/.test(hardware)) return pass('idleAnimation() found in hardware.h ✓');
+      return fail('idleAnimation() NOT found in hardware.h — satu_vending.ino will fail to link');
+    }
+  },
+
+  // ── SECTION: network.h ────────────────────────────────────────────────────
+  {
+    section: 'NETWORK.H',
+    id: 'N1',
+    desc: 'network.h uses "firmware" field (not "firmware_version")',
+    check({ network }) {
+      if (!network) return skip();
+      if (/firmware_version/.test(network) && !/\"firmware\"/.test(network))
+        return fail('network.h sends "firmware_version" — backend expects "firmware" — /hello will mismatch');
+      if (/\[\"firmware\"\]/.test(network) || /\"firmware\"\s*:/.test(network))
+        return pass('"firmware" field confirmed in network.h');
+      return warn('Cannot confirm firmware field name in network.h — check _sendHello()');
+    }
+  },
+  {
+    section: null,
+    id: 'N2',
+    desc: 'network.h API URL points to api.janishammer.com',
+    check({ network, config }) {
+      const src = (network || '') + (config || '');
+      if (/satu-th\.com/.test(src)) return fail('Old domain satu-th.com found — must be api.janishammer.com');
+      if (/api\.janishammer\.com/.test(src)) return pass('API URL: api.janishammer.com ✓');
+      return warn('API URL not confirmed — verify API_BASE_URL in config.h');
+    }
+  },
+
+  // ── SECTION: satu_vending.ino ─────────────────────────────────────────────
+  {
+    section: 'SATU_VENDING.INO',
+    id: 'I1',
+    desc: 'Lane arrays use NUM_SLOTS (not MAX_SLOTS_HW)',
+    check({ ino }) {
+      if (!ino) return skip();
+      if (/laneErrorCount\[MAX_SLOTS_HW\]/.test(ino) || /laneDisabled\[MAX_SLOTS_HW\]/.test(ino))
+        return fail('laneErrorCount/laneDisabled use MAX_SLOTS_HW — should use NUM_SLOTS for R2 10-lane build');
+      if (/laneErrorCount\[NUM_SLOTS\]/.test(ino)) return pass('Lane arrays use NUM_SLOTS ✓');
+      return warn('Cannot confirm lane array size in satu_vending.ino');
+    }
+  },
+  {
+    section: null,
+    id: 'I2',
+    desc: 'Include order: config.h → state_machine.h → hardware.h → network.h → ui.h',
+    check({ ino }) {
+      if (!ino) return skip();
+      const order = ['config.h', 'state_machine.h', 'hardware.h', 'network.h', 'ui.h'];
+      const positions = order.map(f => ino.indexOf(`"${f}"`));
+      if (positions.some(p => p === -1)) return warn('Not all headers found in .ino — verify includes');
+      for (let i = 1; i < positions.length; i++) {
+        if (positions[i] < positions[i-1])
+          return fail(`Include order wrong: "${order[i]}" appears before "${order[i-1]}"`);
+      }
+      return pass('Include order correct');
+    }
+  },
+  {
+    section: null,
+    id: 'I3',
+    desc: 'idleAnimation() called (not idleAnimationUI)',
+    check({ ino }) {
+      if (!ino) return skip();
+      if (/idleAnimationUI\s*\(\s*\)/.test(ino))
+        return fail('ino calls idleAnimationUI() — should call idleAnimation() (defined in hardware.h)');
+      if (/idleAnimation\s*\(\s*\)/.test(ino)) return pass('idleAnimation() called correctly in .ino');
+      return warn('idleAnimation() call not found in .ino');
+    }
+  },
+
+  // ── SECTION: cross-file ───────────────────────────────────────────────────
+  {
+    section: 'CROSS-FILE',
+    id: 'X1',
+    desc: 'PSRAM setting reminder (cannot check in code — manual)',
+    check() {
+      return warn('MANUAL CHECK: Arduino IDE → Tools → PSRAM = "OPI PSRAM" — never change or display breaks');
+    }
+  },
+  {
+    section: null,
+    id: 'X2',
+    desc: 'WiFi credentials present in config.h',
+    check({ config }) {
+      if (!config) return skip();
+      if (/WIFI_SSID\s*=\s*""/.test(config) || /WIFI_PASSWORD\s*=\s*""/.test(config))
+        return fail('WiFi SSID or PASSWORD is empty in config.h');
+      if (/WIFI_SSID/.test(config)) return pass('WiFi credentials present');
+      return warn('WIFI_SSID not found in config.h');
+    }
+  },
+  {
+    section: null,
+    id: 'X3',
+    desc: 'No old TFT_eSPI references anywhere',
+    check({ config, ui, network, ino, hardware }) {
+      const all = [config, ui, network, ino, hardware].filter(Boolean).join('\n');
+      if (/#include.*TFT_eSPI/.test(all)) return fail('TFT_eSPI #include found — remove it, incompatible with RGB panel');
+      return pass('No TFT_eSPI includes found');
+    }
+  },
+];
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const pass = msg => ({ status: 'pass', msg });
+const fail = msg => ({ status: 'fail', msg });
+const warn = msg => ({ status: 'warn', msg });
+const skip = ()  => ({ status: 'info', msg: 'skipped — paste file to check' });
+
+function getFiles() {
+  return {
+    config:   document.getElementById('f-config').value.trim(),
+    hardware: document.getElementById('f-hardware').value.trim(),
+    ui:       document.getElementById('f-ui').value.trim(),
+    network:  document.getElementById('f-network').value.trim(),
+    ino:      document.getElementById('f-ino').value.trim(),
+    sm:       document.getElementById('f-sm').value.trim(),
+  };
+}
+
+function runChecks() {
+  const files = getFiles();
+  const body  = document.getElementById('result-body');
+  const res   = document.getElementById('results');
+  body.innerHTML = '';
+  res.classList.add('visible');
+
+  let pass=0, fail=0, warn=0;
+  let currentSection = null;
+
+  RULES.forEach(rule => {
+    if (rule.section) {
+      const sec = document.createElement('div');
+      sec.className = 'section-label';
+      sec.textContent = rule.section;
+      body.appendChild(sec);
+      currentSection = rule.section;
+    }
+    const result = rule.check(files);
+    if (result.status === 'pass') pass++;
+    else if (result.status === 'fail') fail++;
+    else if (result.status === 'warn') warn++;
+
+    const row = document.createElement('div');
+    row.className = `check ${result.status}`;
+    row.innerHTML = `<span class="icon"></span><span class="msg">[${rule.id}] ${rule.desc} — ${result.msg}</span>`;
+    body.appendChild(row);
+  });
+
+  // Summary
+  const summary = document.createElement('div');
+  summary.className = `summary ${fail > 0 ? 'has-fail' : warn > 0 ? 'has-warn' : 'all-pass'}`;
+  summary.textContent = fail > 0
+    ? `✗ ${fail} CRITICAL ERROR${fail>1?'S':''} — DO NOT FLASH — fix and re-run`
+    : warn > 0
+    ? `⚠ ${warn} WARNING${warn>1?'S':''} — Review before flash`
+    : `✓ ALL CHECKS PASSED — Safe to compile and flash`;
+  body.appendChild(summary);
+
+  // Stats
+  document.getElementById('s-pass').textContent = pass;
+  document.getElementById('s-fail').textContent = fail;
+  document.getElementById('s-warn').textContent = warn;
+  document.getElementById('stat-bar').style.display = 'flex';
+}
+
+function clearAll() {
+  ['f-config','f-hardware','f-ui','f-network','f-ino','f-sm'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('stat-bar').style.display = 'none';
+}
+</script>
+</body>
+</html>
