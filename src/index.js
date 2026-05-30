@@ -1,4 +1,4 @@
-import { handleMachineHello, handleHeartbeat, handleGetCommands } from './handlers/machine.js';
+import { handleMachineHello, handleHeartbeat, handleGetCommands, handleClaimDevice, handleGetSlots, handleSaveSlots } from './handlers/machine.js';
 import { handleCreateOrder, handleGetOrderStatus } from './handlers/order.js';
 import { handleOmiseWebhook } from './handlers/webhook.js';
 import { handleDisableDevice, handleEnableDevice, handleReassignDevice, handleGetAllDevices } from './handlers/admin.js';
@@ -8,118 +8,123 @@ import { authenticateJWT, requireAdmin } from './middleware/auth.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import { logRequest } from './middleware/logging.js';
 
+// ════════════════════════════════════════════════════════════════════════════
+//  CHANGE LOG
+//   R3.1 — Added: POST /v1/machine/claim
+//          Added: GET  /v1/dashboard/slots
+//          Added: PUT  /v1/dashboard/slots
+//          Added: machine_slots to admin table whitelist
+// ════════════════════════════════════════════════════════════════════════════
+
 export default {
-    // ════════════════════════════════════════════════════════════════════════
-    //  HTTP HANDLER
-    // ════════════════════════════════════════════════════════════════════════
     async fetch(request, env, ctx) {
-        const url = new URL(request.url);
-        const path = url.pathname;
+        const url    = new URL(request.url);
+        const path   = url.pathname;
         const method = request.method;
 
-        // Non-blocking logging — never delays or breaks any request
         ctx.waitUntil(logRequest(request, env));
+
+        // ── CORS preflight ───────────────────────────────────────────────────
+        if (method === 'OPTIONS') {
+            return new Response(null, {
+                headers: {
+                    'Access-Control-Allow-Origin':  '*',
+                    'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Device-Secret, X-Admin-Token'
+                }
+            });
+        }
 
         // ── Public health check ──────────────────────────────────────────────
         if (path === '/health' && method === 'GET') {
             return Response.json({
-                status: 'ok',
-                timestamp: Date.now(),
-                environment: env.ENVIRONMENT || 'production',
+                status:       'ok',
+                timestamp:    Date.now(),
+                environment:  env.ENVIRONMENT || 'production',
                 payment_mode: env.PAYMENT_MODE || 'fake'
             });
         }
 
         if (path === '/' && method === 'GET') {
             return Response.json({
-                service: 'Satu API',
-                status: 'running',
-                endpoints: ['GET /health', 'POST /v1/machine/hello', 'POST /v1/order', 'GET /v1/machine/commands']
+                service:   'Satu API',
+                status:    'running',
+                version:   'R3.1',
+                endpoints: [
+                    'GET  /health',
+                    'POST /v1/machine/hello',
+                    'POST /v1/machine/heartbeat',
+                    'GET  /v1/machine/commands',
+                    'POST /v1/machine/claim',
+                    'POST /v1/order',
+                    'GET  /v1/order/:id/status',
+                    'GET  /v1/dashboard/devices',
+                    'GET  /v1/dashboard/slots',
+                    'PUT  /v1/dashboard/slots'
+                ]
             });
         }
 
-        // ── Test / Demo / Simulator pages ────────────────────────────────────
-        // Served directly by Cloudflare Assets from ./public/ (wrangler.toml [assets]).
-        // Bundled on every deploy — no GitHub fetch, no external dependency.
-        //
-        // Direct URLs (auto-served by Cloudflare Assets):
-        //   /satu-system-tester.html  → 14-test system tester
-        //   /satu-machine-tester.html → machine flow tester
-        //   /simulator.html           → payment simulator
-        //
-        // Short aliases for backward compatibility with old bookmarks:
+        // ── Static page aliases ──────────────────────────────────────────────
         if (path === '/test' && method === 'GET') {
             return Response.redirect('https://api.janishammer.com/satu-system-tester.html', 302);
         }
-
         if (path === '/demo' && method === 'GET') {
             return Response.redirect('https://api.janishammer.com/satu-machine-tester.html', 302);
         }
-
         if (path === '/simulator' && method === 'GET') {
             return Response.redirect('https://api.janishammer.com/simulator.html', 302);
         }
 
-        // ── Omise Webhook (public — signature verified inside) ───────────────
+        // ── Omise webhook (public — HMAC verified inside) ────────────────────
         if (path === '/v1/webhook/omise' && method === 'POST') {
             return handleOmiseWebhook(request, env);
         }
 
-        // ── Machine endpoints (device-secret authenticated inside handlers) ──
+        // ── Machine endpoints ────────────────────────────────────────────────
         if (path === '/v1/machine/hello' && method === 'POST') {
             return handleMachineHello(request, env);
         }
-
         if (path === '/v1/machine/heartbeat' && method === 'POST') {
             return handleHeartbeat(request, env);
         }
-
         if (path === '/v1/machine/commands' && method === 'GET') {
             return handleGetCommands(request, env);
         }
+        if (path === '/v1/machine/claim' && method === 'POST') {
+            return handleClaimDevice(request, env);
+        }
 
-        // ── Auth (rate limited — prevents brute force login) ─────────────────
+        // ── Auth (rate limited) ──────────────────────────────────────────────
         if (path === '/v1/auth/login' && method === 'POST') {
             return rateLimit(request, env, async () => handleLogin(request, env));
         }
-
         if (path === '/v1/auth/register' && method === 'POST') {
             return rateLimit(request, env, async () => handleRegister(request, env));
         }
-
-        // Admin-only password reset — requires X-Admin-Token header
         if (path === '/v1/auth/reset-password' && method === 'POST') {
             return handleAdminResetPassword(request, env);
         }
 
-        // ── Order (D1-backed rate limited — 20 req/min per IP) ──────────────
+        // ── Orders ───────────────────────────────────────────────────────────
         if (path === '/v1/order' && method === 'POST') {
             return rateLimit(request, env, async () => handleCreateOrder(request, env));
         }
-
         if (path.match(/^\/v1\/order\/.+\/status$/) && method === 'GET') {
             const orderId = path.split('/')[3];
             return handleGetOrderStatus(orderId, env);
         }
 
-        // ════════════════════════════════════════════════════════════════════
-        //  ADMIN DASHBOARD
-        //  Requires X-Admin-Token header matching ADMIN_SECRET env secret.
-        //  Access: curl -H "X-Admin-Token: YOUR_SECRET" https://api.janishammer.com/admin
-        //  Setup:  npx wrangler secret put ADMIN_SECRET
-        // ════════════════════════════════════════════════════════════════════
+        // ── Admin dashboard (X-Admin-Token protected) ────────────────────────
         const ADMIN_PATH = env.ADMIN_PATH || '/admin';
-
         if (path === ADMIN_PATH || path.startsWith(ADMIN_PATH + '/api/')) {
             const providedToken = request.headers.get('X-Admin-Token');
             if (!env.ADMIN_SECRET || !providedToken || providedToken !== env.ADMIN_SECRET) {
                 return new Response('Forbidden', { status: 403 });
             }
-
             if (method === 'GET' && path === ADMIN_PATH) {
                 return await handleAdminDashboard(env, ADMIN_PATH);
             }
-
             if (method === 'GET' && path.startsWith(ADMIN_PATH + '/api/')) {
                 const tableName = path.split('/').pop();
                 return await handleAdminTableData(tableName, env);
@@ -132,25 +137,32 @@ export default {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Dashboard
         if (path === '/v1/dashboard/devices' && method === 'GET') {
             return handleGetUserDevices(auth.userId, env);
         }
 
+        // Slot management — temple owner self-service
+        if (path === '/v1/dashboard/slots' && method === 'GET') {
+            return handleGetSlots(request, env);
+        }
+        if (path === '/v1/dashboard/slots' && method === 'PUT') {
+            return handleSaveSlots(request, env);
+        }
+
+        // Admin device management
         if (path === '/v1/admin/device/disable' && method === 'POST') {
             if (!await requireAdmin(auth.userId, env)) return Response.json({ error: 'Admin required' }, { status: 403 });
             return handleDisableDevice(request, env, auth.userId);
         }
-
         if (path === '/v1/admin/device/enable' && method === 'POST') {
             if (!await requireAdmin(auth.userId, env)) return Response.json({ error: 'Admin required' }, { status: 403 });
             return handleEnableDevice(request, env, auth.userId);
         }
-
         if (path === '/v1/admin/device/reassign' && method === 'POST') {
             if (!await requireAdmin(auth.userId, env)) return Response.json({ error: 'Admin required' }, { status: 403 });
             return handleReassignDevice(request, env, auth.userId);
         }
-
         if (path === '/v1/admin/devices' && method === 'GET') {
             if (!await requireAdmin(auth.userId, env)) return Response.json({ error: 'Admin required' }, { status: 403 });
             return handleGetAllDevices(request, env);
@@ -159,163 +171,102 @@ export default {
         return Response.json({ error: 'Not found' }, { status: 404 });
     },
 
-    // ════════════════════════════════════════════════════════════════════════
-    //  CRON HANDLER
-    //  Triggered by Cloudflare Cron Triggers defined in wrangler.toml.
-    //  Currently handles:
-    //    "*/30 * * * *" → expire stale pending orders + clean rate limit table
-    //
-    //  WHY HERE AND NOT A SEPARATE WORKER:
-    //    Same D1 binding, same deploy, zero extra infrastructure.
-    //    For a solo founder this is the right call — one codebase to maintain.
-    //
-    //  TO ENABLE: Add to wrangler.toml (see wrangler.toml in this release):
-    //    [triggers]
-    //    crons = ["*/30 * * * *"]
-    // ════════════════════════════════════════════════════════════════════════
     async scheduled(event, env, ctx) {
         ctx.waitUntil(runScheduledJobs(event, env));
     }
 };
 
 // ════════════════════════════════════════════════════════════════════════════
-//  SCHEDULED JOB RUNNER
+//  SCHEDULED JOBS
 // ════════════════════════════════════════════════════════════════════════════
 async function runScheduledJobs(event, env) {
     const now = Math.floor(Date.now() / 1000);
-    console.log(`[cron] Scheduled trigger fired at ${now} (cron: ${event.cron})`);
-
-    // Run both jobs — don't let one failure block the other
+    console.log(`[cron] Triggered at ${now} (${event.cron})`);
     await Promise.allSettled([
         expireStaleOrders(env, now),
         cleanupRateLimitCounters(env, now)
     ]);
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-//  JOB 1: Expire stale pending orders
-//
-//  Any order still 'pending' after 30 minutes is abandoned.
-//  Mark it 'expired' so it doesn't pollute dashboards or confuse machines.
-//  This does NOT affect Omise — if Omise somehow sends a webhook for an
-//  expired order, webhook.js will log it but not double-dispense (the
-//  order status check prevents that).
-// ────────────────────────────────────────────────────────────────────────────
 async function expireStaleOrders(env, now) {
     const logId = await startCronLog(env, 'expire_orders', now);
     try {
-        const cutoff = now - (30 * 60); // 30 minutes ago
-
-        const result = await env.DB.prepare(`
-            UPDATE orders
-            SET status = 'expired'
-            WHERE status = 'pending'
-              AND created_at < ?
-        `).bind(cutoff).run();
-
-        const rowsAffected = result.meta?.changes ?? 0;
-        console.log(`[cron] expire_orders: ${rowsAffected} orders expired`);
-        await finishCronLog(env, logId, 'ok', rowsAffected);
+        const cutoff = now - (30 * 60);
+        const result = await env.DB.prepare(
+            `UPDATE orders SET status = 'expired' WHERE status = 'pending' AND created_at < ?`
+        ).bind(cutoff).run();
+        const rows = result.meta?.changes ?? 0;
+        console.log(`[cron] expire_orders: ${rows} expired`);
+        await finishCronLog(env, logId, 'ok', rows);
     } catch (err) {
         console.error('[cron] expire_orders failed:', err.message);
         await finishCronLog(env, logId, 'error', 0, err.message);
     }
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-//  JOB 2: Clean up stale rate limit counter rows
-//
-//  Each row covers a 1-minute window. Rows older than 5 minutes are useless.
-//  Without cleanup the table grows unboundedly. At 100 IPs/min × 60min/day
-//  = 144,000 rows/day. D1 handles this fine, but there's no reason to keep
-//  them — they'll never be queried again.
-// ────────────────────────────────────────────────────────────────────────────
 async function cleanupRateLimitCounters(env, now) {
     const logId = await startCronLog(env, 'cleanup_rate_limits', now);
     try {
-        const currentWindowKey = Math.floor(now / 60);
-        const cutoffWindowKey = currentWindowKey - 5; // keep last 5 minutes
-
-        const result = await env.DB.prepare(`
-            DELETE FROM rate_limit_counters
-            WHERE window_key < ?
-        `).bind(cutoffWindowKey).run();
-
-        const rowsAffected = result.meta?.changes ?? 0;
-        console.log(`[cron] cleanup_rate_limits: ${rowsAffected} rows deleted`);
-        await finishCronLog(env, logId, 'ok', rowsAffected);
+        const cutoff = Math.floor(now / 60) - 5;
+        const result = await env.DB.prepare(
+            `DELETE FROM rate_limit_counters WHERE window_key < ?`
+        ).bind(cutoff).run();
+        const rows = result.meta?.changes ?? 0;
+        console.log(`[cron] cleanup_rate_limits: ${rows} rows deleted`);
+        await finishCronLog(env, logId, 'ok', rows);
     } catch (err) {
         console.error('[cron] cleanup_rate_limits failed:', err.message);
         await finishCronLog(env, logId, 'error', 0, err.message);
     }
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-//  CRON LOG HELPERS
-// ────────────────────────────────────────────────────────────────────────────
 async function startCronLog(env, jobName, now) {
     try {
-        const result = await env.DB.prepare(`
-            INSERT INTO cron_log (job_name, started_at, status)
-            VALUES (?, ?, 'running')
-        `).bind(jobName, now).run();
-        return result.meta?.last_row_id ?? null;
-    } catch {
-        return null; // Non-fatal — don't break the actual job
-    }
+        const r = await env.DB.prepare(
+            `INSERT INTO cron_log (job_name, started_at, status) VALUES (?, ?, 'running')`
+        ).bind(jobName, now).run();
+        return r.meta?.last_row_id ?? null;
+    } catch { return null; }
 }
 
 async function finishCronLog(env, logId, status, rowsAffected, errorMsg = null) {
     if (!logId) return;
     try {
         const now = Math.floor(Date.now() / 1000);
-        await env.DB.prepare(`
-            UPDATE cron_log
-            SET finished_at = ?, status = ?, rows_affected = ?, error_msg = ?
-            WHERE id = ?
-        `).bind(now, status, rowsAffected, errorMsg, logId).run();
-    } catch {
-        // Non-fatal
-    }
+        await env.DB.prepare(
+            `UPDATE cron_log SET finished_at=?, status=?, rows_affected=?, error_msg=? WHERE id=?`
+        ).bind(now, status, rowsAffected, errorMsg, logId).run();
+    } catch {}
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  ADMIN DASHBOARD HANDLER
+//  ADMIN DASHBOARD (unchanged from R3)
 // ════════════════════════════════════════════════════════════════════════════
-
 function escapeJson(obj) {
-    return JSON.stringify(obj).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/\//g, '\\u002f');
+    return JSON.stringify(obj)
+        .replace(/</g, '\\u003c')
+        .replace(/>/g, '\\u003e')
+        .replace(/\//g, '\\u002f');
 }
 
 async function handleAdminDashboard(env, adminPath) {
-    const tables = await env.DB.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`).all();
+    const tables = await env.DB.prepare(
+        `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`
+    ).all();
     const tableNames = tables.results.map(t => t.name);
 
     const [orders, devices, users, todayOrders] = await Promise.all([
         env.DB.prepare(`SELECT COUNT(*) as count FROM orders`).first(),
         env.DB.prepare(`SELECT COUNT(*) as count FROM devices`).first(),
         env.DB.prepare(`SELECT COUNT(*) as count FROM users`).first(),
-        env.DB.prepare(`
-            SELECT COUNT(*) as count, COALESCE(SUM(amount)/100, 0) as total
-            FROM orders
-            WHERE status='paid' AND created_at > strftime('%s','now','-1 day')
-        `).first()
+        env.DB.prepare(`SELECT COUNT(*) as count, COALESCE(SUM(amount)/100, 0) as total FROM orders WHERE status='paid' AND created_at > strftime('%s','now','-1 day')`).first()
     ]);
 
-    const recentOrders = await env.DB.prepare(`
-        SELECT order_id, device_id, amount/100 as amount, status,
-               datetime(created_at, 'unixepoch', '+7 hours') as created
-        FROM orders ORDER BY created_at DESC LIMIT 20
-    `).all();
+    const recentOrders  = await env.DB.prepare(`SELECT order_id, device_id, amount/100 as amount, status, datetime(created_at, 'unixepoch', '+7 hours') as created FROM orders ORDER BY created_at DESC LIMIT 20`).all();
+    const recentDevices = await env.DB.prepare(`SELECT device_id, temple_name, status, datetime(last_heartbeat, 'unixepoch', '+7 hours') as last_seen FROM devices ORDER BY last_heartbeat DESC LIMIT 20`).all();
 
-    const recentDevices = await env.DB.prepare(`
-        SELECT device_id, temple_name, status,
-               datetime(last_heartbeat, 'unixepoch', '+7 hours') as last_seen
-        FROM devices ORDER BY last_heartbeat DESC LIMIT 20
-    `).all();
-
-    const adminPathJson   = escapeJson(adminPath);
-    const tableNamesJson  = escapeJson(tableNames);
+    const adminPathJson     = escapeJson(adminPath);
+    const tableNamesJson    = escapeJson(tableNames);
     const recentOrdersJson  = escapeJson(recentOrders.results  || []);
     const recentDevicesJson = escapeJson(recentDevices.results || []);
 
@@ -356,119 +307,61 @@ async function handleAdminDashboard(env, adminPath) {
 <body>
 <div class="container">
     <h1>🔐 Satu Admin</h1>
-    <div class="subtitle">System Dashboard</div>
+    <div class="subtitle">System Dashboard — R3.1</div>
     <div class="auth-note">✅ Authenticated via X-Admin-Token header</div>
-
     <div class="stats-grid">
         <div class="stat-card"><div class="stat-number">${orders?.count || 0}</div><div class="stat-label">Total Orders</div></div>
         <div class="stat-card"><div class="stat-number">${devices?.count || 0}</div><div class="stat-label">Total Devices</div></div>
         <div class="stat-card"><div class="stat-number">${users?.count || 0}</div><div class="stat-label">Total Users</div></div>
         <div class="stat-card"><div class="stat-number">${todayOrders?.count || 0}</div><div class="stat-label">Today's Orders</div><div class="stat-small">${todayOrders?.total || 0} THB</div></div>
     </div>
-
-    <div class="section">
-        <h2>📋 Recent Orders</h2>
-        <div class="table-container" id="recent-orders"></div>
-    </div>
-
-    <div class="section">
-        <h2>🖥️ Recent Devices</h2>
-        <div class="table-container" id="recent-devices"></div>
-    </div>
-
-    <div class="section">
-        <h2>🗄️ Database Browser</h2>
-        <div class="tabs" id="tabs"></div>
-        <div id="table-content"></div>
-    </div>
-
+    <div class="section"><h2>📋 Recent Orders</h2><div class="table-container" id="recent-orders"></div></div>
+    <div class="section"><h2>🖥️ Devices</h2><div class="table-container" id="recent-devices"></div></div>
+    <div class="section"><h2>🗄️ Database Browser</h2><div class="tabs" id="tabs"></div><div id="table-content"></div></div>
     <div class="footer">Satu Admin | Restricted Access</div>
 </div>
-
 <script>
-    const ADMIN_PATH = ${adminPathJson};
+    const ADMIN_PATH    = ${adminPathJson};
     const tableNames    = ${tableNamesJson};
     const recentOrders  = ${recentOrdersJson};
     const recentDevices = ${recentDevicesJson};
-
-    function h(str) {
-        return String(str ?? '-')
-            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-
+    function h(str) { return String(str??'-').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
     function renderRecentOrders() {
         const c = document.getElementById('recent-orders');
-        if (!recentOrders.length) { c.innerHTML = '<p>No orders yet</p>'; return; }
+        if (!recentOrders.length) { c.innerHTML='<p>No orders yet</p>'; return; }
         c.innerHTML = '<table><thead><tr><th>Order ID</th><th>Device</th><th>Amount</th><th>Status</th><th>Time (UTC+7)</th></tr></thead><tbody>'
-            + recentOrders.map(o => \`<tr>
-                <td>\${h(o.order_id)}</td>
-                <td>\${h(o.device_id)}</td>
-                <td>\${h(o.amount)} THB</td>
-                <td class="status-\${h(o.status)}">\${h(o.status)}</td>
-                <td>\${h(o.created)}</td>
-            </tr>\`).join('')
-            + '</tbody></table>';
+            + recentOrders.map(o=>\`<tr><td>\${h(o.order_id)}</td><td>\${h(o.device_id)}</td><td>\${h(o.amount)} THB</td><td class="status-\${h(o.status)}">\${h(o.status)}</td><td>\${h(o.created)}</td></tr>\`).join('')+'</tbody></table>';
     }
-
     function renderRecentDevices() {
         const c = document.getElementById('recent-devices');
-        if (!recentDevices.length) { c.innerHTML = '<p>No devices yet</p>'; return; }
+        if (!recentDevices.length) { c.innerHTML='<p>No devices</p>'; return; }
         c.innerHTML = '<table><thead><tr><th>Device ID</th><th>Temple</th><th>Status</th><th>Last Seen (UTC+7)</th></tr></thead><tbody>'
-            + recentDevices.map(d => \`<tr>
-                <td>\${h(d.device_id)}</td>
-                <td>\${h(d.temple_name)}</td>
-                <td class="status-\${h(d.status)}">\${h(d.status)}</td>
-                <td>\${h(d.last_seen)}</td>
-            </tr>\`).join('')
-            + '</tbody></table>';
+            + recentDevices.map(d=>\`<tr><td>\${h(d.device_id)}</td><td>\${h(d.temple_name)}</td><td class="status-\${h(d.status)}">\${h(d.status)}</td><td>\${h(d.last_seen)}</td></tr>\`).join('')+'</tbody></table>';
     }
-
     function renderTabs() {
         const tabsDiv = document.getElementById('tabs');
-        tabsDiv.innerHTML = tableNames.map(name =>
-            \`<button class="tab" onclick="showTab('\${h(name)}')">\${h(name)}</button>\`
-        ).join('');
+        tabsDiv.innerHTML = tableNames.map(name=>\`<button class="tab" onclick="showTab('\${h(name)}')">\${h(name)}</button>\`).join('');
         if (tableNames.length > 0) showTab(tableNames[0]);
     }
-
     async function showTab(tableName) {
         const c = document.getElementById('table-content');
         c.innerHTML = '<div class="table-container">Loading...</div>';
         const token = sessionStorage.getItem('adminToken') || prompt('Enter Admin Token:');
         if (token) sessionStorage.setItem('adminToken', token);
         try {
-            const res = await fetch(ADMIN_PATH + '/api/' + tableName, {
-                headers: { 'X-Admin-Token': token }
-            });
-            if (res.status === 403) {
-                sessionStorage.removeItem('adminToken');
-                c.innerHTML = '<p style="color:#ef4444;">❌ Invalid token</p>';
-                return;
-            }
+            const res = await fetch(ADMIN_PATH+'/api/'+tableName, { headers: { 'X-Admin-Token': token } });
+            if (res.status===403) { sessionStorage.removeItem('adminToken'); c.innerHTML='<p style="color:#ef4444;">❌ Invalid token</p>'; return; }
             const data = await res.json();
-            if (!data || data.length === 0) { c.innerHTML = '<p>No data found</p>'; return; }
-            let html = '<div class="table-container"><table><thead><tr>';
-            Object.keys(data[0]).forEach(key => { html += \`<th>\${h(key)}</th>\`; });
-            html += '</tr></thead><tbody>';
-            data.forEach(row => {
-                html += '<tr>';
-                Object.values(row).forEach(val => {
-                    const display = typeof val === 'object' ? JSON.stringify(val) : val;
-                    html += \`<td>\${h(String(display ?? '-').substring(0, 100))}</td>\`;
-                });
-                html += '</tr>';
-            });
-            html += '</tbody></table></div>';
-            c.innerHTML = html;
-        } catch(e) {
-            c.innerHTML = '<p style="color:#ef4444;">Error loading data</p>';
-        }
+            if (!data||data.length===0) { c.innerHTML='<p>No data found</p>'; return; }
+            let html='<div class="table-container"><table><thead><tr>';
+            Object.keys(data[0]).forEach(key=>{ html+=\`<th>\${h(key)}</th>\`; });
+            html+='</tr></thead><tbody>';
+            data.forEach(row=>{ html+='<tr>'; Object.values(row).forEach(val=>{ const d=typeof val==='object'?JSON.stringify(val):val; html+=\`<td>\${h(String(d??'-').substring(0,100))}</td>\`; }); html+='</tr>'; });
+            html+='</tbody></table></div>';
+            c.innerHTML=html;
+        } catch(e) { c.innerHTML='<p style="color:#ef4444;">Error loading data</p>'; }
     }
-
-    renderRecentOrders();
-    renderRecentDevices();
-    renderTabs();
+    renderRecentOrders(); renderRecentDevices(); renderTabs();
 </script>
 </body>
 </html>`;
@@ -476,25 +369,18 @@ async function handleAdminDashboard(env, adminPath) {
     return new Response(html, { headers: { 'Content-Type': 'text/html' } });
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  ADMIN TABLE DATA
-//  Whitelist prevents SQL injection via table name.
-//  UPDATED: added rate_limit_counters and cron_log
-// ════════════════════════════════════════════════════════════════════════════
 async function handleAdminTableData(tableName, env) {
     const validTables = [
         'users', 'devices', 'orders', 'setup_codes', 'donor_consent',
         'data_access_log', 'device_commands', 'admin_log', 'ownership_log',
         'connection_logs', 'firmware_versions', 'test_payments',
-        'rate_limit_counters',  // Added: rate limiter backing store
-        'cron_log'              // Added: scheduled job audit trail
+        'rate_limit_counters', 'cron_log', 'machine_slots'
     ];
-
     if (!validTables.includes(tableName)) {
         return Response.json({ error: 'Invalid table' }, { status: 400 });
     }
-
-    // Safe: tableName is whitelisted above
-    const data = await env.DB.prepare(`SELECT * FROM ${tableName} ORDER BY rowid DESC LIMIT 200`).all();
+    const data = await env.DB.prepare(
+        `SELECT * FROM ${tableName} ORDER BY rowid DESC LIMIT 200`
+    ).all();
     return Response.json(data.results);
 }
