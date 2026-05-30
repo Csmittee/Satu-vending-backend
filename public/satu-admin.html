@@ -542,12 +542,23 @@ function doLogout() {
 // ── API helpers ──────────────────────────────────────────────────────────────
 async function apiGet(url) {
   const headers = {};
-  if (AUTH.mode==='jwt')   headers['Authorization'] = `Bearer ${AUTH.jwt}`;
-  if (AUTH.mode==='token') headers['X-Admin-Token'] = AUTH.adminSecret;
-  const base = (AUTH.mode==='token') ? `${API}${AUTH.adminPath}` : API;
-  const res = await fetch(base + url, { headers });
-  if (res.status===401) { doLogout(); throw new Error('Session expired'); }
-  return res;
+  if (AUTH.mode==='jwt') {
+    headers['Authorization'] = `Bearer ${AUTH.jwt}`;
+    const res = await fetch(API + url, { headers });
+    if (res.status===401) { doLogout(); throw new Error('Session expired'); }
+    return res;
+  }
+  if (AUTH.mode==='token') {
+    headers['X-Admin-Token'] = AUTH.adminSecret;
+    // Admin token mode: path goes to /ADMINPATH/api/TABLE
+    const cleanPath = AUTH.adminPath.replace(/^\/+/,'').replace(/\/+$/,'');
+    const adminBase = `${API}/${cleanPath}`;
+    // url is like /api/devices → append to admin base
+    const res = await fetch(adminBase + url, { headers });
+    if (res.status===403) { doLogout(); throw new Error('Invalid admin token'); }
+    return res;
+  }
+  throw new Error('Not authenticated');
 }
 
 // ── Navigation ───────────────────────────────────────────────────────────────
