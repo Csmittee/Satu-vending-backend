@@ -3,27 +3,48 @@ import { addCommand } from '../commands/queue.js';
 import { authenticateJWT } from '../middleware/auth.js';
 
 // ════════════════════════════════════════════════════════════════════════════
+//  CHANGE LOG
+//   R3.1 — Added slots[] to /hello response (reads machine_slots table)
+//          Added handleGetSlots()  — GET  /v1/dashboard/slots
+//          Added handleSaveSlots() — PUT  /v1/dashboard/slots
+//          Heartbeat fix: connection_logs columns corrected
+//
+//  SLOT ARCHITECTURE:
+//   Temple owner logs into dashboard → edits slots → PUT /v1/dashboard/slots
+//   Backend writes to machine_slots table → queues reload_slots command
+//   Machine receives reload_slots → calls reloadHello() → grid updates
+//   No reflashing ever needed for slot changes.
+//
+//  machine_slots table (create in D1 if not exists):
+//   CREATE TABLE IF NOT EXISTS machine_slots (
+//     id         INTEGER PRIMARY KEY AUTOINCREMENT,
+//     device_id  TEXT NOT NULL,
+//     slot       INTEGER NOT NULL,
+//     name_th    TEXT DEFAULT '',
+//     name_en    TEXT DEFAULT '',
+//     price      INTEGER DEFAULT 0,
+//     enabled    INTEGER DEFAULT 1,
+//     updated_at INTEGER DEFAULT 0,
+//     UNIQUE(device_id, slot)
+//   );
+// ════════════════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════════════════
 //  DEVICE AUTHENTICATION
 //
 //  FAKE mode  (PAYMENT_MODE=fake):  no X-Device-Secret required.
-//             System tester + machine tester work without ESP32 firmware.
-//             The Cloudflare env var is the gate — nothing in client files.
-//
-//  LIVE mode  (PAYMENT_MODE=live):  X-Device-Secret header required on every
-//             /heartbeat and /commands call. ESP32 stores secret in NVS.
+//  LIVE mode  (PAYMENT_MODE=live):  X-Device-Secret header required.
 // ════════════════════════════════════════════════════════════════════════════
 async function authenticateDevice(request, env, deviceId) {
     if ((env.PAYMENT_MODE || 'fake') === 'fake') {
-        // In fake mode: just confirm device exists in DB
         const device = await env.DB.prepare(
             `SELECT device_id, status FROM devices WHERE device_id = ?`
         ).bind(deviceId).first();
-        if (!device)                        return { valid: false, reason: 'Device not found' };
-        if (device.status === 'disabled')   return { valid: false, reason: 'Device is disabled' };
+        if (!device)                      return { valid: false, reason: 'Device not found' };
+        if (device.status === 'disabled') return { valid: false, reason: 'Device is disabled' };
         return { valid: true, deviceId: device.device_id };
     }
 
-    // Live mode: require secret header
     const deviceSecret = request.headers.get('X-Device-Secret');
     if (!deviceSecret) return { valid: false, reason: 'Missing X-Device-Secret header' };
 
@@ -31,18 +52,34 @@ async function authenticateDevice(request, env, deviceId) {
         `SELECT device_id, status FROM devices WHERE device_id = ? AND device_secret = ?`
     ).bind(deviceId, deviceSecret).first();
 
-    if (!device)                        return { valid: false, reason: 'Invalid device credentials' };
-    if (device.status === 'disabled')   return { valid: false, reason: 'Device is disabled' };
+    if (!device)                      return { valid: false, reason: 'Invalid device credentials' };
+    if (device.status === 'disabled') return { valid: false, reason: 'Device is disabled' };
     return { valid: true, deviceId: device.device_id };
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+//  INTERNAL: load slots for a device from machine_slots table
+//  Returns [] if table doesn't exist yet or no slots configured
+// ════════════════════════════════════════════════════════════════════════════
+async function _loadSlots(env, deviceId) {
+    try {
+        const rows = await env.DB.prepare(
+            `SELECT slot, name_th, name_en, price, enabled
+             FROM machine_slots
+             WHERE device_id = ?
+             ORDER BY slot ASC`
+        ).bind(deviceId).all();
+        return rows.results || [];
+    } catch (e) {
+        // Table may not exist yet — fail silently, machine uses defaults
+        console.error('machine_slots query failed (table may not exist):', e.message);
+        return [];
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 //  HANDLE MACHINE HELLO
-//  Called by ESP32 on boot. Registers device or returns existing status.
-//
-//  MAC VALIDATION:
-//   - Fake mode: accept any non-empty string  (tester sends TEST:MAC:xxx)
-//   - Live mode: enforce real format          AA:BB:CC:DD:EE:FF
+//  R3.1: now includes slots[] in response for active devices
 // ════════════════════════════════════════════════════════════════════════════
 export async function handleMachineHello(request, env) {
     try {
@@ -69,16 +106,34 @@ export async function handleMachineHello(request, env) {
                 `UPDATE devices SET firmware_version = ?, last_heartbeat = ? WHERE mac = ?`
             ).bind(firmware, now, mac).run();
 
+            // Load slots for active devices so machine can populate the grid
+            const slots = existing.status === 'active'
+                ? await _loadSlots(env, existing.device_id)
+                : [];
+
             return Response.json({
                 status:        existing.status,
                 device_id:     existing.device_id,
                 device_secret: existing.device_secret,
-                message:       existing.status === 'active' ? 'Device active' : 'Device pending claim'
+                setup_code:    existing.status === 'pending'
+                    ? (await env.DB.prepare(
+                        `SELECT code FROM setup_codes WHERE assigned_mac = ? AND used = 0 ORDER BY generated_at DESC LIMIT 1`
+                      ).bind(mac).first())?.code || null
+                    : null,
+                message:       existing.status === 'active'
+                    ? 'Device active'
+                    : 'Device pending claim — enter setup code in dashboard',
+                slots:         slots.map(s => ({
+                    slot:     s.slot,
+                    name_th:  s.name_th  || '',
+                    name_en:  s.name_en  || '',
+                    price:    s.price    || 0,
+                    enabled:  s.enabled  === 1
+                }))
             });
         }
 
-        // New device: generate device_id, setup code, and device secret
-        // device_id format: SATU-XXXXXX (6 random uppercase alphanumeric chars)
+        // New device — register it
         const deviceIdSuffix = Array.from(crypto.getRandomValues(new Uint8Array(4)))
             .map(b => b.toString(36).toUpperCase().padStart(2, '0'))
             .join('').substring(0, 6);
@@ -87,7 +142,8 @@ export async function handleMachineHello(request, env) {
         const setupCode    = generateSetupCode();
         const secretBuffer = new Uint8Array(32);
         crypto.getRandomValues(secretBuffer);
-        const deviceSecret = Array.from(secretBuffer).map(b => b.toString(16).padStart(2, '0')).join('');
+        const deviceSecret = Array.from(secretBuffer)
+            .map(b => b.toString(16).padStart(2, '0')).join('');
 
         await env.DB.prepare(
             `INSERT INTO devices (mac, device_id, firmware_version, status, device_secret, first_seen, last_heartbeat)
@@ -101,9 +157,10 @@ export async function handleMachineHello(request, env) {
         return Response.json({
             status:        'pending',
             device_id:     deviceId,
-            message:       'Device registered. Use setup code to claim.',
             setup_code:    setupCode,
-            device_secret: deviceSecret
+            device_secret: deviceSecret,
+            message:       'Device registered. Enter setup code in dashboard to activate.',
+            slots:         []
         });
 
     } catch (error) {
@@ -132,13 +189,19 @@ export async function handleHeartbeat(request, env) {
         const now = Date.now();
 
         await env.DB.prepare(
-            `UPDATE devices SET last_heartbeat = ?, firmware_version = COALESCE(?, firmware_version) WHERE device_id = ?`
+            `UPDATE devices SET last_heartbeat = ?, firmware_version = COALESCE(?, firmware_version)
+             WHERE device_id = ?`
         ).bind(now, firmware || null, device_id).run();
 
-       
         await env.DB.prepare(
-            `INSERT INTO connection_logs (device_id, event_type, details, created_at) VALUES (?, ?, ?, ?)`
-        ).bind(device_id, 'heartbeat', JSON.stringify({ free_heap: free_heap || null, uptime: uptime || null }), now).run();
+            `INSERT INTO connection_logs (device_id, event_type, details, created_at)
+             VALUES (?, ?, ?, ?)`
+        ).bind(
+            device_id,
+            'heartbeat',
+            JSON.stringify({ free_heap: free_heap || null, uptime: uptime || null }),
+            now
+        ).run();
 
         return Response.json({ status: 'ok', server_time: now });
 
@@ -240,4 +303,145 @@ export async function handleClaimDevice(request, env) {
         device_id: existingDevice.device_id,
         message:   'Device claimed successfully'
     });
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  HANDLE GET SLOTS  — GET /v1/dashboard/slots?device_id=SATU-XXXXXX
+//  Temple owner reads current slot config for their machine.
+//  Auth: JWT (dashboard login). Owner can only read their own device.
+// ════════════════════════════════════════════════════════════════════════════
+export async function handleGetSlots(request, env) {
+    try {
+        const auth = await authenticateJWT(request, env);
+        if (!auth.valid) {
+            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const url      = new URL(request.url);
+        const deviceId = url.searchParams.get('device_id');
+        if (!deviceId) {
+            return Response.json({ error: 'device_id required' }, { status: 400 });
+        }
+
+        // Verify this device belongs to the logged-in owner
+        const device = await env.DB.prepare(
+            `SELECT device_id, temple_name FROM devices
+             WHERE device_id = ? AND owner_id = ?`
+        ).bind(deviceId, auth.userId).first();
+
+        if (!device) {
+            return Response.json({ error: 'Device not found or not yours' }, { status: 403 });
+        }
+
+        const slots = await _loadSlots(env, deviceId);
+
+        return Response.json({
+            device_id:   deviceId,
+            temple_name: device.temple_name,
+            slots:       slots.map(s => ({
+                slot:    s.slot,
+                name_th: s.name_th || '',
+                name_en: s.name_en || '',
+                price:   s.price   || 0,
+                enabled: s.enabled === 1
+            }))
+        });
+
+    } catch (error) {
+        console.error('Get slots error:', error);
+        return Response.json({ error: 'Internal error' }, { status: 500 });
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  HANDLE SAVE SLOTS  — PUT /v1/dashboard/slots
+//  Temple owner saves slot config. Backend writes to machine_slots,
+//  then queues reload_slots command so machine updates without reboot.
+//
+//  Body: {
+//    device_id: "SATU-XXXXXX",
+//    slots: [
+//      { slot: 1, name_th: "พระเครื่อง", name_en: "Amulet", price: 100, enabled: true },
+//      ...
+//    ]
+//  }
+// ════════════════════════════════════════════════════════════════════════════
+export async function handleSaveSlots(request, env) {
+    try {
+        const auth = await authenticateJWT(request, env);
+        if (!auth.valid) {
+            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const body = await request.json();
+        const { device_id, slots } = body;
+
+        if (!device_id || !Array.isArray(slots)) {
+            return Response.json({ error: 'device_id and slots[] required' }, { status: 400 });
+        }
+
+        // Verify ownership
+        const device = await env.DB.prepare(
+            `SELECT device_id FROM devices WHERE device_id = ? AND owner_id = ?`
+        ).bind(device_id, auth.userId).first();
+
+        if (!device) {
+            return Response.json({ error: 'Device not found or not yours' }, { status: 403 });
+        }
+
+        // Validate slots
+        for (const s of slots) {
+            if (!s.slot || s.slot < 1 || s.slot > 21) {
+                return Response.json({ error: `Invalid slot number: ${s.slot}` }, { status: 400 });
+            }
+            if (typeof s.price !== 'number' || s.price < 0) {
+                return Response.json({ error: `Invalid price for slot ${s.slot}` }, { status: 400 });
+            }
+            if (s.price > 0 && s.price < 20) {
+                return Response.json({
+                    error: `Slot ${s.slot}: minimum price is 20 THB (Omise minimum charge)`
+                }, { status: 400 });
+            }
+        }
+
+        const now = Date.now();
+
+        // Upsert each slot
+        for (const s of slots) {
+            await env.DB.prepare(
+                `INSERT INTO machine_slots (device_id, slot, name_th, name_en, price, enabled, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)
+                 ON CONFLICT(device_id, slot) DO UPDATE SET
+                   name_th    = excluded.name_th,
+                   name_en    = excluded.name_en,
+                   price      = excluded.price,
+                   enabled    = excluded.enabled,
+                   updated_at = excluded.updated_at`
+            ).bind(
+                device_id,
+                s.slot,
+                s.name_th  || '',
+                s.name_en  || '',
+                s.price    || 0,
+                s.enabled  ? 1 : 0,
+                now
+            ).run();
+        }
+
+        // Queue reload_slots command so machine updates grid without reboot
+        await env.DB.prepare(
+            `INSERT INTO device_commands (device_id, command, data, created_at, executed)
+             VALUES (?, 'reload_slots', '{}', ?, 0)`
+        ).bind(device_id, now).run();
+
+        return Response.json({
+            status:  'ok',
+            message: `${slots.length} slot(s) saved. Machine will update within 30 seconds.`,
+            slots_saved: slots.length
+        });
+
+    } catch (error) {
+        console.error('Save slots error:', error);
+        return Response.json({ error: 'Internal error' }, { status: 500 });
+    }
 }
