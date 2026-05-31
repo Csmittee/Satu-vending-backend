@@ -1,4 +1,4 @@
-import { handleMachineHello, handleHeartbeat, handleGetCommands, handleClaimDevice, handleGetSlots, handleSaveSlots } from './handlers/machine.js';
+import { handleMachineHello, handleHeartbeat, handleGetCommands, handleClaimDevice, handleGetSlots, handleSaveSlots, handleMachineCompletion, handleFactoryReset } from './handlers/machine.js';
 import { handleCreateOrder, handleGetOrderStatus } from './handlers/order.js';
 import { handleOmiseWebhook } from './handlers/webhook.js';
 import { handleDisableDevice, handleEnableDevice, handleReassignDevice, handleGetAllDevices } from './handlers/admin.js';
@@ -14,6 +14,9 @@ import { logRequest } from './middleware/logging.js';
 //          Added: GET  /v1/dashboard/slots
 //          Added: PUT  /v1/dashboard/slots
 //          Added: machine_slots to admin table whitelist
+//   R4   — Added: POST /v1/machine/completion
+//          Added: POST /v1/machine/factory-reset
+//          Added: GET  /v1/admin-data/:table  (token OR JWT admin)
 // ════════════════════════════════════════════════════════════════════════════
 
 export default {
@@ -49,18 +52,21 @@ export default {
             return Response.json({
                 service:   'Satu API',
                 status:    'running',
-                version:   'R3.1',
+                version:   'R4',
                 endpoints: [
                     'GET  /health',
                     'POST /v1/machine/hello',
                     'POST /v1/machine/heartbeat',
                     'GET  /v1/machine/commands',
                     'POST /v1/machine/claim',
+                    'POST /v1/machine/completion',
+                    'POST /v1/machine/factory-reset',
                     'POST /v1/order',
                     'GET  /v1/order/:id/status',
                     'GET  /v1/dashboard/devices',
                     'GET  /v1/dashboard/slots',
-                    'PUT  /v1/dashboard/slots'
+                    'PUT  /v1/dashboard/slots',
+                    'GET  /v1/admin-data/:table'
                 ]
             });
         }
@@ -93,6 +99,12 @@ export default {
         }
         if (path === '/v1/machine/claim' && method === 'POST') {
             return handleClaimDevice(request, env);
+        }
+        if (path === '/v1/machine/completion' && method === 'POST') {
+            return handleMachineCompletion(request, env);
+        }
+        if (path === '/v1/machine/factory-reset' && method === 'POST') {
+            return handleFactoryReset(request, env);
         }
 
         // ── Auth (rate limited) ──────────────────────────────────────────────
@@ -129,6 +141,24 @@ export default {
                 const tableName = path.split('/').pop();
                 return await handleAdminTableData(tableName, env);
             }
+        }
+
+        // ── Admin data browser — token OR JWT admin ──────────────────────────
+        if (path.startsWith('/v1/admin-data/') && method === 'GET') {
+            const adminToken = request.headers.get('X-Admin-Token');
+            const authHeader = request.headers.get('Authorization');
+            let authorized = false;
+            if (adminToken && adminToken === env.ADMIN_SECRET) authorized = true;
+            if (!authorized && authHeader?.startsWith('Bearer ')) {
+                const jwtAuth = await authenticateJWT(request, env);
+                if (jwtAuth.valid && jwtAuth.role === 'admin') authorized = true;
+            }
+            if (!authorized) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+            const table = path.replace('/v1/admin-data/', '').split('/')[0];
+            const whitelist = ['users','devices','orders','setup_codes','connection_logs','machine_slots','device_commands','ownership_log','admin_log','rate_limit_counters','cron_log'];
+            if (!whitelist.includes(table)) return Response.json({ error: 'Invalid table' }, { status: 400 });
+            const result = await env.DB.prepare(`SELECT * FROM ${table} ORDER BY rowid DESC LIMIT 200`).all();
+            return Response.json(result.results);
         }
 
         // ── JWT-protected routes ─────────────────────────────────────────────
@@ -306,18 +336,18 @@ async function handleAdminDashboard(env, adminPath) {
 </head>
 <body>
 <div class="container">
-    <h1>🔐 Satu Admin</h1>
-    <div class="subtitle">System Dashboard — R3.1</div>
-    <div class="auth-note">✅ Authenticated via X-Admin-Token header</div>
+    <h1>Satu Admin</h1>
+    <div class="subtitle">System Dashboard — R4</div>
+    <div class="auth-note">Authenticated via X-Admin-Token header</div>
     <div class="stats-grid">
         <div class="stat-card"><div class="stat-number">${orders?.count || 0}</div><div class="stat-label">Total Orders</div></div>
         <div class="stat-card"><div class="stat-number">${devices?.count || 0}</div><div class="stat-label">Total Devices</div></div>
         <div class="stat-card"><div class="stat-number">${users?.count || 0}</div><div class="stat-label">Total Users</div></div>
         <div class="stat-card"><div class="stat-number">${todayOrders?.count || 0}</div><div class="stat-label">Today's Orders</div><div class="stat-small">${todayOrders?.total || 0} THB</div></div>
     </div>
-    <div class="section"><h2>📋 Recent Orders</h2><div class="table-container" id="recent-orders"></div></div>
-    <div class="section"><h2>🖥️ Devices</h2><div class="table-container" id="recent-devices"></div></div>
-    <div class="section"><h2>🗄️ Database Browser</h2><div class="tabs" id="tabs"></div><div id="table-content"></div></div>
+    <div class="section"><h2>Recent Orders</h2><div class="table-container" id="recent-orders"></div></div>
+    <div class="section"><h2>Devices</h2><div class="table-container" id="recent-devices"></div></div>
+    <div class="section"><h2>Database Browser</h2><div class="tabs" id="tabs"></div><div id="table-content"></div></div>
     <div class="footer">Satu Admin | Restricted Access</div>
 </div>
 <script>
@@ -330,17 +360,17 @@ async function handleAdminDashboard(env, adminPath) {
         const c = document.getElementById('recent-orders');
         if (!recentOrders.length) { c.innerHTML='<p>No orders yet</p>'; return; }
         c.innerHTML = '<table><thead><tr><th>Order ID</th><th>Device</th><th>Amount</th><th>Status</th><th>Time (UTC+7)</th></tr></thead><tbody>'
-            + recentOrders.map(o=>\`<tr><td>\${h(o.order_id)}</td><td>\${h(o.device_id)}</td><td>\${h(o.amount)} THB</td><td class="status-\${h(o.status)}">\${h(o.status)}</td><td>\${h(o.created)}</td></tr>\`).join('')+'</tbody></table>';
+            + recentOrders.map(o=>`<tr><td>${h(o.order_id)}</td><td>${h(o.device_id)}</td><td>${h(o.amount)} THB</td><td class="status-${h(o.status)}">${h(o.status)}</td><td>${h(o.created)}</td></tr>`).join('')+'</tbody></table>';
     }
     function renderRecentDevices() {
         const c = document.getElementById('recent-devices');
         if (!recentDevices.length) { c.innerHTML='<p>No devices</p>'; return; }
         c.innerHTML = '<table><thead><tr><th>Device ID</th><th>Temple</th><th>Status</th><th>Last Seen (UTC+7)</th></tr></thead><tbody>'
-            + recentDevices.map(d=>\`<tr><td>\${h(d.device_id)}</td><td>\${h(d.temple_name)}</td><td class="status-\${h(d.status)}">\${h(d.status)}</td><td>\${h(d.last_seen)}</td></tr>\`).join('')+'</tbody></table>';
+            + recentDevices.map(d=>`<tr><td>${h(d.device_id)}</td><td>${h(d.temple_name)}</td><td class="status-${h(d.status)}">${h(d.status)}</td><td>${h(d.last_seen)}</td></tr>`).join('')+'</tbody></table>';
     }
     function renderTabs() {
         const tabsDiv = document.getElementById('tabs');
-        tabsDiv.innerHTML = tableNames.map(name=>\`<button class="tab" onclick="showTab('\${h(name)}')">\${h(name)}</button>\`).join('');
+        tabsDiv.innerHTML = tableNames.map(name=>`<button class="tab" onclick="showTab('${h(name)}')">${h(name)}</button>`).join('');
         if (tableNames.length > 0) showTab(tableNames[0]);
     }
     async function showTab(tableName) {
@@ -350,19 +380,19 @@ async function handleAdminDashboard(env, adminPath) {
         if (token) sessionStorage.setItem('adminToken', token);
         try {
             const res = await fetch(ADMIN_PATH+'/api/'+tableName, { headers: { 'X-Admin-Token': token } });
-            if (res.status===403) { sessionStorage.removeItem('adminToken'); c.innerHTML='<p style="color:#ef4444;">❌ Invalid token</p>'; return; }
+            if (res.status===403) { sessionStorage.removeItem('adminToken'); c.innerHTML='<p style="color:#ef4444;">Invalid token</p>'; return; }
             const data = await res.json();
             if (!data||data.length===0) { c.innerHTML='<p>No data found</p>'; return; }
             let html='<div class="table-container"><table><thead><tr>';
-            Object.keys(data[0]).forEach(key=>{ html+=\`<th>\${h(key)}</th>\`; });
+            Object.keys(data[0]).forEach(key=>{ html+=`<th>${h(key)}</th>`; });
             html+='</tr></thead><tbody>';
-            data.forEach(row=>{ html+='<tr>'; Object.values(row).forEach(val=>{ const d=typeof val==='object'?JSON.stringify(val):val; html+=\`<td>\${h(String(d??'-').substring(0,100))}</td>\`; }); html+='</tr>'; });
+            data.forEach(row=>{ html+='<tr>'; Object.values(row).forEach(val=>{ const d=typeof val==='object'?JSON.stringify(val):val; html+=`<td>${h(String(d??'-').substring(0,100))}</td>`; }); html+='</tr>'; });
             html+='</tbody></table></div>';
             c.innerHTML=html;
         } catch(e) { c.innerHTML='<p style="color:#ef4444;">Error loading data</p>'; }
     }
     renderRecentOrders(); renderRecentDevices(); renderTabs();
-</script>
+<\/script>
 </body>
 </html>`;
 
