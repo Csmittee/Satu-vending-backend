@@ -198,7 +198,7 @@ tr:hover td { background:rgba(255,255,255,0.015); }
 </head>
 <body>
 
-<!-- ══ LOGIN SCREEN ══════════════════════════════════════════════ -->
+<!-- LOGIN SCREEN -->
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo">
@@ -206,13 +206,11 @@ tr:hover td { background:rgba(255,255,255,0.015); }
       <div class="login-logo-sub">Admin Console</div>
     </div>
 
-    <!-- Mode tabs -->
     <div class="tab-row">
       <button class="tab-btn active" onclick="setLoginMode('email')" id="lt-email">Email Login</button>
       <button class="tab-btn" onclick="setLoginMode('token')" id="lt-token">Admin Token</button>
     </div>
 
-    <!-- Email login panel -->
     <div id="panel-email">
       <div class="form-group">
         <label class="form-label">Email</label>
@@ -227,7 +225,6 @@ tr:hover td { background:rgba(255,255,255,0.015); }
       <div class="login-err" id="login-err"></div>
     </div>
 
-    <!-- Admin token panel (for super admin direct access) -->
     <div id="panel-token" style="display:none;">
       <div class="token-panel">
         <div class="token-note">Use your ADMIN_SECRET and ADMIN_PATH from Cloudflare</div>
@@ -248,10 +245,9 @@ tr:hover td { background:rgba(255,255,255,0.015); }
   </div>
 </div>
 
-<!-- ══ APP SHELL ═════════════════════════════════════════════════ -->
+<!-- APP SHELL -->
 <div id="app-shell">
 
-  <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <div class="app-name">SATU</div>
@@ -306,7 +302,6 @@ tr:hover td { background:rgba(255,255,255,0.015); }
     </div>
   </aside>
 
-  <!-- MAIN -->
   <div class="main">
     <header class="main-header">
       <div class="header-left">
@@ -431,9 +426,9 @@ tr:hover td { background:rgba(255,255,255,0.015); }
         </div>
       </div>
 
-    </div><!-- /main-content -->
-  </div><!-- /main -->
-</div><!-- /app-shell -->
+    </div>
+  </div>
+</div>
 
 <div class="toast-container" id="toastContainer"></div>
 
@@ -449,7 +444,6 @@ const D1_TABLES = [
   'admin_log','rate_limit_counters','cron_log'
 ];
 
-// ── Login mode toggle ────────────────────────────────────────────────────────
 function setLoginMode(mode) {
   document.getElementById('panel-email').style.display  = mode==='email' ? 'block':'none';
   document.getElementById('panel-token').style.display  = mode==='token' ? 'block':'none';
@@ -457,7 +451,6 @@ function setLoginMode(mode) {
   document.getElementById('lt-token').classList.toggle('active', mode==='token');
 }
 
-// ── Email / JWT login ────────────────────────────────────────────────────────
 async function doLogin() {
   const email = document.getElementById('inp-email').value.trim();
   const pw    = document.getElementById('inp-pw').value;
@@ -480,7 +473,6 @@ async function doLogin() {
   } catch(e) { showLoginErr(errEl, 'Network error'); btn.disabled=false; btn.textContent='Sign In'; }
 }
 
-// ── Admin token login ────────────────────────────────────────────────────────
 async function doTokenLogin() {
   const path   = document.getElementById('inp-path').value.trim();
   const secret = document.getElementById('inp-secret').value.trim();
@@ -499,7 +491,6 @@ async function doTokenLogin() {
 
 function showLoginErr(el, msg) { el.textContent=msg; el.classList.add('show'); }
 
-// ── Enter app ────────────────────────────────────────────────────────────────
 function enterApp(user) {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-shell').classList.add('visible');
@@ -511,7 +502,6 @@ function enterApp(user) {
   pingHealth();
 }
 
-// ── Restore session ──────────────────────────────────────────────────────────
 window.addEventListener('load', () => {
   const jwt    = sessionStorage.getItem('satu_jwt');
   const path   = sessionStorage.getItem('satu_admin_path');
@@ -525,12 +515,10 @@ window.addEventListener('load', () => {
     AUTH = { mode:'token', adminPath:path, adminSecret:secret };
     enterApp({ name:'Admin', email:'token', role:'admin' });
   }
-  // Pre-fill saved token fields
   if (path)   document.getElementById('inp-path').value   = path;
   if (secret) document.getElementById('inp-secret').value = secret;
 });
 
-// ── Logout ───────────────────────────────────────────────────────────────────
 function doLogout() {
   sessionStorage.clear();
   AUTH = { mode:null };
@@ -539,7 +527,7 @@ function doLogout() {
   showToast('Logged out', 'ok');
 }
 
-// ── API helpers ──────────────────────────────────────────────────────────────
+// ── API helpers ─────────────────────────────────────────────────────────────
 async function apiGet(url) {
   const headers = {};
   if (AUTH.mode==='jwt') {
@@ -550,18 +538,15 @@ async function apiGet(url) {
   }
   if (AUTH.mode==='token') {
     headers['X-Admin-Token'] = AUTH.adminSecret;
-    // Admin token mode: path goes to /ADMINPATH/api/TABLE
-    const cleanPath = AUTH.adminPath.replace(/^\/+/,'').replace(/\/+$/,'');
-    const adminBase = `${API}/${cleanPath}`;
-    // url is like /api/devices → append to admin base
-    const res = await fetch(adminBase + url, { headers });
-    if (res.status===403) { doLogout(); throw new Error('Invalid admin token'); }
+    // Route /api/TABLE → /v1/admin-data/TABLE
+    const fixedUrl = url.replace(/^\/api\//, '/v1/admin-data/');
+    const res = await fetch(API + fixedUrl, { headers });
+    if (res.status===403 || res.status===401) { doLogout(); throw new Error('Invalid token'); }
     return res;
   }
   throw new Error('Not authenticated');
 }
 
-// ── Navigation ───────────────────────────────────────────────────────────────
 function goPage(page, navEl) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -585,7 +570,6 @@ function loadPage(page) {
   else if (page==='d1' && currentD1Table) loadD1Table(currentD1Table);
 }
 
-// ── Dashboard ────────────────────────────────────────────────────────────────
 async function loadDashboard() {
   try {
     const [ordersRes, devicesRes, usersRes] = await Promise.all([
@@ -597,7 +581,6 @@ async function loadDashboard() {
     const devices = await devicesRes.json();
     const users   = await usersRes.json();
 
-    // KPIs
     const paid = orders.filter(o=>o.status==='paid');
     const today = paid.filter(o=>{
       const d = new Date(o.created_at > 9999999999 ? o.created_at : o.created_at*1000);
@@ -615,14 +598,12 @@ async function loadDashboard() {
     document.getElementById('badge-orders').textContent = orders.length;
     document.getElementById('badge-devices').textContent= devices.length;
 
-    // Recent tables
     document.getElementById('dash-orders-table').innerHTML  = renderOrdersTable(orders.slice(0,10));
     document.getElementById('dash-devices-table').innerHTML = renderDevicesTable(devices.slice(0,8));
 
   } catch(e) { showToast('Dashboard load failed: '+e.message,'err'); }
 }
 
-// ── Table loader ─────────────────────────────────────────────────────────────
 async function loadTable(page, apiPath, renderFn, containerId) {
   document.getElementById(containerId).innerHTML = '<div style="padding:20px 18px;" class="loading"><div class="spinner"></div>Loading...</div>';
   try {
@@ -632,7 +613,6 @@ async function loadTable(page, apiPath, renderFn, containerId) {
   } catch(e) { document.getElementById(containerId).innerHTML = `<div style="padding:20px 18px;font-family:var(--mono);font-size:12px;color:var(--red);">Error: ${e.message}</div>`; }
 }
 
-// ── Render functions ─────────────────────────────────────────────────────────
 function statusPill(s) {
   const map = {active:'green',paid:'green',pending:'yellow',disabled:'red',expired:'muted',failed:'red',claimed:'blue'};
   return `<span class="pill pill-${map[s]||'muted'}">${s}</span>`;
@@ -685,7 +665,6 @@ function emptyState(msg) {
   return `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">${msg}</div></div>`;
 }
 
-// ── D1 Browser ───────────────────────────────────────────────────────────────
 function buildD1Sidebar() {
   const sb = document.getElementById('d1-sidebar');
   sb.innerHTML = D1_TABLES.map(t=>
@@ -713,10 +692,8 @@ async function loadD1Table(table) {
       cols.forEach(col=>{
         let val = row[col];
         let display = val===null||val===undefined ? '—' : String(val);
-        // Format timestamps
         if((col.endsWith('_at')||col==='first_seen'||col==='last_heartbeat')&&typeof val==='number'&&val>1e9)
           display = fmtTs(val);
-        // Truncate
         const show = display.length>80 ? display.substring(0,77)+'…' : display;
         html+=`<td class="td-mono" title="${h(display)}" style="font-size:11px;">${h(show)}</td>`;
       });
@@ -727,7 +704,6 @@ async function loadD1Table(table) {
   } catch(e) { document.getElementById('d1-content').innerHTML=`<div style="padding:20px;font-family:var(--mono);font-size:12px;color:var(--red);">Error: ${e.message}</div>`; }
 }
 
-// ── Health ping ──────────────────────────────────────────────────────────────
 async function pingHealth() {
   try {
     const res  = await fetch(`${API}/health`);
@@ -742,7 +718,6 @@ async function pingHealth() {
   }
 }
 
-// ── Toast ────────────────────────────────────────────────────────────────────
 function showToast(msg, type='ok', dur=3500) {
   const c = document.getElementById('toastContainer');
   const t = document.createElement('div');
@@ -750,7 +725,6 @@ function showToast(msg, type='ok', dur=3500) {
   c.appendChild(t); setTimeout(()=>t.remove(),dur);
 }
 
-// ── Escape ───────────────────────────────────────────────────────────────────
 function h(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 </script>
 </body>
