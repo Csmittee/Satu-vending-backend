@@ -8,6 +8,9 @@ import { authenticateJWT } from '../middleware/auth.js';
 //          Added handleGetSlots()  — GET  /v1/dashboard/slots
 //          Added handleSaveSlots() — PUT  /v1/dashboard/slots
 //          Heartbeat fix: connection_logs columns corrected
+//   R4   — handleMachineHello: added config{} block to active response
+//          Added handleMachineCompletion — POST /v1/machine/completion
+//          Added handleFactoryReset     — POST /v1/machine/factory-reset
 //
 //  SLOT ARCHITECTURE:
 //   Temple owner logs into dashboard → edits slots → PUT /v1/dashboard/slots
@@ -71,7 +74,6 @@ async function _loadSlots(env, deviceId) {
         ).bind(deviceId).all();
         return rows.results || [];
     } catch (e) {
-        // Table may not exist yet — fail silently, machine uses defaults
         console.error('machine_slots query failed (table may not exist):', e.message);
         return [];
     }
@@ -79,7 +81,8 @@ async function _loadSlots(env, deviceId) {
 
 // ════════════════════════════════════════════════════════════════════════════
 //  HANDLE MACHINE HELLO
-//  R3.1: now includes slots[] in response for active devices
+//  R3.1: includes slots[] for active devices
+//  R4:   includes config{} block for active devices
 // ════════════════════════════════════════════════════════════════════════════
 export async function handleMachineHello(request, env) {
     try {
@@ -106,7 +109,6 @@ export async function handleMachineHello(request, env) {
                 `UPDATE devices SET firmware_version = ?, last_heartbeat = ? WHERE mac = ?`
             ).bind(firmware, now, mac).run();
 
-            // Load slots for active devices so machine can populate the grid
             const slots = existing.status === 'active'
                 ? await _loadSlots(env, existing.device_id)
                 : [];
@@ -123,12 +125,20 @@ export async function handleMachineHello(request, env) {
                 message:       existing.status === 'active'
                     ? 'Device active'
                     : 'Device pending claim — enter setup code in dashboard',
-                slots:         slots.map(s => ({
-                    slot:     s.slot,
-                    name_th:  s.name_th  || '',
-                    name_en:  s.name_en  || '',
-                    price:    s.price    || 0,
-                    enabled:  s.enabled  === 1
+                config: existing.status === 'active' ? {
+                    idle_timeout:      60,
+                    selection_timeout: 15,
+                    sacred_water:      true,
+                    lucky_number:      true,
+                    grid_rows:         2,
+                    grid_cols:         5
+                } : null,
+                slots: slots.map(s => ({
+                    slot:    s.slot,
+                    name_th: s.name_th  || '',
+                    name_en: s.name_en  || '',
+                    price:   s.price    || 0,
+                    enabled: s.enabled  === 1
                 }))
             });
         }
@@ -160,6 +170,7 @@ export async function handleMachineHello(request, env) {
             setup_code:    setupCode,
             device_secret: deviceSecret,
             message:       'Device registered. Enter setup code in dashboard to activate.',
+            config:        null,
             slots:         []
         });
 
@@ -307,8 +318,6 @@ export async function handleClaimDevice(request, env) {
 
 // ════════════════════════════════════════════════════════════════════════════
 //  HANDLE GET SLOTS  — GET /v1/dashboard/slots?device_id=SATU-XXXXXX
-//  Temple owner reads current slot config for their machine.
-//  Auth: JWT (dashboard login). Owner can only read their own device.
 // ════════════════════════════════════════════════════════════════════════════
 export async function handleGetSlots(request, env) {
     try {
@@ -323,7 +332,6 @@ export async function handleGetSlots(request, env) {
             return Response.json({ error: 'device_id required' }, { status: 400 });
         }
 
-        // Verify this device belongs to the logged-in owner
         const device = await env.DB.prepare(
             `SELECT device_id, temple_name FROM devices
              WHERE device_id = ? AND owner_id = ?`
@@ -355,16 +363,6 @@ export async function handleGetSlots(request, env) {
 
 // ════════════════════════════════════════════════════════════════════════════
 //  HANDLE SAVE SLOTS  — PUT /v1/dashboard/slots
-//  Temple owner saves slot config. Backend writes to machine_slots,
-//  then queues reload_slots command so machine updates without reboot.
-//
-//  Body: {
-//    device_id: "SATU-XXXXXX",
-//    slots: [
-//      { slot: 1, name_th: "พระเครื่อง", name_en: "Amulet", price: 100, enabled: true },
-//      ...
-//    ]
-//  }
 // ════════════════════════════════════════════════════════════════════════════
 export async function handleSaveSlots(request, env) {
     try {
@@ -380,7 +378,6 @@ export async function handleSaveSlots(request, env) {
             return Response.json({ error: 'device_id and slots[] required' }, { status: 400 });
         }
 
-        // Verify ownership
         const device = await env.DB.prepare(
             `SELECT device_id FROM devices WHERE device_id = ? AND owner_id = ?`
         ).bind(device_id, auth.userId).first();
@@ -389,7 +386,6 @@ export async function handleSaveSlots(request, env) {
             return Response.json({ error: 'Device not found or not yours' }, { status: 403 });
         }
 
-        // Validate slots
         for (const s of slots) {
             if (!s.slot || s.slot < 1 || s.slot > 21) {
                 return Response.json({ error: `Invalid slot number: ${s.slot}` }, { status: 400 });
@@ -406,7 +402,6 @@ export async function handleSaveSlots(request, env) {
 
         const now = Date.now();
 
-        // Upsert each slot
         for (const s of slots) {
             await env.DB.prepare(
                 `INSERT INTO machine_slots (device_id, slot, name_th, name_en, price, enabled, updated_at)
@@ -428,20 +423,117 @@ export async function handleSaveSlots(request, env) {
             ).run();
         }
 
-        // Queue reload_slots command so machine updates grid without reboot
         await env.DB.prepare(
             `INSERT INTO device_commands (device_id, command, data, created_at, executed)
              VALUES (?, 'reload_slots', '{}', ?, 0)`
         ).bind(device_id, now).run();
 
         return Response.json({
-            status:  'ok',
-            message: `${slots.length} slot(s) saved. Machine will update within 30 seconds.`,
+            status:      'ok',
+            message:     `${slots.length} slot(s) saved. Machine will update within 30 seconds.`,
             slots_saved: slots.length
         });
 
     } catch (error) {
         console.error('Save slots error:', error);
+        return Response.json({ error: 'Internal error' }, { status: 500 });
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  HANDLE MACHINE COMPLETION  — POST /v1/machine/completion
+//  R4: records vend outcome (success/failed) and slot number
+// ════════════════════════════════════════════════════════════════════════════
+export async function handleMachineCompletion(request, env) {
+    try {
+        const body = await request.json();
+        const { device_id, order_id, success, slot } = body;
+
+        if (!device_id || !order_id) {
+            return Response.json({ error: 'device_id and order_id required' }, { status: 400 });
+        }
+
+        const auth = await authenticateDevice(request, env, device_id);
+        if (!auth.valid) {
+            return Response.json({ error: auth.reason }, { status: 401 });
+        }
+
+        await env.DB.prepare(
+            `UPDATE orders SET status = ? WHERE order_id = ? AND device_id = ?`
+        ).bind(success ? 'dispensed' : 'vend_failed', order_id, device_id).run();
+
+        await env.DB.prepare(
+            `INSERT INTO connection_logs (device_id, event_type, details, created_at) VALUES (?, ?, ?, ?)`
+        ).bind(
+            device_id,
+            'completion',
+            JSON.stringify({ success: success || false, slot: slot || null, order_id }),
+            Date.now()
+        ).run();
+
+        return Response.json({ status: 'ok', message: 'Completion recorded' });
+
+    } catch (error) {
+        console.error('Completion error:', error);
+        return Response.json({ error: 'Internal error' }, { status: 500 });
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  HANDLE FACTORY RESET  — POST /v1/machine/factory-reset
+//  R4: resets device to pending, generates new setup code
+//  Machine MUST call this first — only wipes NVS on HTTP 200
+// ════════════════════════════════════════════════════════════════════════════
+export async function handleFactoryReset(request, env) {
+    try {
+        const body = await request.json();
+        const { device_id } = body;
+
+        if (!device_id) {
+            return Response.json({ error: 'device_id required' }, { status: 400 });
+        }
+
+        const auth = await authenticateDevice(request, env, device_id);
+        if (!auth.valid) {
+            return Response.json({ error: auth.reason }, { status: 401 });
+        }
+
+        const device = await env.DB.prepare(
+            'SELECT mac FROM devices WHERE device_id = ?'
+        ).bind(device_id).first();
+
+        if (!device) {
+            return Response.json({ error: 'Device not found' }, { status: 404 });
+        }
+
+        const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const now     = Date.now();
+
+        await env.DB.prepare(
+            `UPDATE devices SET owner_id = NULL, status = 'pending' WHERE device_id = ?`
+        ).bind(device_id).run();
+
+        await env.DB.prepare(
+            `DELETE FROM setup_codes WHERE device_id = ?`
+        ).bind(device_id).run();
+
+        await env.DB.prepare(
+            `INSERT INTO setup_codes (code, assigned_mac, device_id, used, generated_at) VALUES (?, ?, ?, 0, ?)`
+        ).bind(newCode, device.mac, device_id, now).run();
+
+        await env.DB.prepare(
+            `INSERT INTO connection_logs (device_id, event_type, details, created_at) VALUES (?, ?, ?, ?)`
+        ).bind(
+            device_id,
+            'factory_reset',
+            JSON.stringify({ initiated_by: 'machine' }),
+            now
+        ).run();
+
+        return Response.json({ status: 'ok', message: 'Device reset. New setup code generated.' });
+
+    } catch (error) {
+        console.error('Factory reset error:', error);
         return Response.json({ error: 'Internal error' }, { status: 500 });
     }
 }
