@@ -19,9 +19,11 @@
 ## Key Files (read before touching anything)
 - `RULES.md` — lessons learned · read every session
 - `PROJECT_STATE.md` — phase status · roadmap · what's broken
-- `CHAT_HANDOFF.md` — last session summary · read at session start
+- `CHAT_HANDOFF.md` — last session summary · read at session start · overwrite each session
+- `WORKFLOW_SKILL.md` — how Chat + CC + Owner work together · session modes · two loops
+- `KNOWLEDGE_MAP.md` — navigation guide · what to read for each task
 
 ## Repos
 - Backend: `Csmittee/Satu-vending-backend`
 - Firmware: `Csmittee/Satu-Vending-Firmware`
-- Hardware: `Csmittee/Satu-vending-hardware`
+- Hardware: `Csmittee/Satu-vending-hardware` — wiring diagrams, BOM — read before any hardware decision
