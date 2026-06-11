@@ -1,5 +1,16 @@
 # RULES.md — Satu Lessons (newest at TOP)
 <!-- CC prepends new rule after every session · Chat adds from design decisions · stays scannable -->
+<!-- Split to .claude/rules/ when rule count exceeds 50 -->
+
+## Three-Repo + Session Closing Rules (added 2026-06-11)
+- R-83: Three-repo system — Chat and CC must read all three repos before any decision:
+         backend (Satu-vending-backend), firmware (Satu-Vending-Firmware),
+         hardware (Satu-vending-hardware). Hardware repo = wiring + BOM reference only.
+         Never modify hardware repo wiring/BOM files. hardware.h R2 LOCKED in all contexts.
+- R-84: Session closing discipline — every CC session ends:
+         archive prompt → append RULES.md → update PROJECT_STATE.md →
+         overwrite CHAT_HANDOFF.md → commit all docs → merge to main.
+         No session closes without this sequence complete.
 
 ## Session Protocol
 - R-01: CC reads CLAUDE.md + RULES.md + PROJECT_STATE.md before touching any file — state names aloud

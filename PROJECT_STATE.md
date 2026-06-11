@@ -245,3 +245,24 @@ R3.1 features:
 - Single vs dual ESP32: still undecided — does not block current work
 - PDPA legal review: not started
 - Utility model (IP): not filed — file before any public demo
+
+---
+## Workflow System — Added 2026-06-11
+
+### New Documents Added This Session
+- `WORKFLOW_SKILL.md` — dual-loop (Cloud Loop A + Firmware Loop B), session modes, CC template
+- `CHAT_HANDOFF.md` — session handoff, overwrite each session
+- `KNOWLEDGE_MAP.md` — navigation guide (backend repo copy)
+
+### Hardware Repo Reference
+- `Csmittee/Satu-vending-hardware` — wiring diagrams, BOM
+- Key hardware facts extracted: ESP32-8048S070C board (1600 THB), MCP23017×2 I/O expanders (0x20 sensors 1-8 relays 1-6 / 0x21 sensors 9-10 relays 7-12), 10× IR sensors E18-D80NK, 8+2 channel relays (requires separate 12V supply), RDM6300 ID card reader, WS2812B LEDs, metal frame 1.5mm steel. Total BOM ~8070 THB.
+- Read before any pin mapping or hardware-layer decision
+
+### Session Closing Discipline (from this point forward)
+Every CC session ends with:
+1. Archive CC_PROMPT → docs/prompts/ stamped ✅ COMPLETE — [date] — [summary]
+2. Append new rules → RULES.md (newest at TOP)
+3. Update PROJECT_STATE.md phase status
+4. Overwrite CHAT_HANDOFF.md with current state
+5. Commit all docs → merge to main
