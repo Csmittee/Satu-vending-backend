@@ -22,6 +22,7 @@
 - `CHAT_HANDOFF.md` — last session summary · read at session start · overwrite each session
 - `WORKFLOW_SKILL.md` — how Chat + CC + Owner work together · session modes · two loops
 - `KNOWLEDGE_MAP.md` — navigation guide · what to read for each task
+- - `KNOWN_GOOD.md` — timestamped test snapshots, last confirmed working state
 
 ## Repos
 - Backend: `Csmittee/Satu-vending-backend`
