@@ -1,7 +1,7 @@
 # RULES.md — Satu 1.0 Universal Rules
 > For domain rules: load `.claude/rules/RULES-[domain].md`
 > Domain files: workflow · backend · firmware · hardware · security
-> Last updated: 2026-06-11
+> Last updated: 2026-06-12
 
 ---
 
@@ -17,6 +17,15 @@
 8. **Three-repo system** — read all three repos before any decision (detail → RULES-workflow R-83)
 9. **Session closing** — archive → RULES.md → PROJECT_STATE.md → commit (detail → RULES-workflow R-84)
 10. **No ghost devices** — only SATU-TEST001 (AA:BB:CC:DD:EE:00) + SATU-SIM01 (AA:BB:CC:DD:EE:01)
+- **R-85 NO HARDCODED CREDENTIALS — PERMANENT RULE (2026-06-12):**
+  WiFi credentials NEVER in source files or git — NVS only (nvs_ssid / nvs_pass).
+  config.h WIFI_SSID and WIFI_PASSWORD MUST remain empty strings ("") permanently.
+  Credentials entered via drawWifiSetupScreen() touchscreen → saveWifiAndReboot() → NVS.
+  Do NOT suggest filling in config.h WiFi fields in any session, ever.
+- **R-86 config.h WORKFLOW — PERMANENT RULE (2026-06-12):**
+  config.h = gitignored local file for pin constants and build config only.
+  config.h.example = tracked template in git — WIFI_SSID="" WIFI_PASSWORD="" intentional.
+  On new machine: copy config.h.example → config.h, leave WiFi empty, flash, enter on screen.
 
 ---
 
