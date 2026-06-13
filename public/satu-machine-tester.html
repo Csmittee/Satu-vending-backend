@@ -7,85 +7,80 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+html, body { height: 100%; }
 body {
   background: #0a0b0e;
-  min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #ccc;
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
 
-/* ── Page header ── */
-.page-header {
-  border-bottom: 1px solid #1e2028;
-  padding-bottom: 12px;
-  margin-bottom: 16px;
-}
-.page-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #d4a843;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-}
-.page-sub { font-size: 11px; color: #555; margin-top: 3px; letter-spacing: 1px; }
+/* ══ SIDEBAR LAYOUT ══ */
+.app-shell { display: flex; flex: 1; min-height: 0; }
 
-/* ── Two-column layout ── */
-.main-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
+.sidebar {
+  width: 200px;
+  min-width: 200px;
+  background: #0d0e14;
+  border-right: 1px solid #1e2028;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex-shrink: 0;
 }
+.sidebar-brand { padding: 20px 16px 16px; border-bottom: 1px solid #1e2028; }
+.sidebar-title { font-size: 22px; font-weight: 800; color: #d4a843; letter-spacing: 5px; }
+.sidebar-sub   { font-size: 10px; color: #555; letter-spacing: 2px; text-transform: uppercase; margin-top: 3px; }
+.sidebar-nav   { padding: 10px 0; }
+.nav-item {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: #666;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+  line-height: 1.4;
+  user-select: none;
+}
+.nav-item:hover { color: #aaa; background: #12131a; }
+.nav-item.active { color: #d4a843; background: #12131a; border-left-color: #d4a843; }
 
-/* ── Cards / panels ── */
+/* ══ MAIN AREA ══ */
+.main-area { flex: 1; overflow-y: auto; padding: 16px; min-width: 0; }
+.section { display: none; }
+.section.active { display: block; }
+
+.section-header { border-bottom: 1px solid #1e2028; padding-bottom: 10px; margin-bottom: 14px; }
+.section-title  { font-size: 14px; font-weight: 700; color: #d4a843; letter-spacing: 2px; text-transform: uppercase; }
+.section-sub    { font-size: 10px; color: #555; margin-top: 3px; letter-spacing: 1px; }
+
+/* ══ CARDS ══ */
 .card {
-  background: #12131a;
-  border: 1px solid #1e2028;
-  border-radius: 8px;
-  padding: 16px;
+  background: #12131a; border: 1px solid #1e2028;
+  border-radius: 8px; padding: 14px; margin-bottom: 14px;
 }
 .card-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #d4a843;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #1e2028;
+  font-size: 11px; font-weight: 600; color: #d4a843;
+  letter-spacing: 2px; text-transform: uppercase;
+  margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #1e2028;
 }
 
-/* ── Controls row ── */
-.ctrl-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-}
+/* ══ CONTROLS ══ */
+.ctrl-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 12px; flex-wrap: wrap; }
 .ctrl-group { display: flex; flex-direction: column; gap: 3px; }
-.ctrl-label { font-size: 10px; color: #555; letter-spacing: 1px; }
+.ctrl-label { font-size: 10px; color: #555; letter-spacing: 1px; text-transform: uppercase; }
 select {
-  background: #0a0b0e;
-  border: 1px solid #2a2a36;
-  color: #ccc;
-  padding: 5px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-family: monospace;
+  background: #0a0b0e; border: 1px solid #2a2a36; color: #ccc;
+  padding: 5px 8px; border-radius: 4px; font-size: 11px; font-family: monospace;
 }
 .btn {
-  background: #1a1b26;
-  border: 1px solid #2a2a36;
-  color: #aaa;
-  padding: 7px 14px;
-  border-radius: 4px;
-  font-size: 11px;
-  cursor: pointer;
-  letter-spacing: 1px;
-  transition: all 0.15s;
-  white-space: nowrap;
+  background: #1a1b26; border: 1px solid #2a2a36; color: #aaa;
+  padding: 6px 12px; border-radius: 4px; font-size: 11px;
+  cursor: pointer; letter-spacing: 1px; transition: all 0.15s;
+  white-space: nowrap; font-family: inherit;
 }
 .btn:hover { border-color: #d4a843; color: #d4a843; }
 .btn.primary { border-color: #d4a843; color: #d4a843; }
@@ -94,285 +89,288 @@ select {
 .btn.danger:hover { background: #1a0000; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* ── Node flow ── */
-.node-list { display: flex; flex-direction: column; gap: 0; }
-.node-arrow {
-  width: 2px;
-  height: 16px;
-  margin: 0 auto;
-  background: #2a2a36;
-  transition: background 0.3s;
+/* ══ NODE FLOW ══ */
+.node-list { display: flex; flex-direction: column; }
+
+/* Visible arrow connector — vertical line + ▼ head */
+.node-connector { display: flex; flex-direction: column; align-items: center; height: 26px; }
+.connector-line {
+  width: 2px; height: 16px; background: #2e2e3a; transition: background 0.3s;
 }
-.node-arrow.green { background: #4caf50; }
-.node-arrow.red { background: #ff4444; }
+.connector-head {
+  width: 0; height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #2e2e3a;
+  transition: border-top-color 0.3s;
+}
+.node-connector.green .connector-line { background: #2d6a31; }
+.node-connector.green .connector-head { border-top-color: #2d6a31; }
+.node-connector.red   .connector-line { background: #7a1a1a; }
+.node-connector.red   .connector-head { border-top-color: #7a1a1a; }
 
 .node-card {
-  background: #1a1b26;
-  border: 1px solid #2a2a36;
-  border-radius: 6px;
-  padding: 10px 12px;
-  cursor: pointer;
-  transition: border-color 0.15s;
-  position: relative;
+  background: #1a1b26; border: 1px solid #2a2a36;
+  border-radius: 6px; padding: 8px 12px; cursor: pointer; transition: border-color 0.15s;
 }
-.node-card:hover { border-color: #d4a843; }
+.node-card:hover   { border-color: #d4a843; }
 .node-card.running { border-color: #4fc3f7; }
-.node-card.pass { border-color: #4caf50; }
-.node-card.fail { border-color: #ff4444; }
-.node-card.skip { opacity: 0.45; }
+.node-card.pass    { border-color: #4caf50; }
+.node-card.fail    { border-color: #ff4444; }
+.node-card.skip    { opacity: 0.4; }
 
 .node-header { display: flex; align-items: center; gap: 8px; }
-.node-icon { font-size: 16px; }
-.node-name { font-size: 12px; font-weight: 600; color: #ccc; flex: 1; }
-.node-badge {
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-family: monospace;
-  background: #0a0b0e;
-  color: #555;
-  border: 1px solid #2a2a36;
+.node-icon   { font-size: 14px; }
+.node-name   { font-size: 11px; font-weight: 600; color: #ccc; flex: 1; }
+.node-badge  {
+  font-size: 10px; padding: 2px 8px; border-radius: 10px;
+  font-family: monospace; background: #0a0b0e; color: #555; border: 1px solid #2a2a36;
 }
 .node-badge.pending { color: #555; }
 .node-badge.running { color: #4fc3f7; border-color: #4fc3f7; animation: pulse 1s ease-in-out infinite; }
-.node-badge.pass { color: #4caf50; border-color: #4caf50; }
-.node-badge.fail { color: #ff4444; border-color: #ff4444; }
-.node-badge.skip { color: #888; border-color: #444; }
-@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+.node-badge.pass    { color: #4caf50; border-color: #4caf50; }
+.node-badge.fail    { color: #ff4444; border-color: #ff4444; }
+.node-badge.skip    { color: #777; border-color: #444; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
 
 .node-detail {
-  display: none;
-  margin-top: 8px;
-  padding-top: 8px;
+  display: none; margin-top: 6px; padding-top: 6px;
   border-top: 1px solid #1e2028;
-  font-size: 10px;
-  color: #555;
-  font-family: monospace;
-  line-height: 1.8;
+  font-size: 10px; color: #555; font-family: monospace; line-height: 1.8;
 }
 .node-detail.visible { display: block; }
-.node-detail .ok { color: #4caf50; }
-.node-detail .err { color: #ff4444; }
+.node-detail .ok   { color: #4caf50; }
+.node-detail .err  { color: #ff4444; }
 .node-detail .info { color: #4fc3f7; }
+.node-detail .warn { color: #ff8c00; }
 
-/* ── Fleet section ── */
+/* ══ TABS ══ */
+.tab-bar { display: flex; gap: 4px; border-bottom: 1px solid #1e2028; margin-bottom: 14px; }
+.tab-btn {
+  background: none; border: none; border-bottom: 2px solid transparent;
+  color: #555; padding: 8px 14px; font-size: 12px; cursor: pointer;
+  letter-spacing: 0.5px; transition: all 0.15s; margin-bottom: -1px; font-family: inherit;
+}
+.tab-btn:hover { color: #aaa; }
+.tab-btn.active { color: #d4a843; border-bottom-color: #d4a843; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ══ FLEET ══ */
 .machine-slot {
-  background: #1a1b26;
-  border: 1px solid #2a2a36;
-  border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 10px;
+  background: #1a1b26; border: 1px solid #2a2a36;
+  border-radius: 6px; padding: 10px; margin-bottom: 10px;
 }
-.machine-slot-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-.machine-num {
-  font-size: 11px;
-  font-weight: 700;
-  color: #d4a843;
-  letter-spacing: 1px;
-  min-width: 70px;
-}
+.machine-slot-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.machine-num { font-size: 11px; font-weight: 700; color: #d4a843; letter-spacing: 1px; min-width: 70px; }
 .machine-status-badge {
-  font-size: 10px;
-  font-family: monospace;
-  padding: 2px 8px;
-  border-radius: 10px;
-  margin-left: auto;
-  background: #0a0b0e;
-  color: #555;
-  border: 1px solid #2a2a36;
+  font-size: 10px; font-family: monospace; padding: 2px 8px; border-radius: 10px;
+  margin-left: auto; background: #0a0b0e; color: #555; border: 1px solid #2a2a36;
 }
 .machine-status-badge.firing { color: #4fc3f7; border-color: #4fc3f7; animation: pulse 1s ease-in-out infinite; }
-.machine-status-badge.done { color: #4caf50; border-color: #4caf50; }
+.machine-status-badge.done   { color: #4caf50; border-color: #4caf50; }
 .machine-status-badge.failed { color: #ff4444; border-color: #ff4444; }
+.machine-result { font-size: 10px; color: #555; font-family: monospace; margin-top: 4px; padding-top: 4px; border-top: 1px solid #1e2028; display: none; }
 
-.machine-result {
-  font-size: 10px;
-  color: #555;
-  font-family: monospace;
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px solid #1e2028;
-  display: none;
-}
-
-/* ── Results panel ── */
-.results-panel {
-  display: none;
-  background: #12131a;
-  border: 1px solid #2a2a36;
-  border-radius: 6px;
-  padding: 14px;
-  margin-top: 14px;
-}
+.results-panel { display: none; background: #12131a; border: 1px solid #2a2a36; border-radius: 6px; padding: 12px; margin-top: 12px; }
 .results-panel.visible { display: block; }
-.results-title {
-  font-size: 11px;
-  font-weight: 700;
-  color: #d4a843;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #1e2028;
-}
-.results-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 4px 0;
-  font-size: 11px;
-  font-family: monospace;
-  border-bottom: 1px solid #0d0e14;
-}
+.results-title { font-size: 11px; font-weight: 700; color: #d4a843; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #1e2028; }
+.results-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px; font-family: monospace; border-bottom: 1px solid #0d0e14; }
 .results-row .label { color: #666; }
-.results-row .val { color: #ccc; }
-.results-row .val.ok { color: #4caf50; }
+.results-row .val   { color: #ccc; }
+.results-row .val.ok  { color: #4caf50; }
 .results-row .val.err { color: #ff4444; }
-.results-machine-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 3px 0;
-  font-size: 11px;
-  font-family: monospace;
-}
-.observations {
-  margin-top: 10px;
-  padding: 10px;
-  background: #0a0b0e;
-  border-radius: 4px;
-  border-left: 3px solid #d4a843;
-  font-size: 11px;
-  color: #888;
-  line-height: 1.8;
-}
+.results-machine-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px; font-family: monospace; }
+.observations { margin-top: 10px; padding: 8px 10px; background: #0a0b0e; border-radius: 4px; border-left: 3px solid #d4a843; font-size: 11px; color: #888; line-height: 1.8; }
 .observations .obs-title { color: #d4a843; font-weight: 600; margin-bottom: 4px; }
 
-/* ── Activity log ── */
-.log-panel {
-  background: #12131a;
-  border: 1px solid #1e2028;
-  border-radius: 8px;
-  padding: 12px 16px;
+/* ══ NETWORK VIEW ══ */
+.network-canvas {
+  position: relative; width: 100%; height: 480px;
+  background: #0d0e14; border: 1px solid #1e2028; border-radius: 8px; overflow: hidden;
 }
-.log-area {
-  background: #06070a;
-  border: 1px solid #1a1b26;
-  border-radius: 4px;
-  padding: 10px;
-  height: 160px;
-  overflow-y: auto;
-  font-size: 10px;
-  font-family: monospace;
-  line-height: 1.7;
-}
-.log-line { color: #444; }
-.log-line.ok { color: #4caf50; }
-.log-line.err { color: #ff4444; }
-.log-line.net { color: #4fc3f7; }
-.log-line.warn { color: #ff8c00; }
-.log-line.state { color: #d4a843; }
+#network-svg { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
 
-/* ── Error badge ── */
-.err-msg {
-  color: #ff6b6b;
-  font-size: 11px;
-  font-family: monospace;
-  padding: 4px 0;
+.net-node {
+  position: absolute; border-radius: 8px; padding: 8px 10px; cursor: default; user-select: none;
 }
+.net-node-inner { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.net-node-icon  { font-size: 18px; line-height: 1; }
+.net-node-label { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; text-align: center; white-space: nowrap; }
+.net-node-sub   { font-size: 8px; color: #555; font-family: monospace; text-align: center; }
+.net-node-stat  { font-size: 8px; padding: 1px 5px; border-radius: 6px; font-family: monospace; background: #0a0b0e; border: 1px solid #2a2a36; color: #555; margin-top: 2px; }
+
+.net-node.machine { background: #1a1b26; border: 1px solid #2a2a36; min-width: 105px; }
+.net-node.machine.active { border-color: #4fc3f7; }
+.net-node.machine.done   { border-color: #4caf50; }
+.net-node.machine.failed { border-color: #ff4444; }
+.net-node.backend { background: #131624; border: 2px solid #2a3060; min-width: 118px; }
+.net-node.db      { background: #131a14; border: 1px solid #2a4030; min-width: 108px; }
+.net-node.service { background: #1a1320; border: 1px solid #302a40; min-width: 108px; }
+
+@keyframes heartbeat { 0%,85%,100%{opacity:1;} 92%{opacity:0.5;} }
+.net-node { animation: heartbeat 3s ease-in-out infinite; }
+.net-node:nth-child(2) { animation-delay: 0.5s; }
+.net-node:nth-child(3) { animation-delay: 1.0s; }
+.net-node:nth-child(4) { animation-delay: 1.5s; }
+.net-node:nth-child(5) { animation-delay: 2.0s; }
+.net-node:nth-child(6) { animation-delay: 0.3s; }
+.net-node:nth-child(7) { animation-delay: 0.8s; }
+.net-node:nth-child(8) { animation-delay: 1.3s; }
+
+.net-line { stroke: #222230; stroke-width: 2; fill: none; transition: stroke 0.4s; }
+.net-line.active  { stroke: #4fc3f7; stroke-dasharray: 10 5; animation: line-flow 0.7s linear infinite; }
+.net-line.success { stroke: #2d6a31; }
+.net-line.failure { stroke: #7a1a1a; }
+@keyframes line-flow { to { stroke-dashoffset: -30; } }
+
+.net-legend {
+  position: absolute; bottom: 10px; right: 10px;
+  font-size: 9px; font-family: monospace; color: #444;
+  line-height: 2; background: rgba(10,11,14,0.85); padding: 6px 8px; border-radius: 4px;
+}
+.net-legend-item { display: flex; align-items: center; gap: 6px; }
+.net-legend-line  { width: 18px; height: 2px; }
+.net-legend-line.idle { background: #222230; }
+.net-legend-line.act  { background: #4fc3f7; }
+.net-legend-line.ok   { background: #2d6a31; }
+.net-legend-line.fail { background: #7a1a1a; }
+
+/* ══ ACTIVITY LOG ══ */
+.log-panel { background: #0d0e14; border-top: 1px solid #1e2028; padding: 10px 16px; flex-shrink: 0; }
+.log-area {
+  background: #06070a; border: 1px solid #1a1b26; border-radius: 4px;
+  padding: 8px 10px; height: 120px; overflow-y: auto;
+  font-size: 10px; font-family: monospace; line-height: 1.7;
+}
+.log-line       { color: #444; }
+.log-line.ok    { color: #4caf50; }
+.log-line.err   { color: #ff4444; }
+.log-line.net   { color: #4fc3f7; }
+.log-line.warn  { color: #ff8c00; }
+.log-line.state { color: #d4a843; }
+.err-msg { color: #ff6b6b; font-size: 11px; font-family: monospace; padding: 4px 0; }
 </style>
 </head>
 <body>
 
-<div class="page-header">
-  <div class="page-title">SATU Machine Farm Simulator</div>
-  <div class="page-sub">End-to-end integration flow + multi-machine stress test</div>
-</div>
+<div class="app-shell">
 
-<div class="main-layout">
-  <!-- ═══════════════════════════════════════════════════════════════════ -->
-  <!-- SECTION A — Single Flow Test -->
-  <!-- ═══════════════════════════════════════════════════════════════════ -->
-  <div class="card">
-    <div class="card-title">Section A — Single Flow Test</div>
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-title">SATU</div>
+      <div class="sidebar-sub">Machine Farm</div>
+    </div>
+    <div class="sidebar-nav">
+      <div id="nav-a" class="nav-item active" onclick="showSection('a')">🔬 Single Flow Test</div>
+      <div id="nav-b" class="nav-item" onclick="showSection('b')">🖥️ Machine Fleet</div>
+    </div>
+  </nav>
 
-    <div class="ctrl-row">
-      <div class="ctrl-group">
-        <span class="ctrl-label">DEVICE</span>
-        <select id="flow-device">
-          <option value="AA:BB:CC:DD:EE:00">SATU-TEST001 — Backend tests</option>
-          <option value="AA:BB:CC:DD:EE:01">SATU-SIM01 — Simulator</option>
-          <option value="3C:DC:75:5D:DD:2C">SATU-4R473R — Physical ESP32</option>
-        </select>
+  <!-- MAIN CONTENT -->
+  <main class="main-area">
+
+    <!-- ─── SECTION A: Single Flow Test ─── -->
+    <div id="section-a" class="section active">
+      <div class="section-header">
+        <div class="section-title">Single Flow Test</div>
+        <div class="section-sub">8-node end-to-end integration · one machine at a time</div>
       </div>
-      <div class="ctrl-group">
-        <span class="ctrl-label">PRODUCT</span>
-        <select id="flow-product">
-          <option value="1">1 — Blessing Card (10 THB)</option>
-          <option value="2" selected>2 — Small Amulet (20 THB)</option>
-          <option value="3">3 — Medium Amulet (50 THB)</option>
-          <option value="4">4 — Large Amulet (100 THB)</option>
-          <option value="5">5 — Monk Blessing (500 THB)</option>
-          <option value="6">6 — Temple Donation (1000 THB)</option>
-          <option value="7">7 — Merit Set (2000 THB)</option>
-          <option value="8">8 — Gold Leaf (5000 THB)</option>
-          <option value="9">9 — Buddha Statue (10000 THB)</option>
-          <option value="10">10 — Lifetime Blessing (20000 THB)</option>
-        </select>
+      <div class="card">
+        <div class="ctrl-row">
+          <div class="ctrl-group">
+            <span class="ctrl-label">Device</span>
+            <select id="flow-device">
+              <option value="AA:BB:CC:DD:EE:00">SATU-TEST001 — Backend tests</option>
+              <option value="AA:BB:CC:DD:EE:01">SATU-SIM01 — Simulator</option>
+              <option value="3C:DC:75:5D:DD:2C">SATU-4R473R — Physical ESP32</option>
+            </select>
+          </div>
+          <div class="ctrl-group">
+            <span class="ctrl-label">Product</span>
+            <select id="flow-product">
+              <option value="1">1 — Blessing Card (10 THB)</option>
+              <option value="2" selected>2 — Small Amulet (20 THB)</option>
+              <option value="3">3 — Medium Amulet (50 THB)</option>
+              <option value="4">4 — Large Amulet (100 THB)</option>
+              <option value="5">5 — Monk Blessing (500 THB)</option>
+              <option value="6">6 — Temple Donation (1000 THB)</option>
+              <option value="7">7 — Merit Set (2000 THB)</option>
+              <option value="8">8 — Gold Leaf (5000 THB)</option>
+              <option value="9">9 — Buddha Statue (10000 THB)</option>
+              <option value="10">10 — Lifetime Blessing (20000 THB)</option>
+            </select>
+          </div>
+          <button class="btn primary" id="btn-run-all" onclick="flowRunAll()">▶ Run All</button>
+          <button class="btn" id="btn-step" onclick="flowStep()">⏭ Step</button>
+          <button class="btn danger" onclick="flowReset()">🔄 Reset</button>
+        </div>
+        <div class="node-list" id="node-list"></div>
       </div>
     </div>
-    <div class="ctrl-row">
-      <button class="btn primary" id="btn-run-all" onclick="flowRunAll()">▶ Run All</button>
-      <button class="btn" id="btn-step" onclick="flowStep()">⏭ Step</button>
-      <button class="btn danger" onclick="flowReset()">🔄 Reset</button>
-    </div>
 
-    <!-- 8 Nodes -->
-    <div class="node-list" id="node-list">
-      <!-- Built by JS -->
-    </div>
-  </div>
+    <!-- ─── SECTION B: Machine Fleet ─── -->
+    <div id="section-b" class="section">
+      <div class="section-header">
+        <div class="section-title">Machine Fleet</div>
+        <div class="section-sub">Multi-machine stress test + live network diagram</div>
+      </div>
 
-  <!-- ═══════════════════════════════════════════════════════════════════ -->
-  <!-- SECTION B — Machine Fleet Stress Test -->
-  <!-- ═══════════════════════════════════════════════════════════════════ -->
-  <div class="card">
-    <div class="card-title">Section B — Machine Fleet Stress Test</div>
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-btn-stress"  onclick="showTab('stress')">🔥 Stress Test</button>
+        <button class="tab-btn"        id="tab-btn-network" onclick="showTab('network')">🌐 Network View</button>
+      </div>
 
-    <div style="font-size:10px; color:#555; margin-bottom:12px; line-height:1.7;">
-      Fire 2-3 machines simultaneously via Promise.all() to discover D1 write contention,
-      command queue isolation, rate limiter response, and Cloudflare concurrency limits.
-    </div>
+      <!-- Tab 1: Stress Test -->
+      <div id="tab-stress" class="tab-panel active">
+        <div class="card">
+          <div style="font-size:10px;color:#555;margin-bottom:12px;line-height:1.7;">
+            Fire 2–3 machines simultaneously via Promise.all() to discover D1 write contention,
+            command queue isolation, rate limiter response, and Cloudflare concurrency limits.
+          </div>
+          <div class="ctrl-row">
+            <button class="btn" id="btn-add-machine" onclick="fleetAddMachine()">+ Add Machine</button>
+            <button class="btn primary" id="btn-fire-all" onclick="fleetFireAll()">▶ Fire All Simultaneously</button>
+            <button class="btn danger" onclick="fleetReset()">🔄 Reset Fleet</button>
+          </div>
+          <div id="fleet-error" class="err-msg" style="display:none;"></div>
+          <div id="fleet-slots"></div>
+          <div class="results-panel" id="results-panel">
+            <div class="results-title">Stress Test Results</div>
+            <div id="results-body"></div>
+          </div>
+        </div>
+      </div>
 
-    <div class="ctrl-row">
-      <button class="btn" id="btn-add-machine" onclick="fleetAddMachine()">+ Add Machine</button>
-      <button class="btn primary" id="btn-fire-all" onclick="fleetFireAll()">▶ Fire All Simultaneously</button>
-      <button class="btn danger" onclick="fleetReset()">🔄 Reset Fleet</button>
-    </div>
-    <div id="fleet-error" class="err-msg" style="display:none;"></div>
+      <!-- Tab 2: Network View -->
+      <div id="tab-network" class="tab-panel">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:10px;color:#555;">Live network diagram — updates after each Fire All run</span>
+            <button class="btn" onclick="updateNetworkView()" style="font-size:10px;padding:4px 10px;">↺ Refresh</button>
+          </div>
+          <div class="network-canvas" id="network-canvas">
+            <svg id="network-svg"></svg>
+            <div class="net-legend">
+              <div class="net-legend-item"><div class="net-legend-line idle"></div> Idle</div>
+              <div class="net-legend-item"><div class="net-legend-line act"></div> Active</div>
+              <div class="net-legend-item"><div class="net-legend-line ok"></div> Pass</div>
+              <div class="net-legend-item"><div class="net-legend-line fail"></div> Fail</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <div id="fleet-slots">
-      <!-- Built by JS -->
-    </div>
+    </div><!-- /section-b -->
+  </main>
+</div><!-- /app-shell -->
 
-    <!-- Results panel -->
-    <div class="results-panel" id="results-panel">
-      <div class="results-title">Stress Test Results</div>
-      <div id="results-body"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!-- SECTION C — Activity Log -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- ACTIVITY LOG — full width, pinned to bottom -->
 <div class="log-panel">
-  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-    <div class="card-title" style="margin-bottom:0; border:none; padding:0;">Section C — Activity Log</div>
-    <button class="btn" onclick="clearLog()" style="font-size:10px; padding:4px 10px;">✕ Clear</button>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+    <span style="font-size:11px;font-weight:600;color:#d4a843;letter-spacing:2px;text-transform:uppercase;">Activity Log</span>
+    <button class="btn" onclick="clearLog()" style="font-size:10px;padding:3px 10px;">✕ Clear</button>
   </div>
   <div class="log-area" id="activity-log">
     <div class="log-line state">[Farm] Machine Farm Simulator loaded. Configure devices and run tests.</div>
@@ -386,44 +384,58 @@ select {
 const API_BASE = 'https://api.janishammer.com';
 
 const APPROVED_DEVICES = [
-  { mac: 'AA:BB:CC:DD:EE:00', id: 'SATU-TEST001', label: 'SATU-TEST001 — Backend tests' },
-  { mac: 'AA:BB:CC:DD:EE:01', id: 'SATU-SIM01',   label: 'SATU-SIM01 — Simulator' },
-  { mac: '3C:DC:75:5D:DD:2C', id: 'SATU-4R473R',  label: 'SATU-4R473R — Physical ESP32' },
+  { mac:'AA:BB:CC:DD:EE:00', id:'SATU-TEST001', label:'SATU-TEST001 — Backend tests' },
+  { mac:'AA:BB:CC:DD:EE:01', id:'SATU-SIM01',   label:'SATU-SIM01 — Simulator' },
+  { mac:'3C:DC:75:5D:DD:2C', id:'SATU-4R473R',  label:'SATU-4R473R — Physical ESP32' },
 ];
 
 const PRODUCTS = {
-  1:  { name: 'Blessing Card',     price: 10    },
-  2:  { name: 'Small Amulet',      price: 20    },
-  3:  { name: 'Medium Amulet',     price: 50    },
-  4:  { name: 'Large Amulet',      price: 100   },
-  5:  { name: 'Monk Blessing',     price: 500   },
-  6:  { name: 'Temple Donation',   price: 1000  },
-  7:  { name: 'Merit Set',         price: 2000  },
-  8:  { name: 'Gold Leaf',         price: 5000  },
-  9:  { name: 'Buddha Statue',     price: 10000 },
-  10: { name: 'Lifetime Blessing', price: 20000 },
+  1:{name:'Blessing Card',price:10},   2:{name:'Small Amulet',price:20},
+  3:{name:'Medium Amulet',price:50},   4:{name:'Large Amulet',price:100},
+  5:{name:'Monk Blessing',price:500},  6:{name:'Temple Donation',price:1000},
+  7:{name:'Merit Set',price:2000},     8:{name:'Gold Leaf',price:5000},
+  9:{name:'Buddha Statue',price:10000},10:{name:'Lifetime Blessing',price:20000},
 };
 
 const NODE_DEFS = [
-  { id: 1, icon: '🔌', name: 'Backend Health',      desc: 'GET /health' },
-  { id: 2, icon: '🖥️', name: 'Device Registration', desc: 'POST /v1/machine/hello' },
-  { id: 3, icon: '🛒', name: 'Order Creation',       desc: 'POST /v1/order' },
-  { id: 4, icon: '📱', name: 'QR Reachability',      desc: 'HEAD qr_code_url' },
-  { id: 5, icon: '💳', name: 'Payment Simulation',   desc: 'POST /v1/webhook/omise' },
-  { id: 6, icon: '📡', name: 'Command Delivery',     desc: 'GET /v1/machine/commands (poll ×5)' },
-  { id: 7, icon: '✅', name: 'Completion Report',    desc: 'POST /v1/machine/completion' },
-  { id: 8, icon: '🔁', name: 'Idempotency Check',    desc: 'Fire webhook ×2, verify count===1' },
+  { id:1, icon:'🔌', name:'Backend Health',      desc:'GET /health' },
+  { id:2, icon:'🖥️', name:'Device Registration', desc:'POST /v1/machine/hello' },
+  { id:3, icon:'🛒', name:'Order Creation',       desc:'POST /v1/order' },
+  { id:4, icon:'📱', name:'QR Reachability',      desc:'HEAD qr_code_url' },
+  { id:5, icon:'💳', name:'Payment Simulation',   desc:'POST /v1/webhook/omise' },
+  { id:6, icon:'📡', name:'Command Delivery',     desc:'GET /v1/machine/commands (poll x5)' },
+  { id:7, icon:'✅', name:'Completion Report',    desc:'POST /v1/machine/completion' },
+  { id:8, icon:'🔁', name:'Idempotency Check',    desc:'Fresh order → webhook x2 → verify count===1' },
 ];
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  NAV
+// ═══════════════════════════════════════════════════════════════════════════
+function showSection(id) {
+  ['a','b'].forEach(function(s){
+    document.getElementById('section-'+s).classList.toggle('active', s===id);
+    document.getElementById('nav-'+s).classList.toggle('active', s===id);
+  });
+  if (id==='b') setTimeout(updateNetworkView, 60);
+}
+
+function showTab(id) {
+  ['stress','network'].forEach(function(t){
+    document.getElementById('tab-'+t).classList.toggle('active', t===id);
+    document.getElementById('tab-btn-'+t).classList.toggle('active', t===id);
+  });
+  if (id==='network') setTimeout(updateNetworkView, 60);
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  LOGGING
 // ═══════════════════════════════════════════════════════════════════════════
-function farmLog(msg, type = '', source = 'Flow') {
-  const el = document.getElementById('activity-log');
-  const ts = new Date().toTimeString().slice(0, 8);
+function farmLog(msg, type, source) {
+  const el  = document.getElementById('activity-log');
+  const ts  = new Date().toTimeString().slice(0,8);
   const div = document.createElement('div');
-  div.className = 'log-line ' + type;
-  div.textContent = `[${ts}] [${source}] ${msg}`;
+  div.className   = 'log-line ' + (type||'');
+  div.textContent = '['+ts+'] ['+(source||'Flow')+'] '+msg;
   el.appendChild(div);
   el.scrollTop = el.scrollHeight;
 }
@@ -435,100 +447,76 @@ function clearLog() {
 // ═══════════════════════════════════════════════════════════════════════════
 //  SECTION A — SINGLE FLOW
 // ═══════════════════════════════════════════════════════════════════════════
-
-// Flow state
-let flowState = {
-  nodes: Array(8).fill(null).map((_, i) => ({
-    status: 'pending',  // pending | running | pass | fail | skip
-    detail: '',
-  })),
-  currentNode: 0,  // next node to execute (0-7)
-  running: false,
-  // per-run data
-  deviceId: '',
-  deviceSecret: '',
-  orderId: '',
-  qrUrl: '',
-  chargeId: '',
+var flowState = {
+  nodes: Array(8).fill(null).map(function(){return{status:'pending',detail:''}}),
+  currentNode:0, running:false,
+  deviceId:'', deviceSecret:'', orderId:'', qrUrl:'', chargeId:'',
 };
 
 function buildNodeList() {
   const list = document.getElementById('node-list');
   list.innerHTML = '';
-  NODE_DEFS.forEach((def, i) => {
-    // Arrow before each node except first
+  NODE_DEFS.forEach(function(def,i){
     if (i > 0) {
-      const arrow = document.createElement('div');
-      arrow.className = 'node-arrow';
-      arrow.id = `arrow-${i}`;
-      list.appendChild(arrow);
+      const conn = document.createElement('div');
+      conn.className = 'node-connector';
+      conn.id = 'conn-'+i;
+      conn.innerHTML = '<div class="connector-line"></div><div class="connector-head"></div>';
+      list.appendChild(conn);
     }
-
     const card = document.createElement('div');
     card.className = 'node-card';
-    card.id = `node-card-${i}`;
-    card.innerHTML = `
-      <div class="node-header">
-        <span class="node-icon">${def.icon}</span>
-        <span class="node-name">Node ${def.id}: ${def.name}</span>
-        <span class="node-badge pending" id="node-badge-${i}">⏳ Pending</span>
-      </div>
-      <div style="font-size:10px; color:#444; font-family:monospace; margin-top:4px;">${def.desc}</div>
-      <div class="node-detail" id="node-detail-${i}"></div>
-    `;
-    card.addEventListener('click', () => toggleNodeDetail(i));
+    card.id = 'node-card-'+i;
+    card.innerHTML =
+      '<div class="node-header">'+
+        '<span class="node-icon">'+def.icon+'</span>'+
+        '<span class="node-name">Node '+def.id+': '+def.name+'</span>'+
+        '<span class="node-badge pending" id="node-badge-'+i+'">⏳ Pending</span>'+
+      '</div>'+
+      '<div style="font-size:10px;color:#3a3a4a;font-family:monospace;margin-top:3px;">'+def.desc+'</div>'+
+      '<div class="node-detail" id="node-detail-'+i+'"></div>';
+    card.addEventListener('click', function(){toggleNodeDetail(i);});
     list.appendChild(card);
   });
 }
 
 function toggleNodeDetail(i) {
-  const det = document.getElementById(`node-detail-${i}`);
-  if (det) det.classList.toggle('visible');
+  const d = document.getElementById('node-detail-'+i);
+  if (d) d.classList.toggle('visible');
 }
 
-function setNodeStatus(i, status, detail = '') {
-  const card = document.getElementById(`node-card-${i}`);
-  const badge = document.getElementById(`node-badge-${i}`);
-  const det = document.getElementById(`node-detail-${i}`);
-
-  const statusMap = {
-    pending: ['⏳ Pending', 'pending'],
-    running: ['🔄 Running', 'running'],
-    pass:    ['✅ Pass',    'pass'],
-    fail:    ['❌ Fail',   'fail'],
-    skip:    ['⏸ Skipped', 'skip'],
+function setNodeStatus(i, status, detail) {
+  const card  = document.getElementById('node-card-'+i);
+  const badge = document.getElementById('node-badge-'+i);
+  const det   = document.getElementById('node-detail-'+i);
+  const map   = {
+    pending:['⏳ Pending','pending'], running:['🔄 Running','running'],
+    pass:['✅ Pass','pass'], fail:['❌ Fail','fail'], skip:['⏸ Skipped','skip'],
   };
-  const [label, cls] = statusMap[status] || ['—', ''];
-  if (badge) { badge.textContent = label; badge.className = 'node-badge ' + cls; }
-  if (card) { card.className = 'node-card ' + (status !== 'pending' ? status : ''); }
+  const pair = map[status]||['—',''];
+  if (badge) { badge.textContent=pair[0]; badge.className='node-badge '+pair[1]; }
+  if (card)  card.className='node-card '+(status!=='pending'?status:'');
   flowState.nodes[i].status = status;
-  flowState.nodes[i].detail = detail;
-
-  if (det && detail) {
-    det.innerHTML = detail;
-    det.classList.add('visible');
+  if (detail !== undefined) {
+    flowState.nodes[i].detail = detail;
+    if (det) { det.innerHTML=detail; det.classList.add('visible'); }
   }
-
-  // Update arrows
   if (i > 0) {
-    const arrow = document.getElementById(`arrow-${i}`);
-    if (arrow) {
-      if (status === 'pass') arrow.className = 'node-arrow green';
-      else if (status === 'fail' || status === 'skip') arrow.className = 'node-arrow red';
-    }
+    const conn = document.getElementById('conn-'+i);
+    if (conn) conn.className = 'node-connector'+(status==='pass'?' green':(status==='fail'||status==='skip')?' red':'');
   }
 }
 
 function flowReset() {
   flowState = {
-    nodes: Array(8).fill(null).map(() => ({ status: 'pending', detail: '' })),
-    currentNode: 0, running: false,
-    deviceId: '', deviceSecret: '', orderId: '', qrUrl: '', chargeId: '',
+    nodes:Array(8).fill(null).map(function(){return{status:'pending',detail:''}}),
+    currentNode:0, running:false,
+    deviceId:'', deviceSecret:'', orderId:'', qrUrl:'', chargeId:'',
   };
   buildNodeList();
   document.getElementById('btn-run-all').disabled = false;
   document.getElementById('btn-step').disabled = false;
-  farmLog('Flow reset — all nodes pending', 'state');
+  farmLog('Flow reset — all nodes pending','state');
 }
 
 async function flowRunAll() {
@@ -536,30 +524,22 @@ async function flowRunAll() {
   flowState.running = true;
   document.getElementById('btn-run-all').disabled = true;
   document.getElementById('btn-step').disabled = true;
-  farmLog('▶ Run All started', 'state');
-
+  farmLog('Run All started','state');
   for (let i = flowState.currentNode; i < 8; i++) {
     if (!flowState.running) break;
     const ok = await executeNode(i);
-    if (!ok) {
-      // Mark remaining as skipped
-      for (let j = i + 1; j < 8; j++) setNodeStatus(j, 'skip');
-      break;
-    }
-    if (i < 7) await delay(800);
+    if (!ok) { for (let j=i+1;j<8;j++) setNodeStatus(j,'skip'); break; }
+    if (i < 7) await delay(600);
   }
   flowState.running = false;
   document.getElementById('btn-run-all').disabled = false;
   document.getElementById('btn-step').disabled = false;
-  farmLog('Run All complete', 'state');
+  farmLog('Run All complete','state');
 }
 
 async function flowStep() {
   if (flowState.running) return;
-  if (flowState.currentNode >= 8) {
-    farmLog('All nodes executed — reset to run again', 'warn');
-    return;
-  }
+  if (flowState.currentNode >= 8) { farmLog('All nodes executed — reset to run again','warn'); return; }
   flowState.running = true;
   document.getElementById('btn-step').disabled = true;
   await executeNode(flowState.currentNode);
@@ -568,509 +548,446 @@ async function flowStep() {
   document.getElementById('btn-step').disabled = false;
 }
 
-// executeNode returns true=pass, false=fail
 async function executeNode(i) {
-  setNodeStatus(i, 'running');
-  farmLog(`Node ${i + 1}: ${NODE_DEFS[i].name}`, 'net');
-
+  setNodeStatus(i,'running');
+  farmLog('Node '+(i+1)+': '+NODE_DEFS[i].name,'net');
   try {
-    const mac = document.getElementById('flow-device').value;
+    const mac       = document.getElementById('flow-device').value;
     const productId = parseInt(document.getElementById('flow-product').value);
 
-    if (i === 0) {
-      // GET /health
-      const r = await fetch(`${API_BASE}/health`);
-      const d = await r.json();
-      if (r.status === 200 && d.status === 'ok') {
-        const det = `<span class="ok">✓ HTTP 200</span><br>payment_mode: <span class="info">${d.payment_mode || '—'}</span><br>version: ${d.version || '—'}`;
-        setNodeStatus(i, 'pass', det);
-        farmLog(`Node 1 PASS — payment_mode: ${d.payment_mode}`, 'ok');
-        return true;
-      } else {
-        setNodeStatus(i, 'fail', `<span class="err">✗ HTTP ${r.status}</span><br>${JSON.stringify(d).substring(0,120)}`);
-        farmLog(`Node 1 FAIL — HTTP ${r.status}`, 'err');
-        return false;
+    // ── Node 1: GET /health ──────────────────────────────────────────────
+    if (i===0) {
+      const r=await fetch(API_BASE+'/health'); const d=await r.json();
+      if (r.status===200&&d.status==='ok') {
+        setNodeStatus(i,'pass','<span class="ok">✓ HTTP 200</span><br>payment_mode: <span class="info">'+(d.payment_mode||'—')+'</span><br>version: '+(d.version||'—'));
+        farmLog('Node 1 PASS — payment_mode: '+d.payment_mode,'ok'); return true;
       }
+      setNodeStatus(i,'fail','<span class="err">✗ HTTP '+r.status+'</span><br>'+JSON.stringify(d).substring(0,120));
+      farmLog('Node 1 FAIL — HTTP '+r.status,'err'); return false;
     }
 
-    if (i === 1) {
-      // POST /v1/machine/hello
-      const r = await fetch(`${API_BASE}/v1/machine/hello`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mac, firmware: 'v1.0.0-farm' }),
-      });
-      const d = await r.json();
-      if ((r.status === 200 || r.status === 201) && d.device_id && d.device_secret) {
-        flowState.deviceId = d.device_id;
-        flowState.deviceSecret = d.device_secret;
-        const det = `<span class="ok">✓ HTTP ${r.status}</span><br>device_id: <span class="info">${d.device_id}</span><br>status: ${d.status || '—'}`;
-        setNodeStatus(i, 'pass', det);
-        farmLog(`Node 2 PASS — device_id: ${d.device_id}`, 'ok');
-        return true;
-      } else {
-        setNodeStatus(i, 'fail', `<span class="err">✗ HTTP ${r.status}</span><br>${JSON.stringify(d).substring(0,120)}`);
-        farmLog(`Node 2 FAIL — HTTP ${r.status}`, 'err');
-        return false;
+    // ── Node 2: POST /v1/machine/hello ────────────────────────────────────
+    if (i===1) {
+      const r=await fetch(API_BASE+'/v1/machine/hello',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({mac,firmware:'v1.0.0-farm'}),
+      }); const d=await r.json();
+      if ((r.status===200||r.status===201)&&d.device_id&&d.device_secret) {
+        flowState.deviceId=d.device_id; flowState.deviceSecret=d.device_secret;
+        setNodeStatus(i,'pass','<span class="ok">✓ HTTP '+r.status+'</span><br>device_id: <span class="info">'+d.device_id+'</span><br>status: '+(d.status||'—'));
+        farmLog('Node 2 PASS — device_id: '+d.device_id,'ok'); return true;
       }
+      setNodeStatus(i,'fail','<span class="err">✗ HTTP '+r.status+'</span><br>'+JSON.stringify(d).substring(0,120));
+      farmLog('Node 2 FAIL — HTTP '+r.status,'err'); return false;
     }
 
-    if (i === 2) {
-      // POST /v1/order
-      const headers = { 'Content-Type': 'application/json' };
-      if (flowState.deviceSecret) headers['X-Device-Secret'] = flowState.deviceSecret;
-      const r = await fetch(`${API_BASE}/v1/order`, {
-        method: 'POST', headers,
-        body: JSON.stringify({ device_id: flowState.deviceId, product_id: productId }),
-      });
-      const d = await r.json();
-      if ((r.status === 200 || r.status === 201) && d.order_id) {
-        flowState.orderId = d.order_id;
-        flowState.qrUrl = d.qr_code_url || '';
-        flowState.chargeId = d.omise_charge_id || 'farm_charge_' + Date.now();
-        const det = `<span class="ok">✓ HTTP ${r.status}</span><br>order_id: <span class="info">${d.order_id}</span><br>amount: ${d.amount} THB<br>qr_code_url: ${(d.qr_code_url||'—').substring(0,60)}`;
-        setNodeStatus(i, 'pass', det);
-        farmLog(`Node 3 PASS — order: ${d.order_id}`, 'ok');
-        return true;
-      } else {
-        setNodeStatus(i, 'fail', `<span class="err">✗ HTTP ${r.status}</span><br>${JSON.stringify(d).substring(0,120)}`);
-        farmLog(`Node 3 FAIL — HTTP ${r.status}`, 'err');
-        return false;
+    // ── Node 3: POST /v1/order ────────────────────────────────────────────
+    if (i===2) {
+      const h={'Content-Type':'application/json'};
+      if (flowState.deviceSecret) h['X-Device-Secret']=flowState.deviceSecret;
+      const r=await fetch(API_BASE+'/v1/order',{method:'POST',headers:h,body:JSON.stringify({device_id:flowState.deviceId,product_id:productId})});
+      const d=await r.json();
+      if ((r.status===200||r.status===201)&&d.order_id) {
+        flowState.orderId=d.order_id; flowState.qrUrl=d.qr_code_url||'';
+        flowState.chargeId=d.omise_charge_id||('farm_charge_'+Date.now());
+        setNodeStatus(i,'pass','<span class="ok">✓ HTTP '+r.status+'</span><br>order_id: <span class="info">'+d.order_id+'</span><br>amount: '+d.amount+' THB<br>qr_url: '+(d.qr_code_url||'—').substring(0,55));
+        farmLog('Node 3 PASS — order: '+d.order_id,'ok'); return true;
       }
+      setNodeStatus(i,'fail','<span class="err">✗ HTTP '+r.status+'</span><br>'+JSON.stringify(d).substring(0,120));
+      farmLog('Node 3 FAIL — HTTP '+r.status,'err'); return false;
     }
 
-    if (i === 3) {
-      // HEAD qr_code_url (no-cors)
-      if (!flowState.qrUrl || !flowState.qrUrl.startsWith('http')) {
-        setNodeStatus(i, 'pass', '<span class="warn">⚠️ Unverifiable — no qr_code_url from backend</span>');
-        farmLog('Node 4 — QR URL not available (fake mode)', 'warn');
-        return true;
+    // ── Node 4: HEAD qr_code_url ──────────────────────────────────────────
+    if (i===3) {
+      if (!flowState.qrUrl||!flowState.qrUrl.startsWith('http')) {
+        setNodeStatus(i,'pass','<span class="warn">⚠ Unverifiable — no qr_code_url (fake mode)</span>');
+        farmLog('Node 4 — QR URL not available (fake mode)','warn'); return true;
       }
-      try {
-        const r = await fetch(flowState.qrUrl, { method: 'HEAD', mode: 'no-cors' });
-        setNodeStatus(i, 'pass', '<span class="warn">⚠️ Unverifiable — CORS blocks HEAD response (not a failure)</span>');
-        farmLog('Node 4 — QR URL reached (CORS blocks response verification)', 'warn');
-        return true;
-      } catch(e) {
-        setNodeStatus(i, 'pass', '<span class="warn">⚠️ Unverifiable — CORS blocked HEAD request</span>');
-        farmLog('Node 4 — CORS blocked, marking Unverifiable (not fail)', 'warn');
-        return true;
-      }
+      try { await fetch(flowState.qrUrl,{method:'HEAD',mode:'no-cors'}); } catch(e) {}
+      setNodeStatus(i,'pass','<span class="warn">⚠ Unverifiable — CORS blocks HEAD response</span>');
+      farmLog('Node 4 — QR URL reached (CORS blocks verification)','warn'); return true;
     }
 
-    if (i === 4) {
-      // POST /v1/webhook/omise
-      const webhookBody = {
-        object: 'charge', id: flowState.chargeId,
-        status: 'successful', metadata: { order_id: flowState.orderId },
-      };
-      const r = await fetch(`${API_BASE}/v1/webhook/omise`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(webhookBody),
-      });
-      if (r.status === 200) {
-        setNodeStatus(i, 'pass', `<span class="ok">✓ HTTP 200</span><br>charge_id: ${flowState.chargeId}`);
-        farmLog(`Node 5 PASS — webhook accepted`, 'ok');
-        return true;
-      } else {
-        const d = await r.json().catch(() => ({}));
-        setNodeStatus(i, 'fail', `<span class="err">✗ HTTP ${r.status}</span><br>${JSON.stringify(d).substring(0,120)}`);
-        farmLog(`Node 5 FAIL — HTTP ${r.status}`, 'err');
-        return false;
+    // ── Node 5: POST /v1/webhook/omise ────────────────────────────────────
+    if (i===4) {
+      const wb={object:'charge',id:flowState.chargeId,status:'successful',metadata:{order_id:flowState.orderId}};
+      const r=await fetch(API_BASE+'/v1/webhook/omise',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(wb)});
+      if (r.status===200) {
+        setNodeStatus(i,'pass','<span class="ok">✓ HTTP 200</span><br>charge_id: '+flowState.chargeId);
+        farmLog('Node 5 PASS — webhook accepted','ok'); return true;
       }
+      const d=await r.json().catch(function(){return{};});
+      setNodeStatus(i,'fail','<span class="err">✗ HTTP '+r.status+'</span><br>'+JSON.stringify(d).substring(0,120));
+      farmLog('Node 5 FAIL — HTTP '+r.status,'err'); return false;
     }
 
-    if (i === 5) {
-      // GET /v1/machine/commands — poll up to 5× with 800ms gap
-      let found = false, attempts = 0, foundCmd = null;
-      const headers = {};
-      if (flowState.deviceSecret) headers['X-Device-Secret'] = flowState.deviceSecret;
-      for (let attempt = 1; attempt <= 5; attempt++) {
-        attempts = attempt;
-        await delay(800);
-        const r = await fetch(`${API_BASE}/v1/machine/commands?device_id=${flowState.deviceId}`, { headers });
-        const d = await r.json();
-        const cmds = d.commands || [];
-        const match = cmds.find(c => c.command === 'payment_confirmed' && c.data && c.data.order_id === flowState.orderId);
-        farmLog(`Node 6 poll ${attempt}/5 — commands: ${cmds.length}`, 'net');
-        if (match) { found = true; foundCmd = match; break; }
+    // ── Node 6: GET /v1/machine/commands (poll x5) ────────────────────────
+    if (i===5) {
+      let found=false, attempts=0;
+      const h={}; if (flowState.deviceSecret) h['X-Device-Secret']=flowState.deviceSecret;
+      for (let a=1;a<=5;a++) {
+        attempts=a; await delay(800);
+        const r=await fetch(API_BASE+'/v1/machine/commands?device_id='+flowState.deviceId,{headers:h});
+        const d=await r.json(); const cmds=d.commands||[];
+        farmLog('Node 6 poll '+a+'/5 — commands: '+cmds.length,'net');
+        if (cmds.find(function(c){return c.command==='payment_confirmed'&&c.data&&c.data.order_id===flowState.orderId;})) {found=true;break;}
       }
       if (found) {
-        const det = `<span class="ok">✓ payment_confirmed found</span><br>attempts: ${attempts}/5<br>order_id: ${flowState.orderId}`;
-        setNodeStatus(i, 'pass', det);
-        farmLog(`Node 6 PASS — command found in ${attempts} attempt(s)`, 'ok');
-        return true;
-      } else {
-        setNodeStatus(i, 'fail', `<span class="err">✗ No payment_confirmed after 5 polls</span><br>order_id: ${flowState.orderId}`);
-        farmLog(`Node 6 FAIL — no command after 5 polls`, 'err');
-        return false;
+        setNodeStatus(i,'pass','<span class="ok">✓ payment_confirmed found</span><br>attempts: '+attempts+'/5<br>order_id: '+flowState.orderId);
+        farmLog('Node 6 PASS — found in '+attempts+' attempt(s)','ok'); return true;
       }
+      setNodeStatus(i,'fail','<span class="err">✗ No payment_confirmed after 5 polls</span><br>order_id: '+flowState.orderId);
+      farmLog('Node 6 FAIL — no command after 5 polls','err'); return false;
     }
 
-    if (i === 6) {
-      // POST /v1/machine/completion
-      const headers = { 'Content-Type': 'application/json' };
-      if (flowState.deviceSecret) headers['X-Device-Secret'] = flowState.deviceSecret;
-      const r = await fetch(`${API_BASE}/v1/machine/completion`, {
-        method: 'POST', headers,
-        body: JSON.stringify({ device_id: flowState.deviceId, order_id: flowState.orderId, success: true, slot: 1 }),
-      });
-      if (r.status === 200) {
-        setNodeStatus(i, 'pass', `<span class="ok">✓ HTTP 200</span>`);
-        farmLog(`Node 7 PASS — completion reported`, 'ok');
-        return true;
-      } else {
-        const d = await r.json().catch(() => ({}));
-        setNodeStatus(i, 'fail', `<span class="err">✗ HTTP ${r.status}</span><br>${JSON.stringify(d).substring(0,120)}`);
-        farmLog(`Node 7 FAIL — HTTP ${r.status} (endpoint may not exist yet)`, 'err');
-        return false;
+    // ── Node 7: POST /v1/machine/completion ───────────────────────────────
+    if (i===6) {
+      const h={'Content-Type':'application/json'};
+      if (flowState.deviceSecret) h['X-Device-Secret']=flowState.deviceSecret;
+      const r=await fetch(API_BASE+'/v1/machine/completion',{method:'POST',headers:h,body:JSON.stringify({device_id:flowState.deviceId,order_id:flowState.orderId,success:true,slot:1})});
+      if (r.status===200) {
+        setNodeStatus(i,'pass','<span class="ok">✓ HTTP 200</span>');
+        farmLog('Node 7 PASS — completion reported','ok'); return true;
       }
+      const d=await r.json().catch(function(){return{};});
+      setNodeStatus(i,'fail','<span class="err">✗ HTTP '+r.status+'</span><br>'+JSON.stringify(d).substring(0,120));
+      farmLog('Node 7 FAIL — HTTP '+r.status+' (endpoint may not exist yet)','err'); return false;
     }
 
-    if (i === 7) {
-      // Idempotency — fire webhook again, wait, poll, count
-      const webhookBody = {
-        object: 'charge', id: flowState.chargeId,
-        status: 'successful', metadata: { order_id: flowState.orderId },
-      };
-      await fetch(`${API_BASE}/v1/webhook/omise`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(webhookBody),
-      });
-      farmLog('Node 8 — webhook #2 fired', 'net');
+    // ── Node 8: Idempotency — FRESH ORDER → webhook x2 → count===1 ────────
+    if (i===7) {
+      // Step 1: create a brand-new order (independent of Node 3 order)
+      const oh={'Content-Type':'application/json'};
+      if (flowState.deviceSecret) oh['X-Device-Secret']=flowState.deviceSecret;
+      const or=await fetch(API_BASE+'/v1/order',{method:'POST',headers:oh,body:JSON.stringify({device_id:flowState.deviceId,product_id:productId})});
+      const od=await or.json();
+      if (or.status!==200&&or.status!==201) {
+        setNodeStatus(i,'fail','<span class="err">✗ Fresh order HTTP '+or.status+'</span><br>'+JSON.stringify(od).substring(0,100));
+        farmLog('Node 8 FAIL — fresh order HTTP '+or.status,'err'); return false;
+      }
+      const freshOrderId  = od.order_id;
+      const freshChargeId = od.omise_charge_id||('farm_idem_'+Date.now());
+      farmLog('Node 8 — fresh order: '+freshOrderId,'net');
+
+      // Step 2: fire webhook #1 with fresh charge
+      const wb={object:'charge',id:freshChargeId,status:'successful',metadata:{order_id:freshOrderId}};
+      await fetch(API_BASE+'/v1/webhook/omise',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(wb)});
+      farmLog('Node 8 — webhook #1 fired','net');
       await delay(1200);
 
-      const headers = {};
-      if (flowState.deviceSecret) headers['X-Device-Secret'] = flowState.deviceSecret;
-      const r = await fetch(`${API_BASE}/v1/machine/commands?device_id=${flowState.deviceId}`, { headers });
-      const d = await r.json();
-      const cmds = d.commands || [];
-      const count = cmds.filter(c => c.command === 'payment_confirmed' && c.data && c.data.order_id === flowState.orderId).length;
+      // Step 3: fire exact duplicate #2
+      await fetch(API_BASE+'/v1/webhook/omise',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(wb)});
+      farmLog('Node 8 — webhook #2 (duplicate) fired','net');
+      await delay(1200);
 
-      if (count === 1) {
-        setNodeStatus(i, 'pass', `<span class="ok">✓ count=1 — Idempotency working</span>`);
-        farmLog(`Node 8 PASS — count=1, no duplicates`, 'ok');
-        return true;
-      } else {
-        const reason = count === 0 ? 'No command (command may have expired)' : `Duplicate commands (count=${count})`;
-        setNodeStatus(i, count === 0 ? 'fail' : 'fail', `<span class="err">✗ count=${count}</span><br>${reason}`);
-        farmLog(`Node 8 FAIL — count=${count} (${reason})`, 'err');
-        return false;
+      // Step 4: count payment_confirmed for freshOrderId only
+      const ch={}; if (flowState.deviceSecret) ch['X-Device-Secret']=flowState.deviceSecret;
+      const r=await fetch(API_BASE+'/v1/machine/commands?device_id='+flowState.deviceId,{headers:ch});
+      const d=await r.json(); const cmds=d.commands||[];
+      const count=cmds.filter(function(c){return c.command==='payment_confirmed'&&c.data&&c.data.order_id===freshOrderId;}).length;
+
+      if (count===1) {
+        setNodeStatus(i,'pass',
+          '<span class="ok">✓ count=1 — Idempotency working</span><br>'+
+          'fresh order_id: <span class="info">'+freshOrderId+'</span><br>'+
+          'charge_id: '+freshChargeId);
+        farmLog('Node 8 PASS — count=1, order: '+freshOrderId,'ok'); return true;
       }
+      const why=count===0
+        ? 'No command (Node 7 completion may have cleared the queue — expected on some backends)'
+        : 'Duplicate commands (count='+count+') — idempotency not enforced';
+      setNodeStatus(i,'fail','<span class="err">✗ count='+count+'</span><br>'+why+'<br>fresh order_id: '+freshOrderId);
+      farmLog('Node 8 FAIL — count='+count,'err'); return false;
     }
 
   } catch(e) {
-    setNodeStatus(i, 'fail', `<span class="err">✗ Exception</span><br>${e.message}`);
-    farmLog(`Node ${i + 1} exception: ${e.message}`, 'err');
+    setNodeStatus(i,'fail','<span class="err">✗ Exception</span><br>'+e.message);
+    farmLog('Node '+(i+1)+' exception: '+e.message,'err');
     return false;
   }
-
   return false;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  SECTION B — FLEET STRESS TEST
 // ═══════════════════════════════════════════════════════════════════════════
-
-let fleet = [];  // [{mac, productId, status, result, elapsed}]
+var fleet = [];
 const MAX_MACHINES = 3;
 
 function fleetReset() {
-  fleet = [];
-  document.getElementById('fleet-slots').innerHTML = '';
-  document.getElementById('fleet-error').style.display = 'none';
-  document.getElementById('results-panel').className = 'results-panel';
-  // Re-add default 2 machines
-  fleetAddMachine('AA:BB:CC:DD:EE:01', 2);
-  fleetAddMachine('AA:BB:CC:DD:EE:00', 3);
-  farmLog('Fleet reset to 2 default machines', 'state');
+  fleet=[];
+  document.getElementById('fleet-slots').innerHTML='';
+  document.getElementById('fleet-error').style.display='none';
+  document.getElementById('results-panel').className='results-panel';
+  fleetAddMachine('AA:BB:CC:DD:EE:01',2);
+  fleetAddMachine('AA:BB:CC:DD:EE:00',3);
+  farmLog('Fleet reset to 2 default machines','state');
 }
 
 function fleetAddMachine(defaultMac, defaultProduct) {
-  if (fleet.length >= MAX_MACHINES) {
-    showFleetError('Maximum 3 machines. All must use different approved device IDs.');
-    return;
-  }
-  const idx = fleet.length;
-  const mac = defaultMac || APPROVED_DEVICES[idx % APPROVED_DEVICES.length].mac;
-  const productId = defaultProduct || 2;
-  fleet.push({ mac, productId, status: 'ready', result: '', elapsed: 0 });
+  if (fleet.length>=MAX_MACHINES) { showFleetError('Maximum 3 machines.'); return; }
+  const idx=fleet.length;
+  fleet.push({mac:defaultMac||APPROVED_DEVICES[idx%APPROVED_DEVICES.length].mac, productId:defaultProduct||2, status:'ready',result:'',elapsed:0});
   renderFleetSlot(idx);
-  document.getElementById('btn-add-machine').disabled = fleet.length >= MAX_MACHINES;
+  document.getElementById('btn-add-machine').disabled=(fleet.length>=MAX_MACHINES);
+  netLineState='idle';
+  if (document.getElementById('tab-network').classList.contains('active')) setTimeout(updateNetworkView,60);
 }
 
 function renderFleetSlot(idx) {
-  const container = document.getElementById('fleet-slots');
-
-  // Remove old slot element if it exists
-  const existing = document.getElementById(`fleet-slot-${idx}`);
-  if (existing) existing.remove();
-
-  const m = fleet[idx];
-  const slot = document.createElement('div');
-  slot.className = 'machine-slot';
-  slot.id = `fleet-slot-${idx}`;
-
-  const usedMacs = fleet.map((f, i) => i !== idx ? f.mac : null).filter(Boolean);
-  const deviceOptions = APPROVED_DEVICES.map(d =>
-    `<option value="${d.mac}" ${d.mac === m.mac ? 'selected' : ''}>${d.label}</option>`
-  ).join('');
-  const productOptions = Array.from({length:10}, (_,i) => {
-    const pid = i + 1;
-    return `<option value="${pid}" ${pid === m.productId ? 'selected' : ''}>${pid} — ${PRODUCTS[pid].name} (${PRODUCTS[pid].price} THB)</option>`;
-  }).join('');
-
-  slot.innerHTML = `
-    <div class="machine-slot-header">
-      <span class="machine-num">Machine ${idx + 1}</span>
-      <select id="fleet-mac-${idx}" onchange="fleetUpdateMac(${idx}, this.value)"
-        style="font-size:10px; flex:1;">
-        ${deviceOptions}
-      </select>
-      <span class="machine-status-badge" id="fleet-badge-${idx}">⏳ Ready</span>
-      ${fleet.length > 2 ? `<button class="btn danger" onclick="fleetRemoveMachine(${idx})" style="font-size:10px; padding:3px 8px; margin-left:6px;">✕</button>` : ''}
-    </div>
-    <div class="ctrl-row" style="margin-bottom:0;">
-      <div class="ctrl-group">
-        <span class="ctrl-label">PRODUCT</span>
-        <select id="fleet-product-${idx}" onchange="fleet[${idx}].productId=parseInt(this.value)">
-          ${productOptions}
-        </select>
-      </div>
-    </div>
-    <div class="machine-result" id="fleet-result-${idx}"></div>
-  `;
+  const container=document.getElementById('fleet-slots');
+  const existing=document.getElementById('fleet-slot-'+idx); if(existing)existing.remove();
+  const m=fleet[idx];
+  const slot=document.createElement('div'); slot.className='machine-slot'; slot.id='fleet-slot-'+idx;
+  const devOpts=APPROVED_DEVICES.map(function(d){return '<option value="'+d.mac+'"'+(d.mac===m.mac?' selected':'')+'>'+d.label+'</option>';}).join('');
+  const prodOpts=Array.from({length:10},function(_,ii){const pid=ii+1;return '<option value="'+pid+'"'+(pid===m.productId?' selected':'')+'>'+pid+' — '+PRODUCTS[pid].name+' ('+PRODUCTS[pid].price+' THB)</option>';}).join('');
+  slot.innerHTML=
+    '<div class="machine-slot-header">'+
+      '<span class="machine-num">Machine '+(idx+1)+'</span>'+
+      '<select id="fleet-mac-'+idx+'" onchange="fleetUpdateMac('+idx+',this.value)" style="font-size:10px;flex:1;">'+devOpts+'</select>'+
+      '<span class="machine-status-badge" id="fleet-badge-'+idx+'">⏳ Ready</span>'+
+      (fleet.length>2?'<button class="btn danger" onclick="fleetRemoveMachine('+idx+')" style="font-size:10px;padding:3px 8px;margin-left:6px;">✕</button>':'')+
+    '</div>'+
+    '<div class="ctrl-row" style="margin-bottom:0;"><div class="ctrl-group"><span class="ctrl-label">Product</span>'+
+      '<select id="fleet-product-'+idx+'" onchange="fleet['+idx+'].productId=parseInt(this.value)">'+prodOpts+'</select></div></div>'+
+    '<div class="machine-result" id="fleet-result-'+idx+'"></div>';
   container.appendChild(slot);
 }
 
-function fleetUpdateMac(idx, newMac) {
-  const usedMacs = fleet.map((f, i) => i !== idx ? f.mac : null).filter(Boolean);
-  if (usedMacs.includes(newMac)) {
-    showFleetError('Maximum 3 machines. All must use different approved device IDs.');
-    // Revert select
-    document.getElementById(`fleet-mac-${idx}`).value = fleet[idx].mac;
-    return;
+function fleetUpdateMac(idx,newMac) {
+  const used=fleet.map(function(f,i){return i!==idx?f.mac:null;}).filter(Boolean);
+  if (used.includes(newMac)) {
+    showFleetError('Each machine must use a different approved device ID.');
+    document.getElementById('fleet-mac-'+idx).value=fleet[idx].mac; return;
   }
-  fleet[idx].mac = newMac;
-  hideFleetError();
+  fleet[idx].mac=newMac; hideFleetError();
+  if (document.getElementById('tab-network').classList.contains('active')) setTimeout(updateNetworkView,60);
 }
 
 function fleetRemoveMachine(idx) {
-  fleet.splice(idx, 1);
-  rebuildFleetSlots();
-  document.getElementById('btn-add-machine').disabled = false;
+  fleet.splice(idx,1);
+  document.getElementById('fleet-slots').innerHTML='';
+  fleet.forEach(function(_,i){renderFleetSlot(i);});
+  document.getElementById('btn-add-machine').disabled=false;
+  if (document.getElementById('tab-network').classList.contains('active')) setTimeout(updateNetworkView,60);
 }
 
-function rebuildFleetSlots() {
-  document.getElementById('fleet-slots').innerHTML = '';
-  fleet.forEach((_, i) => renderFleetSlot(i));
-}
-
-function showFleetError(msg) {
-  const el = document.getElementById('fleet-error');
-  el.textContent = '⚠️ ' + msg;
-  el.style.display = 'block';
-  setTimeout(hideFleetError, 4000);
-}
-function hideFleetError() {
-  document.getElementById('fleet-error').style.display = 'none';
-}
+function showFleetError(msg){const el=document.getElementById('fleet-error');el.textContent='⚠️ '+msg;el.style.display='block';setTimeout(hideFleetError,4000);}
+function hideFleetError(){document.getElementById('fleet-error').style.display='none';}
 
 async function fleetFireAll() {
-  if (fleet.length === 0) { showFleetError('Add at least one machine before firing.'); return; }
+  if (!fleet.length) { showFleetError('Add at least one machine before firing.'); return; }
+  const macs=fleet.map(function(f){return f.mac;});
+  if (new Set(macs).size!==macs.length) { showFleetError('Each machine must use a different approved device ID.'); return; }
 
-  // Validate unique MACs
-  const macs = fleet.map(f => f.mac);
-  if (new Set(macs).size !== macs.length) {
-    showFleetError('Maximum 3 machines. All must use different approved device IDs.');
-    return;
-  }
+  document.getElementById('btn-fire-all').disabled=true;
+  document.getElementById('results-panel').className='results-panel';
+  farmLog('FIRE ALL — '+fleet.length+' machine(s)','state');
 
-  document.getElementById('btn-fire-all').disabled = true;
-  document.getElementById('results-panel').className = 'results-panel';
-  farmLog(`▶ FIRE ALL — ${fleet.length} machine(s) simultaneously`, 'state');
-
-  // Reset all statuses
-  fleet.forEach((m, i) => {
-    m.status = 'firing'; m.result = ''; m.elapsed = 0;
-    setFleetBadge(i, 'firing', '🔄 Firing');
-    const res = document.getElementById(`fleet-result-${i}`);
-    if (res) { res.style.display = 'none'; res.textContent = ''; }
+  fleet.forEach(function(m,i){
+    m.status='firing';m.result='';m.elapsed=0;
+    setFleetBadge(i,'firing','🔄 Firing');
+    const r=document.getElementById('fleet-result-'+i); if(r){r.style.display='none';r.textContent='';}
   });
 
-  const startTime = Date.now();
+  netLineState='active';
+  if (document.getElementById('tab-network').classList.contains('active')) setTimeout(updateNetworkView,60);
 
-  // Fire all in parallel
-  const tasks = fleet.map((m, i) => runMachineFlow(i, m.mac, m.productId));
-  await Promise.all(tasks);
+  const t0=Date.now();
+  await Promise.all(fleet.map(function(m,i){return runMachineFlow(i,m.mac,m.productId);}));
+  const totalMs=Date.now()-t0;
 
-  const totalTime = Date.now() - startTime;
-  farmLog(`All machines done — total time: ${totalTime}ms`, 'state');
-  showResults(totalTime);
-  document.getElementById('btn-fire-all').disabled = false;
+  netLineState=fleet.every(function(m){return m.status==='done';}) ? 'success' : 'mixed';
+  if (document.getElementById('tab-network').classList.contains('active')) setTimeout(updateNetworkView,60);
+
+  farmLog('All machines done — '+totalMs+'ms','state');
+  showResults(totalMs);
+  document.getElementById('btn-fire-all').disabled=false;
 }
 
-async function runMachineFlow(idx, mac, productId) {
-  const start = Date.now();
-  const src = `Machine ${idx + 1}`;
-  farmLog(`Starting: MAC=${mac} product=${productId}`, 'net', src);
-
+async function runMachineFlow(idx,mac,productId) {
+  const t0=Date.now(); const src='Machine '+(idx+1);
+  farmLog('Starting: MAC='+mac+' product='+productId,'net',src);
   try {
-    // /hello
-    const hr = await fetch(`${API_BASE}/v1/machine/hello`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mac, firmware: 'v1.0.0-farm' }),
-    });
-    const hd = await hr.json();
-    if (hr.status !== 200 && hr.status !== 201) throw new Error(`/hello HTTP ${hr.status}`);
-    const deviceId = hd.device_id;
-    const deviceSecret = hd.device_secret || '';
-    farmLog(`/hello OK — device_id: ${deviceId}`, 'ok', src);
+    const hr=await fetch(API_BASE+'/v1/machine/hello',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mac,firmware:'v1.0.0-farm'})});
+    const hd=await hr.json();
+    if (hr.status!==200&&hr.status!==201) throw new Error('/hello HTTP '+hr.status);
+    const deviceId=hd.device_id, deviceSecret=hd.device_secret||'';
+    farmLog('/hello OK — '+deviceId,'ok',src);
 
-    // /order
-    const orderHeaders = { 'Content-Type': 'application/json' };
-    if (deviceSecret) orderHeaders['X-Device-Secret'] = deviceSecret;
-    const or = await fetch(`${API_BASE}/v1/order`, {
-      method: 'POST', headers: orderHeaders,
-      body: JSON.stringify({ device_id: deviceId, product_id: productId }),
-    });
-    const od = await or.json();
-    if (or.status !== 200 && or.status !== 201) throw new Error(`/order HTTP ${or.status}`);
-    const orderId = od.order_id;
-    const chargeId = od.omise_charge_id || 'farm_charge_' + Date.now() + '_' + idx;
-    farmLog(`/order OK — order_id: ${orderId}`, 'ok', src);
+    const oh={'Content-Type':'application/json'}; if(deviceSecret)oh['X-Device-Secret']=deviceSecret;
+    const or=await fetch(API_BASE+'/v1/order',{method:'POST',headers:oh,body:JSON.stringify({device_id:deviceId,product_id:productId})});
+    const od=await or.json();
+    if (or.status!==200&&or.status!==201) throw new Error('/order HTTP '+or.status);
+    const orderId=od.order_id, chargeId=od.omise_charge_id||('farm_charge_'+Date.now()+'_'+idx);
+    farmLog('/order OK — '+orderId,'ok',src);
 
-    // webhook
-    const wr = await fetch(`${API_BASE}/v1/webhook/omise`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ object: 'charge', id: chargeId, status: 'successful', metadata: { order_id: orderId } }),
-    });
-    if (wr.status === 429) throw new Error('Rate limited (HTTP 429)');
-    if (wr.status !== 200) throw new Error(`/webhook HTTP ${wr.status}`);
-    farmLog(`/webhook OK`, 'ok', src);
+    const wr=await fetch(API_BASE+'/v1/webhook/omise',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({object:'charge',id:chargeId,status:'successful',metadata:{order_id:orderId}})});
+    if (wr.status===429) throw new Error('Rate limited (HTTP 429)');
+    if (wr.status!==200) throw new Error('/webhook HTTP '+wr.status);
+    farmLog('/webhook OK','ok',src);
 
-    // poll commands
-    let found = false;
-    const cmdHeaders = {};
-    if (deviceSecret) cmdHeaders['X-Device-Secret'] = deviceSecret;
-    for (let attempt = 1; attempt <= 5; attempt++) {
+    let found=false;
+    const ch={}; if(deviceSecret)ch['X-Device-Secret']=deviceSecret;
+    for(let a=1;a<=5;a++){
       await delay(800);
-      const cr = await fetch(`${API_BASE}/v1/machine/commands?device_id=${deviceId}`, { headers: cmdHeaders });
-      const cd = await cr.json();
-      const cmds = cd.commands || [];
-      if (cmds.find(c => c.command === 'payment_confirmed' && c.data && c.data.order_id === orderId)) {
-        found = true;
-        farmLog(`Commands OK — found in ${attempt} poll(s)`, 'ok', src);
-        break;
-      }
+      const cr=await fetch(API_BASE+'/v1/machine/commands?device_id='+deviceId,{headers:ch});
+      const cd=await cr.json();
+      if((cd.commands||[]).find(function(c){return c.command==='payment_confirmed'&&c.data&&c.data.order_id===orderId;})){found=true;farmLog('Commands OK in '+a+' poll(s)','ok',src);break;}
     }
     if (!found) throw new Error('No payment_confirmed after 5 polls');
 
-    const elapsed = Date.now() - start;
-    fleet[idx].status = 'done';
-    fleet[idx].elapsed = elapsed;
-    fleet[idx].result = `✅ ${elapsed}ms`;
-    setFleetBadge(idx, 'done', `✅ ${elapsed}ms`);
-    showMachineResult(idx, true, `Completed in ${elapsed}ms`);
-    farmLog(`DONE — ${elapsed}ms`, 'ok', src);
-
+    const elapsed=Date.now()-t0;
+    fleet[idx].status='done';fleet[idx].elapsed=elapsed;fleet[idx].result='✅ '+elapsed+'ms';
+    setFleetBadge(idx,'done','✅ '+elapsed+'ms'); showMachineResult(idx,true,'Completed in '+elapsed+'ms');
+    farmLog('DONE — '+elapsed+'ms','ok',src);
   } catch(e) {
-    const elapsed = Date.now() - start;
-    fleet[idx].status = 'failed';
-    fleet[idx].elapsed = elapsed;
-    fleet[idx].result = `❌ ${e.message}`;
-    setFleetBadge(idx, 'failed', '❌ Failed');
-    showMachineResult(idx, false, e.message);
-    farmLog(`FAILED — ${e.message}`, 'err', src);
+    const elapsed=Date.now()-t0;
+    fleet[idx].status='failed';fleet[idx].elapsed=elapsed;fleet[idx].result='❌ '+e.message;
+    setFleetBadge(idx,'failed','❌ Failed'); showMachineResult(idx,false,e.message);
+    farmLog('FAILED — '+e.message,'err',src);
   }
 }
 
-function setFleetBadge(idx, cls, label) {
-  const badge = document.getElementById(`fleet-badge-${idx}`);
-  if (!badge) return;
-  badge.className = 'machine-status-badge ' + cls;
-  badge.textContent = label;
-}
-
-function showMachineResult(idx, ok, msg) {
-  const el = document.getElementById(`fleet-result-${idx}`);
-  if (!el) return;
-  el.style.display = 'block';
-  el.style.color = ok ? '#4caf50' : '#ff4444';
-  el.textContent = msg;
-}
+function setFleetBadge(idx,cls,label){const b=document.getElementById('fleet-badge-'+idx);if(b){b.className='machine-status-badge '+cls;b.textContent=label;}}
+function showMachineResult(idx,ok,msg){const el=document.getElementById('fleet-result-'+idx);if(!el)return;el.style.display='block';el.style.color=ok?'#4caf50':'#ff4444';el.textContent=msg;}
 
 function showResults(totalMs) {
-  const panel = document.getElementById('results-panel');
-  panel.className = 'results-panel visible';
-  const body = document.getElementById('results-body');
-
-  const allOk = fleet.every(m => m.status === 'done');
-  const avgMs = fleet.length ? Math.round(fleet.reduce((s, m) => s + m.elapsed, 0) / fleet.length) : 0;
-
-  let html = `
-    <div class="results-row"><span class="label">Machines fired:</span><span class="val">${fleet.length}</span></div>
-    <div class="results-row"><span class="label">All succeeded:</span><span class="val ${allOk ? 'ok' : 'err'}">${allOk ? '✅ Yes' : '❌ No'}</span></div>
-    <div class="results-row"><span class="label">Total time:</span><span class="val">${totalMs}ms</span></div>
-    <div class="results-row"><span class="label">Avg per machine:</span><span class="val">${avgMs}ms</span></div>
-    <div style="margin-top:8px; padding-top:8px; border-top:1px solid #1e2028;">
-  `;
-  fleet.forEach((m, i) => {
-    const dev = APPROVED_DEVICES.find(d => d.mac === m.mac);
-    const label = dev ? dev.id : m.mac;
-    html += `<div class="results-machine-row">
-      <span style="color:#888;">Machine ${i+1} (${label}):</span>
-      <span style="color:${m.status === 'done' ? '#4caf50' : '#ff4444'};">${m.result}</span>
-    </div>`;
+  document.getElementById('results-panel').className='results-panel visible';
+  const allOk=fleet.every(function(m){return m.status==='done';});
+  const avgMs=fleet.length?Math.round(fleet.reduce(function(s,m){return s+m.elapsed;},0)/fleet.length):0;
+  let html=
+    '<div class="results-row"><span class="label">Machines fired:</span><span class="val">'+fleet.length+'</span></div>'+
+    '<div class="results-row"><span class="label">All succeeded:</span><span class="val '+(allOk?'ok':'err')+'">'+(allOk?'✅ Yes':'❌ No')+'</span></div>'+
+    '<div class="results-row"><span class="label">Total time:</span><span class="val">'+totalMs+'ms</span></div>'+
+    '<div class="results-row"><span class="label">Avg per machine:</span><span class="val">'+avgMs+'ms</span></div>'+
+    '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #1e2028;">';
+  fleet.forEach(function(m,i){
+    const dev=APPROVED_DEVICES.find(function(d){return d.mac===m.mac;});
+    html+='<div class="results-machine-row"><span style="color:#888;">Machine '+(i+1)+' ('+(dev?dev.id:m.mac)+'):</span><span style="color:'+(m.status==='done'?'#4caf50':'#ff4444')+';">'+m.result+'</span></div>';
   });
-  html += '</div>';
-
-  // Auto-generated observations
-  const obs = generateObservations(fleet, totalMs);
-  html += `<div class="observations"><div class="obs-title">⚠️ OBSERVATIONS:</div>${obs}</div>`;
-
-  body.innerHTML = html;
-  farmLog('Results panel updated', 'state');
+  html+='</div><div class="observations"><div class="obs-title">OBSERVATIONS:</div>'+generateObs(fleet,totalMs)+'</div>';
+  document.getElementById('results-body').innerHTML=html;
 }
 
-function generateObservations(fleet, totalMs) {
-  const lines = [];
-  const timedOut = fleet.filter(m => m.result.includes('poll') || m.result.includes('timeout'));
-  const rateLimited = fleet.filter(m => m.result.includes('429'));
-  const allOk = fleet.every(m => m.status === 'done');
-
-  if (rateLimited.length > 0) {
-    lines.push('Rate limiter triggered — consider raising limit for multi-machine deployments.');
-  }
-  if (timedOut.length > 0) {
-    lines.push('Command delivery timeout detected — possible D1 write contention or rate limiting under load.');
-  }
-  if (allOk && totalMs < 1000 * fleet.length) {
-    lines.push(`Backend handles ${fleet.length} concurrent machine(s) cleanly at current load.`);
-  }
-  if (totalMs > 3000) {
-    lines.push('Latency spike detected — monitor under higher load.');
-  }
-  if (!allOk && timedOut.length === 0 && rateLimited.length === 0) {
-    const fails = fleet.filter(m => m.status === 'failed');
-    lines.push(`${fails.length} machine(s) failed — check activity log for details.`);
-  }
-  if (lines.length === 0) {
-    lines.push('No anomalies detected in this run.');
-  }
-  return lines.map(l => `• ${l}`).join('<br>');
+function generateObs(fleet,totalMs) {
+  const lines=[];
+  const rl=fleet.filter(function(m){return m.result.includes('429');});
+  const to=fleet.filter(function(m){return m.result.includes('poll')||m.result.includes('timeout');});
+  const ok=fleet.every(function(m){return m.status==='done';});
+  if(rl.length) lines.push('Rate limiter triggered — consider raising limit for multi-machine deployments.');
+  if(to.length) lines.push('Command delivery timeout — possible D1 write contention under load.');
+  if(ok&&totalMs<1000*fleet.length) lines.push('Backend handles '+fleet.length+' concurrent machine(s) cleanly at current load.');
+  if(totalMs>3000) lines.push('Latency spike — monitor under higher load.');
+  if(!ok&&!to.length&&!rl.length) lines.push(fleet.filter(function(m){return m.status==='failed';}).length+' machine(s) failed — check activity log.');
+  if(!lines.length) lines.push('No anomalies detected in this run.');
+  return lines.map(function(l){return '• '+l;}).join('<br>');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  UTILS
+//  SECTION B — NETWORK VIEW
 // ═══════════════════════════════════════════════════════════════════════════
-function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+var netLineState = 'idle';  // idle | active | success | mixed
+
+const STATIC_NODES = [
+  {key:'backend', label:'BACKEND API', sub:'api.janishammer.com',    icon:'⚡', color:'#7090ff', cls:'backend', xPct:40, yPct:22, w:118},
+  {key:'d1',      label:'D1 DATABASE', sub:'Cloudflare D1 / SQLite', icon:'🗄', color:'#4caf50', cls:'db',      xPct:40, yPct:60, w:112},
+  {key:'gateway', label:'PAYMENT GW',  sub:'fake_omise / Omise',     icon:'💳', color:'#b07cf0', cls:'service', xPct:70, yPct:10, w:110},
+  {key:'webhook', label:'WEBHOOK',     sub:'/v1/webhook/omise',      icon:'🔔', color:'#b07cf0', cls:'service', xPct:70, yPct:40, w:110},
+  {key:'queue',   label:'CMD QUEUE',   sub:'payment_confirmed',      icon:'📬', color:'#b07cf0', cls:'service', xPct:70, yPct:70, w:110},
+];
+
+function updateNetworkView() {
+  const canvas=document.getElementById('network-canvas');
+  const svg=document.getElementById('network-svg');
+  if (!canvas||!svg) return;
+  canvas.querySelectorAll('.net-node').forEach(function(el){el.remove();});
+  svg.innerHTML='';
+
+  const W=canvas.offsetWidth||700;
+  const H=canvas.offsetHeight||480;
+
+  // Static nodes
+  STATIC_NODES.forEach(function(n){
+    const extra=n.key==='backend'?'<br>/hello /order /webhook /commands'
+      :n.key==='gateway'?'<br>mode: fake_omise'
+      :n.key==='queue'?'<br>last run: '+fleet.filter(function(m){return m.status==='done';}).length+' cmd(s)'
+      :'';
+    const div=document.createElement('div');
+    div.className='net-node '+n.cls; div.id='net-'+n.key;
+    div.style.cssText='left:'+(W*n.xPct/100)+'px;top:'+(H*n.yPct/100)+'px;width:'+n.w+'px;';
+    div.innerHTML='<div class="net-node-inner"><span class="net-node-icon">'+n.icon+'</span><span class="net-node-label" style="color:'+n.color+';">'+n.label+'</span><span class="net-node-sub">'+n.sub+extra+'</span></div>';
+    canvas.appendChild(div);
+  });
+
+  // Machine nodes (left column)
+  const total=Math.max(fleet.length,1);
+  fleet.forEach(function(m,idx){
+    const dev=APPROVED_DEVICES.find(function(d){return d.mac===m.mac;});
+    const devId=(dev?dev.id:m.mac).replace('SATU-','');
+    const spacing=Math.min(80/(total+1),26);
+    const yPct=50-spacing*(total-1)/2+idx*spacing;
+    const stIcon=m.status==='done'?'✅':m.status==='failed'?'❌':m.status==='firing'?'🔄':'⏳';
+    const stLabel=m.status==='done'?(m.elapsed+'ms'):m.status==='failed'?'Failed':m.status==='firing'?'Active':'Ready';
+    const stCls=m.status==='done'?'done':m.status==='failed'?'failed':m.status==='firing'?'active':'';
+    const div=document.createElement('div');
+    div.className='net-node machine '+stCls; div.id='net-machine-'+idx;
+    div.style.cssText='left:8px;top:'+(H*yPct/100-34)+'px;width:105px;';
+    div.innerHTML='<div class="net-node-inner"><span class="net-node-icon">🖥</span><span class="net-node-label" style="color:#d4a843;">'+devId+'</span><span class="net-node-sub">'+m.mac.substring(0,11)+'...</span><span class="net-node-stat">'+stIcon+' '+stLabel+'</span></div>';
+    canvas.appendChild(div);
+  });
+
+  requestAnimationFrame(function(){drawNetLines(W,H);});
+}
+
+function drawNetLines(W,H) {
+  const svg=document.getElementById('network-svg');
+  const canvas=document.getElementById('network-canvas');
+  if (!svg||!canvas) return;
+  svg.innerHTML='';
+  const ns='http://www.w3.org/2000/svg';
+  const cr=canvas.getBoundingClientRect();
+
+  function center(id){
+    const el=document.getElementById(id); if(!el)return null;
+    const er=el.getBoundingClientRect();
+    return{x:er.left-cr.left+er.width/2, y:er.top-cr.top+er.height/2};
+  }
+  function line(x1,y1,x2,y2,cls){
+    const l=document.createElementNS(ns,'line');
+    l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);
+    l.setAttribute('class','net-line '+(cls||''));
+    svg.appendChild(l);
+  }
+
+  const backend=center('net-backend'), d1=center('net-d1');
+  const gateway=center('net-gateway'), webhook=center('net-webhook'), queue=center('net-queue');
+  if (!backend||!d1) return;
+
+  const svc=netLineState==='active'?'active':netLineState==='success'?'success':netLineState==='mixed'?'failure':'';
+  line(backend.x,backend.y, d1.x,d1.y, svc);
+  if(gateway) line(backend.x,backend.y, gateway.x,gateway.y, svc);
+  if(webhook) line(backend.x,backend.y, webhook.x,webhook.y, svc);
+  if(queue)   line(backend.x,backend.y, queue.x,queue.y, svc);
+
+  fleet.forEach(function(m,idx){
+    const mc=center('net-machine-'+idx); if(!mc) return;
+    const cls=m.status==='firing'?'active':m.status==='done'?'success':m.status==='failed'?'failure':'';
+    line(mc.x,mc.y, backend.x,backend.y, cls);
+  });
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  INIT
+//  UTILS + INIT
 // ═══════════════════════════════════════════════════════════════════════════
-window.addEventListener('load', () => {
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+window.addEventListener('load',function(){
   buildNodeList();
   fleetReset();
+});
+window.addEventListener('resize',function(){
+  if(document.getElementById('tab-network').classList.contains('active')) updateNetworkView();
 });
 </script>
 </body>
