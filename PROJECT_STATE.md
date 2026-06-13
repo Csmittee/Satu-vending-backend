@@ -1,12 +1,27 @@
 # PROJECT_STATE.md — Satu 1.0 Live Status
 <!-- CC updates phase status after Build sessions · Chat updates after design decisions locked -->
-<!-- Last updated: 2026-06-13 — wrangler.toml build fix + simulator/tester device dropdown -->
+<!-- Last updated: 2026-06-13 — tester consolidation: simulator upgrade + machine farm redesign -->
 
 ## Session Log (newest first)
 
 ### 2026-06-13 — esbuild template literal fix (wrangler 4.100 breaking change)
 - **FIX:** src/index.js handleAdminDashboard() — 5 inner template literals inside HTML template literal converted to string concatenation. Wrangler 4.100+ esbuild strict mode fails on nested `${...}` inside outer backtick strings. R-98 added to RULES.md.
 - **Files:** src/index.js only
+
+### 2026-06-13 — tester consolidation: simulator upgrade + machine farm redesign (R-94)
+- **DELETE:** public/simulator_r3.html — fully superseded, deleted.
+- **UPGRADE:** simulator.html → "SATU VENDING MACHINE SIMULATOR"
+  - Title updated. Styled device dropdown (3 approved devices, no free entry).
+  - Connection Status toggle drawer: 6 live indicators (Backend, D1, Order, Payment Gateway, Machine Command, Idempotency).
+  - [🔁 Run Idempotency Test] button: create order → POST webhook ×2 → poll commands → verify count===1.
+- **REDESIGN:** satu-machine-tester.html → "Machine Farm Simulator"
+  - Section A: 8-node vertical flow diagram (Health → Hello → Order → QR → Webhook → Commands → Completion → Idempotency). Run All / Step / Reset controls. Expandable node details.
+  - Section B: Fleet stress test — 2-3 machines fired in parallel via Promise.all(). Results panel with auto-generated observations (D1 contention, rate limits, latency spikes).
+  - Section C: Full-width activity log with source tagging ([Machine N] / [Flow]).
+  - Gold/dark theme throughout.
+- **RULES:** R-94 (three-tester architecture), R-99 (CC prompt convention), R-100 (machine farm) added to RULES.md.
+- **WORKFLOW:** WORKFLOW_SKILL.md updated with CC Prompt File Naming section.
+- public/ inventory: simulator.html (upgraded) · satu-machine-tester.html (redesigned) · satu-system-tester.html (untouched) · satu-admin.html · satu-preflight.html. simulator_r3.html DELETED.
 
 ### 2026-06-13 — wrangler.toml build fix + device dropdowns
 - **FIX:** wrangler.toml `routes` was nested inside `[[d1_databases]]` — caused Cloudflare build error "Unexpected fields found in d1_databases[0] field: routes". Moved `routes` to top-level (before `[assets]`). R-97 added to RULES.md.
@@ -183,20 +198,17 @@ Price: owner-defined free input. Color auto-tiers by value (50/100/200/300/500).
 
 ---
 
-## Simulator — File Status
+## Three-Tester Architecture (R-94) — LOCKED 2026-06-13
 
-| File | Version | Location | Status |
-|------|---------|----------|--------|
-| `public/simulator.html` | R1 | Cloudflare | ✅ Live at /simulator — original flow |
-| `public/simulator_r3.html` | R3.1 | Cloudflare | ✅ Live at /simulator_r3 |
+| # | File | Name | Purpose |
+|---|------|------|---------|
+| 1 | `satu-system-tester.html` | Backend System Tester | 14-test automated API suite — DO NOT MODIFY |
+| 2 | `simulator.html` | Vending Machine Simulator | Full touch screen UI + connection status drawer |
+| 3 | `satu-machine-tester.html` | Machine Farm Simulator | 8-node flow diagram + multi-machine stress test |
 
-R3.1 features:
-- Flow Mode (linear, natural journey) + Free Mode (jump anywhere)
-- Sacred water 3-2-1 countdown screen restored
-- Context-sensitive gesture panel (highlights active section)
-- Gateway badge reads from /health — shows fake_omise / omise_test / omise_live
-- Real API calls: /hello, /order, /heartbeat, /commands, /completion
-- Configurable grid: 1-21 slots, 1-7 cols
+`simulator_r3.html` — DELETED 2026-06-13. Fully superseded.
+
+No new test files without owner + Chat approval (R-94).
 
 ---
 

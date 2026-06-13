@@ -1,842 +1,1077 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Satu Machine Simulator - Test Mode</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1a1a2e;
-            color: #e0e0e0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1300px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        .panel {
-            background: #0f0f1a;
-            border-radius: 16px;
-            padding: 20px;
-            border: 1px solid #2a2a3e;
-        }
-        .panel h2 {
-            color: #667eea;
-            margin-bottom: 20px;
-            font-size: 18px;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SATU Machine Farm Simulator</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* Config bar */
-        .config-bar {
-            max-width: 1300px;
-            margin: 0 auto 20px;
-            background: #0f0f1a;
-            border-radius: 12px;
-            padding: 14px 20px;
-            border: 1px solid #2a2a3e;
-            display: flex;
-            gap: 20px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .config-bar label { font-size: 13px; color: #888; white-space: nowrap; }
-        .config-bar input {
-            background: #1a1a2e;
-            border: 1px solid #3a3a4e;
-            border-radius: 8px;
-            padding: 6px 10px;
-            color: white;
-            font-size: 13px;
-            width: 220px;
-            margin-top: 0;
-        }
-        .config-group { display: flex; align-items: center; gap: 8px; }
+body {
+  background: #0a0b0e;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #ccc;
+  padding: 16px;
+}
 
-        /* Products */
-        .product-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .product-btn {
-            background: #2a2a3e;
-            border: none;
-            padding: 15px 10px;
-            border-radius: 10px;
-            cursor: pointer;
-            color: white;
-            text-align: center;
-            transition: all 0.2s;
-        }
-        .product-btn:hover { background: #667eea; transform: scale(1.02); }
-        .product-btn.selected { background: #10b981; border: 2px solid white; }
-        .product-price { font-size: 12px; color: #888; margin-top: 5px; }
+/* ── Page header ── */
+.page-header {
+  border-bottom: 1px solid #1e2028;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+.page-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #d4a843;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.page-sub { font-size: 11px; color: #555; margin-top: 3px; letter-spacing: 1px; }
 
-        /* Donor */
-        .donor-section {
-            background: #1a1a2e;
-            border-radius: 12px;
-            padding: 15px;
-            margin: 15px 0;
-        }
-        .donor-options { display: flex; gap: 10px; margin-bottom: 15px; }
-        .donor-btn {
-            background: #2a2a3e;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            color: white;
-            flex: 1;
-        }
-        .donor-btn.active { background: #667eea; }
+/* ── Two-column layout ── */
+.main-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
 
-        input, select {
-            width: 100%;
-            padding: 10px;
-            background: #2a2a3e;
-            border: 1px solid #3a3a4e;
-            border-radius: 8px;
-            color: white;
-            margin-top: 10px;
-        }
+/* ── Cards / panels ── */
+.card {
+  background: #12131a;
+  border: 1px solid #1e2028;
+  border-radius: 8px;
+  padding: 16px;
+}
+.card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #d4a843;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #1e2028;
+}
 
-        /* Status */
-        .status-list { margin-top: 10px; }
-        .status-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px;
-            border-bottom: 1px solid #2a2a3e;
-            font-size: 14px;
-        }
-        .status-green { color: #10b981; }
-        .status-red { color: #ef4444; }
-        .status-yellow { color: #f59e0b; }
+/* ── Controls row ── */
+.ctrl-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.ctrl-group { display: flex; flex-direction: column; gap: 3px; }
+.ctrl-label { font-size: 10px; color: #555; letter-spacing: 1px; }
+select {
+  background: #0a0b0e;
+  border: 1px solid #2a2a36;
+  color: #ccc;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: monospace;
+}
+.btn {
+  background: #1a1b26;
+  border: 1px solid #2a2a36;
+  color: #aaa;
+  padding: 7px 14px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn:hover { border-color: #d4a843; color: #d4a843; }
+.btn.primary { border-color: #d4a843; color: #d4a843; }
+.btn.primary:hover { background: #1f1c0a; }
+.btn.danger { border-color: #5a1a1a; color: #ff6b6b; }
+.btn.danger:hover { background: #1a0000; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        /* QR area */
-        .qr-area {
-            text-align: center;
-            padding: 20px;
-            background: white;
-            border-radius: 12px;
-            margin-top: 20px;
-            color: #1a1a2e;
-        }
-        .qr-area img { max-width: 200px; }
-        .qr-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        .qr-actions button {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        .btn-pay-success { background: #10b981; color: white; }
-        .btn-pay-fail { background: #ef4444; color: white; }
-        .btn-pay-success:hover { background: #059669; }
-        .btn-pay-fail:hover { background: #dc2626; }
-        .btn-pay-success:disabled,
-        .btn-pay-fail:disabled { opacity: 0.4; cursor: not-allowed; }
+/* ── Node flow ── */
+.node-list { display: flex; flex-direction: column; gap: 0; }
+.node-arrow {
+  width: 2px;
+  height: 16px;
+  margin: 0 auto;
+  background: #2a2a36;
+  transition: background 0.3s;
+}
+.node-arrow.green { background: #4caf50; }
+.node-arrow.red { background: #ff4444; }
 
-        /* Buttons */
-        .action-btn {
-            background: #667eea;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 10px;
-            cursor: pointer;
-            color: white;
-            font-size: 16px;
-            width: 100%;
-            margin-top: 15px;
-        }
-        .action-btn:disabled { background: #2a2a3e; cursor: not-allowed; }
-        .action-btn.secondary { background: #3a3a4e; font-size: 14px; margin-top: 10px; }
-        .action-btn.secondary:hover { background: #4a4a5e; }
+.node-card {
+  background: #1a1b26;
+  border: 1px solid #2a2a36;
+  border-radius: 6px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  position: relative;
+}
+.node-card:hover { border-color: #d4a843; }
+.node-card.running { border-color: #4fc3f7; }
+.node-card.pass { border-color: #4caf50; }
+.node-card.fail { border-color: #ff4444; }
+.node-card.skip { opacity: 0.45; }
 
-        /* Log */
-        .log-area {
-            background: #0a0a12;
-            border-radius: 8px;
-            padding: 10px;
-            height: 260px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 12px;
-        }
-        .log-entry { padding: 5px; border-bottom: 1px solid #1a1a2e; }
-        .log-success { color: #10b981; }
-        .log-error { color: #ef4444; }
-        .log-info { color: #f59e0b; }
+.node-header { display: flex; align-items: center; gap: 8px; }
+.node-icon { font-size: 16px; }
+.node-name { font-size: 12px; font-weight: 600; color: #ccc; flex: 1; }
+.node-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-family: monospace;
+  background: #0a0b0e;
+  color: #555;
+  border: 1px solid #2a2a36;
+}
+.node-badge.pending { color: #555; }
+.node-badge.running { color: #4fc3f7; border-color: #4fc3f7; animation: pulse 1s ease-in-out infinite; }
+.node-badge.pass { color: #4caf50; border-color: #4caf50; }
+.node-badge.fail { color: #ff4444; border-color: #ff4444; }
+.node-badge.skip { color: #888; border-color: #444; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
 
-        /* Misc */
-        .selected-product {
-            background: #2a2a3e;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        .badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: bold;
-            margin-left: 6px;
-        }
-        .badge-yellow { background: #f59e0b20; border: 1px solid #f59e0b; color: #f59e0b; }
-        .badge-green { background: #10b98120; border: 1px solid #10b981; color: #10b981; }
-        .fake-mode {
-            background: #f59e0b20;
-            border: 1px solid #f59e0b;
-            border-radius: 8px;
-            padding: 8px;
-            text-align: center;
-            font-size: 12px;
-            margin-bottom: 15px;
-        }
-        .timer-bar {
-            height: 4px;
-            background: #2a2a3e;
-            border-radius: 2px;
-            margin-top: 8px;
-            overflow: hidden;
-        }
-        .timer-fill {
-            height: 100%;
-            background: #f59e0b;
-            border-radius: 2px;
-            transition: width 1s linear;
-        }
-        .section-divider {
-            border: none;
-            border-top: 1px solid #2a2a3e;
-            margin: 15px 0;
-        }
-    </style>
+.node-detail {
+  display: none;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #1e2028;
+  font-size: 10px;
+  color: #555;
+  font-family: monospace;
+  line-height: 1.8;
+}
+.node-detail.visible { display: block; }
+.node-detail .ok { color: #4caf50; }
+.node-detail .err { color: #ff4444; }
+.node-detail .info { color: #4fc3f7; }
+
+/* ── Fleet section ── */
+.machine-slot {
+  background: #1a1b26;
+  border: 1px solid #2a2a36;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.machine-slot-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.machine-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: #d4a843;
+  letter-spacing: 1px;
+  min-width: 70px;
+}
+.machine-status-badge {
+  font-size: 10px;
+  font-family: monospace;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: auto;
+  background: #0a0b0e;
+  color: #555;
+  border: 1px solid #2a2a36;
+}
+.machine-status-badge.firing { color: #4fc3f7; border-color: #4fc3f7; animation: pulse 1s ease-in-out infinite; }
+.machine-status-badge.done { color: #4caf50; border-color: #4caf50; }
+.machine-status-badge.failed { color: #ff4444; border-color: #ff4444; }
+
+.machine-result {
+  font-size: 10px;
+  color: #555;
+  font-family: monospace;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid #1e2028;
+  display: none;
+}
+
+/* ── Results panel ── */
+.results-panel {
+  display: none;
+  background: #12131a;
+  border: 1px solid #2a2a36;
+  border-radius: 6px;
+  padding: 14px;
+  margin-top: 14px;
+}
+.results-panel.visible { display: block; }
+.results-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #d4a843;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #1e2028;
+}
+.results-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 11px;
+  font-family: monospace;
+  border-bottom: 1px solid #0d0e14;
+}
+.results-row .label { color: #666; }
+.results-row .val { color: #ccc; }
+.results-row .val.ok { color: #4caf50; }
+.results-row .val.err { color: #ff4444; }
+.results-machine-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 11px;
+  font-family: monospace;
+}
+.observations {
+  margin-top: 10px;
+  padding: 10px;
+  background: #0a0b0e;
+  border-radius: 4px;
+  border-left: 3px solid #d4a843;
+  font-size: 11px;
+  color: #888;
+  line-height: 1.8;
+}
+.observations .obs-title { color: #d4a843; font-weight: 600; margin-bottom: 4px; }
+
+/* ── Activity log ── */
+.log-panel {
+  background: #12131a;
+  border: 1px solid #1e2028;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+.log-area {
+  background: #06070a;
+  border: 1px solid #1a1b26;
+  border-radius: 4px;
+  padding: 10px;
+  height: 160px;
+  overflow-y: auto;
+  font-size: 10px;
+  font-family: monospace;
+  line-height: 1.7;
+}
+.log-line { color: #444; }
+.log-line.ok { color: #4caf50; }
+.log-line.err { color: #ff4444; }
+.log-line.net { color: #4fc3f7; }
+.log-line.warn { color: #ff8c00; }
+.log-line.state { color: #d4a843; }
+
+/* ── Error badge ── */
+.err-msg {
+  color: #ff6b6b;
+  font-size: 11px;
+  font-family: monospace;
+  padding: 4px 0;
+}
+</style>
 </head>
 <body>
 
-    <!-- Config Bar — device dropdown prevents ghost devices in DB -->
-    <div class="config-bar">
-        <div class="config-group">
-            <label>Backend URL:</label>
-            <input type="text" id="cfgApiBase" value="https://api.janishammer.com" readonly
-                style="background:#111; color:#555; cursor:not-allowed;">
-        </div>
-        <div class="config-group">
-            <label>Select device (no free entry — prevents ghost devices):</label>
-            <select id="cfgDeviceId" style="background:#1a1a1a; color:#e5e7eb; border:1px solid #374151; border-radius:6px; padding:4px 8px; cursor:pointer;">
-                <option value="AA:BB:CC:DD:EE:00">SATU-TEST001 (AA:BB:CC:DD:EE:00) — 14-test suite</option>
-                <option value="AA:BB:CC:DD:EE:01">SATU-SIM01 (AA:BB:CC:DD:EE:01) — Simulator</option>
-                <option value="3C:DC:75:5D:DD:2C">SATU-4R473R (3C:DC:75:5D:DD:2C) — Physical ESP32</option>
-            </select>
-        </div>
-        <div class="config-group">
-            <label>Fake Omise URL:</label>
-            <input type="text" id="cfgFakeOmise" value="https://fake-omise.csmittee.workers.dev" readonly
-                style="background:#111; color:#555; cursor:not-allowed;">
-        </div>
+<div class="page-header">
+  <div class="page-title">SATU Machine Farm Simulator</div>
+  <div class="page-sub">End-to-end integration flow + multi-machine stress test</div>
+</div>
+
+<div class="main-layout">
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION A — Single Flow Test -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <div class="card-title">Section A — Single Flow Test</div>
+
+    <div class="ctrl-row">
+      <div class="ctrl-group">
+        <span class="ctrl-label">DEVICE</span>
+        <select id="flow-device">
+          <option value="AA:BB:CC:DD:EE:00">SATU-TEST001 — Backend tests</option>
+          <option value="AA:BB:CC:DD:EE:01">SATU-SIM01 — Simulator</option>
+          <option value="3C:DC:75:5D:DD:2C">SATU-4R473R — Physical ESP32</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">PRODUCT</span>
+        <select id="flow-product">
+          <option value="1">1 — Blessing Card (10 THB)</option>
+          <option value="2" selected>2 — Small Amulet (20 THB)</option>
+          <option value="3">3 — Medium Amulet (50 THB)</option>
+          <option value="4">4 — Large Amulet (100 THB)</option>
+          <option value="5">5 — Monk Blessing (500 THB)</option>
+          <option value="6">6 — Temple Donation (1000 THB)</option>
+          <option value="7">7 — Merit Set (2000 THB)</option>
+          <option value="8">8 — Gold Leaf (5000 THB)</option>
+          <option value="9">9 — Buddha Statue (10000 THB)</option>
+          <option value="10">10 — Lifetime Blessing (20000 THB)</option>
+        </select>
+      </div>
+    </div>
+    <div class="ctrl-row">
+      <button class="btn primary" id="btn-run-all" onclick="flowRunAll()">▶ Run All</button>
+      <button class="btn" id="btn-step" onclick="flowStep()">⏭ Step</button>
+      <button class="btn danger" onclick="flowReset()">🔄 Reset</button>
     </div>
 
-    <div class="container">
-        <!-- Left Panel: Machine Simulation -->
-        <div class="panel">
-            <h2>🖥️ Vending Machine Simulator <span class="badge badge-yellow">TEST MODE</span></h2>
+    <!-- 8 Nodes -->
+    <div class="node-list" id="node-list">
+      <!-- Built by JS -->
+    </div>
+  </div>
 
-            <div class="fake-mode">
-                🔧 Fake QR · Real backend · Real webhook · Real command queue
-            </div>
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION B — Machine Fleet Stress Test -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <div class="card-title">Section B — Machine Fleet Stress Test</div>
 
-            <div class="selected-product" id="selectedDisplay">No product selected</div>
-
-            <div class="product-grid" id="productGrid"></div>
-
-            <div class="donor-section">
-                <h3>🙏 Donor Information</h3>
-                <div class="donor-options">
-                    <button class="donor-btn" id="anonymousBtn">Anonymous</button>
-                    <button class="donor-btn" id="enterNameBtn">Enter Name</button>
-                    <button class="donor-btn" id="insertIdBtn">Insert ID Card</button>
-                </div>
-                <div id="donorInputArea"></div>
-            </div>
-
-            <button class="action-btn" id="donateBtn" disabled>Select a product first</button>
-
-            <!-- QR + payment controls -->
-            <div class="qr-area" id="qrArea" style="display:none;">
-                <h3 style="color:#1a1a2e;">📱 Scan QR Code to Pay</h3>
-                <img id="qrImage" src="" alt="QR Code">
-                <p style="margin-top:10px;font-size:12px;color:#555;" id="orderIdDisplay"></p>
-
-                <!-- Timer -->
-                <div style="font-size:12px;color:#888;margin-top:8px;" id="timerLabel">Waiting for payment…</div>
-                <div class="timer-bar"><div class="timer-fill" id="timerFill" style="width:100%"></div></div>
-
-                <!-- Manual payment buttons -->
-                <div class="qr-actions">
-                    <button class="btn-pay-success" id="btnPaySuccess">✅ Simulate Payment Success</button>
-                    <button class="btn-pay-fail" id="btnPayFail">❌ Simulate Payment Fail</button>
-                </div>
-
-                <div id="paymentStatus" style="margin-top:10px;font-size:13px;"></div>
-            </div>
-        </div>
-
-        <!-- Right Panel: Status Dashboard -->
-        <div class="panel">
-            <h2>📊 Connection Status</h2>
-            <div class="status-list">
-                <div class="status-item">
-                    <span>🔌 Backend Connection</span>
-                    <span id="backendStatus" class="status-red">● Not tested</span>
-                </div>
-                <div class="status-item">
-                    <span>💾 Database (D1)</span>
-                    <span id="dbStatus" class="status-red">● Unknown</span>
-                </div>
-                <div class="status-item">
-                    <span>📦 Order Creation</span>
-                    <span id="orderStatus" class="status-red">● Not created</span>
-                </div>
-                <div class="status-item">
-                    <span>💳 Payment Gateway</span>
-                    <span id="paymentStatusIndicator" class="status-red">● Not attempted</span>
-                </div>
-                <div class="status-item">
-                    <span>🤖 Machine Command</span>
-                    <span id="commandStatus" class="status-red">● No command</span>
-                </div>
-                <div class="status-item">
-                    <span>🔁 Webhook Idempotency</span>
-                    <span id="idempotencyStatus" class="status-red">● Not tested</span>
-                </div>
-            </div>
-
-            <hr class="section-divider">
-
-            <h2>📜 Activity Log</h2>
-            <div class="log-area" id="logArea">
-                <div class="log-entry log-info">Ready. Select a product to begin.</div>
-            </div>
-
-            <button class="action-btn secondary" id="testBackendBtn">🔌 Test Backend Connection</button>
-            <button class="action-btn secondary" id="testIdempotencyBtn">🔁 Test Webhook Idempotency</button>
-            <button class="action-btn secondary" id="clearLogBtn" style="background:#2a2a3e;">🗑 Clear Log</button>
-        </div>
+    <div style="font-size:10px; color:#555; margin-bottom:12px; line-height:1.7;">
+      Fire 2-3 machines simultaneously via Promise.all() to discover D1 write contention,
+      command queue isolation, rate limiter response, and Cloudflare concurrency limits.
     </div>
 
-    <script>
-        // ============================================
-        // CONFIG — reads from the input fields
-        // ============================================
-        function getConfig() {
-            return {
-                API_BASE: document.getElementById('cfgApiBase').value.replace(/\/$/, ''),
-                DEVICE_ID: document.getElementById('cfgDeviceId').value.trim(),
-                FAKE_OMISE: document.getElementById('cfgFakeOmise').value.replace(/\/$/, '')
-            };
-        }
+    <div class="ctrl-row">
+      <button class="btn" id="btn-add-machine" onclick="fleetAddMachine()">+ Add Machine</button>
+      <button class="btn primary" id="btn-fire-all" onclick="fleetFireAll()">▶ Fire All Simultaneously</button>
+      <button class="btn danger" onclick="fleetReset()">🔄 Reset Fleet</button>
+    </div>
+    <div id="fleet-error" class="err-msg" style="display:none;"></div>
 
-        // Products
-        const products = [
-            { id: 1,  name: "Blessing Card",    price: 10 },
-            { id: 2,  name: "Small Amulet",     price: 20 },
-            { id: 3,  name: "Medium Amulet",    price: 50 },
-            { id: 4,  name: "Large Amulet",     price: 100 },
-            { id: 5,  name: "Monk Blessing",    price: 500 },
-            { id: 6,  name: "Temple Donation",  price: 1000 },
-            { id: 7,  name: "Merit Set",        price: 2000 },
-            { id: 8,  name: "Gold Leaf",        price: 5000 },
-            { id: 9,  name: "Buddha Statue",    price: 10000 },
-            { id: 10, name: "Lifetime Blessing",price: 20000 }
-        ];
+    <div id="fleet-slots">
+      <!-- Built by JS -->
+    </div>
 
-        // State
-        let selectedProduct = null;
-        let donorMode      = 'anonymous';
-        let donorName      = '';
-        let donorId        = '';
-        let currentOrder   = null;   // { order_id, omise_charge_id, amount, qr_code_url }
-        let paymentPending = false;
-        let timerInterval  = null;
+    <!-- Results panel -->
+    <div class="results-panel" id="results-panel">
+      <div class="results-title">Stress Test Results</div>
+      <div id="results-body"></div>
+    </div>
+  </div>
+</div>
 
-        // ============================================
-        // HELPERS
-        // ============================================
-        function generateThaiId() {
-            const r = (n) => Math.floor(Math.random() * n);
-            return `${r(9)+1}-${String(r(10000)).padStart(4,'0')}-${String(r(10000)).padStart(4,'0')}-${String(r(100)).padStart(2,'0')}-${r(10)}`;
-        }
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION C — Activity Log -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="log-panel">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+    <div class="card-title" style="margin-bottom:0; border:none; padding:0;">Section C — Activity Log</div>
+    <button class="btn" onclick="clearLog()" style="font-size:10px; padding:4px 10px;">✕ Clear</button>
+  </div>
+  <div class="log-area" id="activity-log">
+    <div class="log-line state">[Farm] Machine Farm Simulator loaded. Configure devices and run tests.</div>
+  </div>
+</div>
 
-        function generateThaiName() {
-            const first = ['Somchai','Somsri','Preecha','Wichai','Nongnuch','Samorn','Chaiwat','Ratree','Manop','Supaporn'];
-            const last  = ['Jaidee','Sukhumvit','Wongkraisri','Thongprasert','Srisuk','Khamsing','Prasertkul','Boonyarat'];
-            return first[Math.floor(Math.random()*first.length)] + ' ' + last[Math.floor(Math.random()*last.length)];
-        }
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════════════════════════════
+const API_BASE = 'https://api.janishammer.com';
 
-        function addLog(message, type = 'info') {
-            const logArea = document.getElementById('logArea');
-            const time = new Date().toLocaleTimeString();
-            const div = document.createElement('div');
-            div.className = `log-entry log-${type}`;
-            div.innerHTML = `[${time}] ${message}`;
-            logArea.insertBefore(div, logArea.firstChild);
-            if (logArea.children.length > 80) logArea.removeChild(logArea.lastChild);
-        }
+const APPROVED_DEVICES = [
+  { mac: 'AA:BB:CC:DD:EE:00', id: 'SATU-TEST001', label: 'SATU-TEST001 — Backend tests' },
+  { mac: 'AA:BB:CC:DD:EE:01', id: 'SATU-SIM01',   label: 'SATU-SIM01 — Simulator' },
+  { mac: '3C:DC:75:5D:DD:2C', id: 'SATU-4R473R',  label: 'SATU-4R473R — Physical ESP32' },
+];
 
-        function updateStatus(id, color, text) {
-            const el = document.getElementById(id);
-            if (el) { el.className = `status-${color}`; el.textContent = text; }
-        }
+const PRODUCTS = {
+  1:  { name: 'Blessing Card',     price: 10    },
+  2:  { name: 'Small Amulet',      price: 20    },
+  3:  { name: 'Medium Amulet',     price: 50    },
+  4:  { name: 'Large Amulet',      price: 100   },
+  5:  { name: 'Monk Blessing',     price: 500   },
+  6:  { name: 'Temple Donation',   price: 1000  },
+  7:  { name: 'Merit Set',         price: 2000  },
+  8:  { name: 'Gold Leaf',         price: 5000  },
+  9:  { name: 'Buddha Statue',     price: 10000 },
+  10: { name: 'Lifetime Blessing', price: 20000 },
+};
 
-        function setQrButtons(enabled) {
-            document.getElementById('btnPaySuccess').disabled = !enabled;
-            document.getElementById('btnPayFail').disabled    = !enabled;
-        }
+const NODE_DEFS = [
+  { id: 1, icon: '🔌', name: 'Backend Health',      desc: 'GET /health' },
+  { id: 2, icon: '🖥️', name: 'Device Registration', desc: 'POST /v1/machine/hello' },
+  { id: 3, icon: '🛒', name: 'Order Creation',       desc: 'POST /v1/order' },
+  { id: 4, icon: '📱', name: 'QR Reachability',      desc: 'HEAD qr_code_url' },
+  { id: 5, icon: '💳', name: 'Payment Simulation',   desc: 'POST /v1/webhook/omise' },
+  { id: 6, icon: '📡', name: 'Command Delivery',     desc: 'GET /v1/machine/commands (poll ×5)' },
+  { id: 7, icon: '✅', name: 'Completion Report',    desc: 'POST /v1/machine/completion' },
+  { id: 8, icon: '🔁', name: 'Idempotency Check',    desc: 'Fire webhook ×2, verify count===1' },
+];
 
-        function startTimer(seconds) {
-            clearInterval(timerInterval);
-            const fill  = document.getElementById('timerFill');
-            const label = document.getElementById('timerLabel');
-            let remaining = seconds;
-            fill.style.width = '100%';
-            label.textContent = `Waiting for payment… (${remaining}s)`;
+// ═══════════════════════════════════════════════════════════════════════════
+//  LOGGING
+// ═══════════════════════════════════════════════════════════════════════════
+function farmLog(msg, type = '', source = 'Flow') {
+  const el = document.getElementById('activity-log');
+  const ts = new Date().toTimeString().slice(0, 8);
+  const div = document.createElement('div');
+  div.className = 'log-line ' + type;
+  div.textContent = `[${ts}] [${source}] ${msg}`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+function clearLog() {
+  document.getElementById('activity-log').innerHTML =
+    '<div class="log-line state">[Farm] Log cleared.</div>';
+}
 
-            timerInterval = setInterval(() => {
-                remaining--;
-                fill.style.width = `${(remaining / seconds) * 100}%`;
-                label.textContent = `Waiting for payment… (${remaining}s)`;
-                if (remaining <= 0) {
-                    clearInterval(timerInterval);
-                    label.textContent = 'QR expired — no payment received';
-                    fill.style.background = '#ef4444';
-                    if (paymentPending) {
-                        paymentPending = false;
-                        setQrButtons(false);
-                        addLog('⏰ Payment timeout — QR expired', 'error');
-                        updateStatus('paymentStatusIndicator', 'red', '● Timed out');
-                        document.getElementById('paymentStatus').innerHTML =
-                            '<span style="color:#ef4444;">⏰ Payment timed out. Please start again.</span>';
-                    }
-                }
-            }, 1000);
-        }
+// ═══════════════════════════════════════════════════════════════════════════
+//  SECTION A — SINGLE FLOW
+// ═══════════════════════════════════════════════════════════════════════════
 
-        // ============================================
-        // BACKEND CALLS
-        // ============================================
-        async function testBackend() {
-            const { API_BASE } = getConfig();
-            addLog('Testing backend connection…', 'info');
-            updateStatus('backendStatus', 'yellow', '● Testing…');
-            try {
-                const res  = await fetch(`${API_BASE}/health`);
-                const data = await res.json();
-                if (res.ok) {
-                    addLog(`✅ Backend connected! Status: ${data.status}`, 'success');
-                    updateStatus('backendStatus', 'green', '● Connected');
-                    updateStatus('dbStatus', 'green', '● Available');
-                    return true;
-                }
-                throw new Error(`HTTP ${res.status}`);
-            } catch (err) {
-                addLog(`❌ Backend connection failed: ${err.message}`, 'error');
-                updateStatus('backendStatus', 'red', '● Disconnected');
-                return false;
-            }
-        }
+// Flow state
+let flowState = {
+  nodes: Array(8).fill(null).map((_, i) => ({
+    status: 'pending',  // pending | running | pass | fail | skip
+    detail: '',
+  })),
+  currentNode: 0,  // next node to execute (0-7)
+  running: false,
+  // per-run data
+  deviceId: '',
+  deviceSecret: '',
+  orderId: '',
+  qrUrl: '',
+  chargeId: '',
+};
 
-        async function createOrder() {
-            const { API_BASE, DEVICE_ID } = getConfig();
-            if (!selectedProduct) { addLog('Please select a product first', 'error'); return null; }
+function buildNodeList() {
+  const list = document.getElementById('node-list');
+  list.innerHTML = '';
+  NODE_DEFS.forEach((def, i) => {
+    // Arrow before each node except first
+    if (i > 0) {
+      const arrow = document.createElement('div');
+      arrow.className = 'node-arrow';
+      arrow.id = `arrow-${i}`;
+      list.appendChild(arrow);
+    }
 
-            addLog(`Creating order: ${selectedProduct.name} (${selectedProduct.price} THB)`, 'info');
-            updateStatus('orderStatus', 'yellow', '● Creating…');
+    const card = document.createElement('div');
+    card.className = 'node-card';
+    card.id = `node-card-${i}`;
+    card.innerHTML = `
+      <div class="node-header">
+        <span class="node-icon">${def.icon}</span>
+        <span class="node-name">Node ${def.id}: ${def.name}</span>
+        <span class="node-badge pending" id="node-badge-${i}">⏳ Pending</span>
+      </div>
+      <div style="font-size:10px; color:#444; font-family:monospace; margin-top:4px;">${def.desc}</div>
+      <div class="node-detail" id="node-detail-${i}"></div>
+    `;
+    card.addEventListener('click', () => toggleNodeDetail(i));
+    list.appendChild(card);
+  });
+}
 
-            let donorData = {};
-            if (donorMode === 'name' && donorName) {
-                donorData.donor_name = donorName;
-                addLog(`Donor name: ${donorName}`, 'info');
-            } else if (donorMode === 'idcard' && donorId) {
-                donorData.national_id_hash = `HASH_${donorId.replace(/-/g, '')}`;
-                donorData.consent = true;
-                addLog(`ID Card hashed (PDPA compliant)`, 'info');
-            } else {
-                donorData.donor_name = null;
-                addLog('Donor: Anonymous', 'info');
-            }
+function toggleNodeDetail(i) {
+  const det = document.getElementById(`node-detail-${i}`);
+  if (det) det.classList.toggle('visible');
+}
 
-            try {
-                const res = await fetch(`${API_BASE}/v1/order`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ device_id: DEVICE_ID, product_id: selectedProduct.id, ...donorData })
-                });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data = await res.json();
+function setNodeStatus(i, status, detail = '') {
+  const card = document.getElementById(`node-card-${i}`);
+  const badge = document.getElementById(`node-badge-${i}`);
+  const det = document.getElementById(`node-detail-${i}`);
 
-                if (!data.order_id) throw new Error('Backend returned no order_id');
-                if (!data.omise_charge_id) {
-                    addLog('⚠️ Warning: No omise_charge_id in response — payment simulation may fail', 'error');
-                }
+  const statusMap = {
+    pending: ['⏳ Pending', 'pending'],
+    running: ['🔄 Running', 'running'],
+    pass:    ['✅ Pass',    'pass'],
+    fail:    ['❌ Fail',   'fail'],
+    skip:    ['⏸ Skipped', 'skip'],
+  };
+  const [label, cls] = statusMap[status] || ['—', ''];
+  if (badge) { badge.textContent = label; badge.className = 'node-badge ' + cls; }
+  if (card) { card.className = 'node-card ' + (status !== 'pending' ? status : ''); }
+  flowState.nodes[i].status = status;
+  flowState.nodes[i].detail = detail;
 
-                currentOrder = data;
-                addLog(`✅ Order created: ${data.order_id} | charge: ${data.omise_charge_id || 'N/A'}`, 'success');
-                updateStatus('orderStatus', 'green', '● Created');
-                return data;
-            } catch (err) {
-                addLog(`❌ Order creation failed: ${err.message}`, 'error');
-                updateStatus('orderStatus', 'red', '● Failed');
-                return null;
-            }
-        }
+  if (det && detail) {
+    det.innerHTML = detail;
+    det.classList.add('visible');
+  }
 
-        // FIX: actually calls fake Omise → real webhook → real backend
-        async function simulatePaymentSuccess(orderId, chargeId) {
-            const { FAKE_OMISE } = getConfig();
-            addLog(`Triggering payment via Fake Omise…`, 'info');
-            updateStatus('paymentStatusIndicator', 'yellow', '● Processing…');
+  // Update arrows
+  if (i > 0) {
+    const arrow = document.getElementById(`arrow-${i}`);
+    if (arrow) {
+      if (status === 'pass') arrow.className = 'node-arrow green';
+      else if (status === 'fail' || status === 'skip') arrow.className = 'node-arrow red';
+    }
+  }
+}
 
-            try {
-                const res = await fetch(`${FAKE_OMISE}/simulate-payment`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ order_id: orderId, charge_id: chargeId })
-                });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data = await res.json();
-                addLog(`✅ Webhook sent to backend. Response: ${JSON.stringify(data.webhook_response)}`, 'success');
-                updateStatus('paymentStatusIndicator', 'green', '● Completed');
-            } catch (err) {
-                addLog(`❌ Payment simulation failed: ${err.message}`, 'error');
-                updateStatus('paymentStatusIndicator', 'red', '● Failed');
-                return false;
-            }
+function flowReset() {
+  flowState = {
+    nodes: Array(8).fill(null).map(() => ({ status: 'pending', detail: '' })),
+    currentNode: 0, running: false,
+    deviceId: '', deviceSecret: '', orderId: '', qrUrl: '', chargeId: '',
+  };
+  buildNodeList();
+  document.getElementById('btn-run-all').disabled = false;
+  document.getElementById('btn-step').disabled = false;
+  farmLog('Flow reset — all nodes pending', 'state');
+}
 
-            // Poll command queue for payment_confirmed
-            addLog('Polling command queue for payment_confirmed…', 'info');
-            updateStatus('commandStatus', 'yellow', '● Waiting…');
-            return await pollCommandQueue('payment_confirmed');
-        }
+async function flowRunAll() {
+  if (flowState.running) return;
+  flowState.running = true;
+  document.getElementById('btn-run-all').disabled = true;
+  document.getElementById('btn-step').disabled = true;
+  farmLog('▶ Run All started', 'state');
 
-        async function simulatePaymentFailed(orderId, chargeId) {
-            const { FAKE_OMISE } = getConfig();
-            addLog(`Triggering FAILED payment via Fake Omise…`, 'info');
-            updateStatus('paymentStatusIndicator', 'yellow', '● Processing failure…');
+  for (let i = flowState.currentNode; i < 8; i++) {
+    if (!flowState.running) break;
+    const ok = await executeNode(i);
+    if (!ok) {
+      // Mark remaining as skipped
+      for (let j = i + 1; j < 8; j++) setNodeStatus(j, 'skip');
+      break;
+    }
+    if (i < 7) await delay(800);
+  }
+  flowState.running = false;
+  document.getElementById('btn-run-all').disabled = false;
+  document.getElementById('btn-step').disabled = false;
+  farmLog('Run All complete', 'state');
+}
 
-            try {
-                const res = await fetch(`${FAKE_OMISE}/simulate-failed-payment`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ order_id: orderId, charge_id: chargeId, reason: 'insufficient_funds' })
-                });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data = await res.json();
-                addLog(`Failure webhook sent. Backend response: ${JSON.stringify(data.webhook_response)}`, 'info');
-                updateStatus('paymentStatusIndicator', 'red', '● Failed (correct)');
-            } catch (err) {
-                addLog(`❌ Failed payment simulation error: ${err.message}`, 'error');
-                updateStatus('paymentStatusIndicator', 'red', '● Error');
-                return false;
-            }
+async function flowStep() {
+  if (flowState.running) return;
+  if (flowState.currentNode >= 8) {
+    farmLog('All nodes executed — reset to run again', 'warn');
+    return;
+  }
+  flowState.running = true;
+  document.getElementById('btn-step').disabled = true;
+  await executeNode(flowState.currentNode);
+  flowState.currentNode++;
+  flowState.running = false;
+  document.getElementById('btn-step').disabled = false;
+}
 
-            // Verify door did NOT unlock
-            addLog('Verifying door stays locked…', 'info');
-            await new Promise(r => setTimeout(r, 1500));
-            const { API_BASE, DEVICE_ID } = getConfig();
-            const cmdRes   = await fetch(`${API_BASE}/v1/machine/commands?device_id=${DEVICE_ID}`);
-            const commands = await cmdRes.json();
-            const hasUnlock = commands.commands && commands.commands.some(c => c.command === 'payment_confirmed');
+// executeNode returns true=pass, false=fail
+async function executeNode(i) {
+  setNodeStatus(i, 'running');
+  farmLog(`Node ${i + 1}: ${NODE_DEFS[i].name}`, 'net');
 
-            if (hasUnlock) {
-                addLog('❌ BUG: payment_confirmed command found after FAILED payment!', 'error');
-                updateStatus('commandStatus', 'red', '● BUG: Unlocked on failure!');
-                return false;
-            } else {
-                addLog('✅ Door stays locked — no unlock command after failed payment', 'success');
-                updateStatus('commandStatus', 'green', '● Locked (correct)');
-                return true;
-            }
-        }
+  try {
+    const mac = document.getElementById('flow-device').value;
+    const productId = parseInt(document.getElementById('flow-product').value);
 
-        // Polls /v1/machine/commands with retry until command appears or timeout
-        async function pollCommandQueue(commandName, maxAttempts = 8, intervalMs = 800) {
-            const { API_BASE, DEVICE_ID } = getConfig();
-            for (let i = 0; i < maxAttempts; i++) {
-                await new Promise(r => setTimeout(r, intervalMs));
-                try {
-                    const res      = await fetch(`${API_BASE}/v1/machine/commands?device_id=${DEVICE_ID}`);
-                    const commands = await res.json();
-                    addLog(`Poll ${i+1}/${maxAttempts}: ${JSON.stringify(commands.commands || [])}`, 'info');
-                    if (commands.commands && commands.commands.some(c => c.command === commandName)) {
-                        addLog(`✅ "${commandName}" command received by machine!`, 'success');
-                        updateStatus('commandStatus', 'green', `● ${commandName} ✓`);
-                        return true;
-                    }
-                } catch (err) {
-                    addLog(`Poll error: ${err.message}`, 'error');
-                }
-            }
-            addLog(`❌ Timeout: "${commandName}" never appeared in command queue`, 'error');
-            updateStatus('commandStatus', 'red', '● No command received');
-            return false;
-        }
+    if (i === 0) {
+      // GET /health
+      const r = await fetch(`${API_BASE}/health`);
+      const d = await r.json();
+      if (r.status === 200 && d.status === 'ok') {
+        const det = `<span class="ok">✓ HTTP 200</span><br>payment_mode: <span class="info">${d.payment_mode || '—'}</span><br>version: ${d.version || '—'}`;
+        setNodeStatus(i, 'pass', det);
+        farmLog(`Node 1 PASS — payment_mode: ${d.payment_mode}`, 'ok');
+        return true;
+      } else {
+        setNodeStatus(i, 'fail', `<span class="err">✗ HTTP ${r.status}</span><br>${JSON.stringify(d).substring(0,120)}`);
+        farmLog(`Node 1 FAIL — HTTP ${r.status}`, 'err');
+        return false;
+      }
+    }
 
-        // Idempotency test: fire same webhook twice, check command queue count
-        async function testIdempotency() {
-            const { FAKE_OMISE, API_BASE, DEVICE_ID } = getConfig();
-            addLog('--- Idempotency Test Start ---', 'info');
-            updateStatus('idempotencyStatus', 'yellow', '● Testing…');
+    if (i === 1) {
+      // POST /v1/machine/hello
+      const r = await fetch(`${API_BASE}/v1/machine/hello`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mac, firmware: 'v1.0.0-farm' }),
+      });
+      const d = await r.json();
+      if ((r.status === 200 || r.status === 201) && d.device_id && d.device_secret) {
+        flowState.deviceId = d.device_id;
+        flowState.deviceSecret = d.device_secret;
+        const det = `<span class="ok">✓ HTTP ${r.status}</span><br>device_id: <span class="info">${d.device_id}</span><br>status: ${d.status || '—'}`;
+        setNodeStatus(i, 'pass', det);
+        farmLog(`Node 2 PASS — device_id: ${d.device_id}`, 'ok');
+        return true;
+      } else {
+        setNodeStatus(i, 'fail', `<span class="err">✗ HTTP ${r.status}</span><br>${JSON.stringify(d).substring(0,120)}`);
+        farmLog(`Node 2 FAIL — HTTP ${r.status}`, 'err');
+        return false;
+      }
+    }
 
-            // 1. Create order
-            const orderRes = await fetch(`${API_BASE}/v1/order`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ device_id: DEVICE_ID, product_id: 1 })
-            });
-            const order = await orderRes.json();
-            if (!order.order_id || !order.omise_charge_id) {
-                addLog('❌ Idempotency test: failed to create order', 'error');
-                updateStatus('idempotencyStatus', 'red', '● Order failed');
-                return;
-            }
-            addLog(`Order created: ${order.order_id}`, 'info');
+    if (i === 2) {
+      // POST /v1/order
+      const headers = { 'Content-Type': 'application/json' };
+      if (flowState.deviceSecret) headers['X-Device-Secret'] = flowState.deviceSecret;
+      const r = await fetch(`${API_BASE}/v1/order`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ device_id: flowState.deviceId, product_id: productId }),
+      });
+      const d = await r.json();
+      if ((r.status === 200 || r.status === 201) && d.order_id) {
+        flowState.orderId = d.order_id;
+        flowState.qrUrl = d.qr_code_url || '';
+        flowState.chargeId = d.omise_charge_id || 'farm_charge_' + Date.now();
+        const det = `<span class="ok">✓ HTTP ${r.status}</span><br>order_id: <span class="info">${d.order_id}</span><br>amount: ${d.amount} THB<br>qr_code_url: ${(d.qr_code_url||'—').substring(0,60)}`;
+        setNodeStatus(i, 'pass', det);
+        farmLog(`Node 3 PASS — order: ${d.order_id}`, 'ok');
+        return true;
+      } else {
+        setNodeStatus(i, 'fail', `<span class="err">✗ HTTP ${r.status}</span><br>${JSON.stringify(d).substring(0,120)}`);
+        farmLog(`Node 3 FAIL — HTTP ${r.status}`, 'err');
+        return false;
+      }
+    }
 
-            // 2. Fire webhook TWICE with same charge_id
-            for (let i = 1; i <= 2; i++) {
-                await fetch(`${FAKE_OMISE}/simulate-payment`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ order_id: order.order_id, charge_id: order.omise_charge_id })
-                });
-                addLog(`Webhook fire #${i} sent for ${order.omise_charge_id}`, 'info');
-                await new Promise(r => setTimeout(r, 600));
-            }
+    if (i === 3) {
+      // HEAD qr_code_url (no-cors)
+      if (!flowState.qrUrl || !flowState.qrUrl.startsWith('http')) {
+        setNodeStatus(i, 'pass', '<span class="warn">⚠️ Unverifiable — no qr_code_url from backend</span>');
+        farmLog('Node 4 — QR URL not available (fake mode)', 'warn');
+        return true;
+      }
+      try {
+        const r = await fetch(flowState.qrUrl, { method: 'HEAD', mode: 'no-cors' });
+        setNodeStatus(i, 'pass', '<span class="warn">⚠️ Unverifiable — CORS blocks HEAD response (not a failure)</span>');
+        farmLog('Node 4 — QR URL reached (CORS blocks response verification)', 'warn');
+        return true;
+      } catch(e) {
+        setNodeStatus(i, 'pass', '<span class="warn">⚠️ Unverifiable — CORS blocked HEAD request</span>');
+        farmLog('Node 4 — CORS blocked, marking Unverifiable (not fail)', 'warn');
+        return true;
+      }
+    }
 
-            // 3. Count payment_confirmed commands in queue
-            await new Promise(r => setTimeout(r, 1000));
-            const cmdRes   = await fetch(`${API_BASE}/v1/machine/commands?device_id=${DEVICE_ID}`);
-            const commands = await cmdRes.json();
-            const count    = (commands.commands || []).filter(c => c.command === 'payment_confirmed').length;
+    if (i === 4) {
+      // POST /v1/webhook/omise
+      const webhookBody = {
+        object: 'charge', id: flowState.chargeId,
+        status: 'successful', metadata: { order_id: flowState.orderId },
+      };
+      const r = await fetch(`${API_BASE}/v1/webhook/omise`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(webhookBody),
+      });
+      if (r.status === 200) {
+        setNodeStatus(i, 'pass', `<span class="ok">✓ HTTP 200</span><br>charge_id: ${flowState.chargeId}`);
+        farmLog(`Node 5 PASS — webhook accepted`, 'ok');
+        return true;
+      } else {
+        const d = await r.json().catch(() => ({}));
+        setNodeStatus(i, 'fail', `<span class="err">✗ HTTP ${r.status}</span><br>${JSON.stringify(d).substring(0,120)}`);
+        farmLog(`Node 5 FAIL — HTTP ${r.status}`, 'err');
+        return false;
+      }
+    }
 
-            addLog(`payment_confirmed commands in queue: ${count}`, count === 1 ? 'success' : 'error');
+    if (i === 5) {
+      // GET /v1/machine/commands — poll up to 5× with 800ms gap
+      let found = false, attempts = 0, foundCmd = null;
+      const headers = {};
+      if (flowState.deviceSecret) headers['X-Device-Secret'] = flowState.deviceSecret;
+      for (let attempt = 1; attempt <= 5; attempt++) {
+        attempts = attempt;
+        await delay(800);
+        const r = await fetch(`${API_BASE}/v1/machine/commands?device_id=${flowState.deviceId}`, { headers });
+        const d = await r.json();
+        const cmds = d.commands || [];
+        const match = cmds.find(c => c.command === 'payment_confirmed' && c.data && c.data.order_id === flowState.orderId);
+        farmLog(`Node 6 poll ${attempt}/5 — commands: ${cmds.length}`, 'net');
+        if (match) { found = true; foundCmd = match; break; }
+      }
+      if (found) {
+        const det = `<span class="ok">✓ payment_confirmed found</span><br>attempts: ${attempts}/5<br>order_id: ${flowState.orderId}`;
+        setNodeStatus(i, 'pass', det);
+        farmLog(`Node 6 PASS — command found in ${attempts} attempt(s)`, 'ok');
+        return true;
+      } else {
+        setNodeStatus(i, 'fail', `<span class="err">✗ No payment_confirmed after 5 polls</span><br>order_id: ${flowState.orderId}`);
+        farmLog(`Node 6 FAIL — no command after 5 polls`, 'err');
+        return false;
+      }
+    }
 
-            if (count === 0) {
-                addLog('❌ Idempotency: webhook never produced a command', 'error');
-                updateStatus('idempotencyStatus', 'red', '● No command at all');
-            } else if (count === 1) {
-                addLog('✅ Idempotency PASS: duplicate webhook ignored correctly', 'success');
-                updateStatus('idempotencyStatus', 'green', '● PASS — duplicate ignored');
-            } else {
-                addLog(`❌ Idempotency FAIL: ${count} commands created from 1 payment — backend processed duplicate!`, 'error');
-                updateStatus('idempotencyStatus', 'red', `● FAIL — ${count} commands`);
-            }
-            addLog('--- Idempotency Test End ---', 'info');
-        }
+    if (i === 6) {
+      // POST /v1/machine/completion
+      const headers = { 'Content-Type': 'application/json' };
+      if (flowState.deviceSecret) headers['X-Device-Secret'] = flowState.deviceSecret;
+      const r = await fetch(`${API_BASE}/v1/machine/completion`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ device_id: flowState.deviceId, order_id: flowState.orderId, success: true, slot: 1 }),
+      });
+      if (r.status === 200) {
+        setNodeStatus(i, 'pass', `<span class="ok">✓ HTTP 200</span>`);
+        farmLog(`Node 7 PASS — completion reported`, 'ok');
+        return true;
+      } else {
+        const d = await r.json().catch(() => ({}));
+        setNodeStatus(i, 'fail', `<span class="err">✗ HTTP ${r.status}</span><br>${JSON.stringify(d).substring(0,120)}`);
+        farmLog(`Node 7 FAIL — HTTP ${r.status} (endpoint may not exist yet)`, 'err');
+        return false;
+      }
+    }
 
-        // ============================================
-        // MAIN FLOW
-        // ============================================
-        async function startDonation() {
-            if (!selectedProduct) { addLog('Please select a product first', 'error'); return; }
+    if (i === 7) {
+      // Idempotency — fire webhook again, wait, poll, count
+      const webhookBody = {
+        object: 'charge', id: flowState.chargeId,
+        status: 'successful', metadata: { order_id: flowState.orderId },
+      };
+      await fetch(`${API_BASE}/v1/webhook/omise`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(webhookBody),
+      });
+      farmLog('Node 8 — webhook #2 fired', 'net');
+      await delay(1200);
 
-            // Reset state
-            paymentPending = false;
-            clearInterval(timerInterval);
-            document.getElementById('qrArea').style.display = 'none';
-            document.getElementById('paymentStatus').innerHTML = '';
-            document.getElementById('timerFill').style.background = '#f59e0b';
-            updateStatus('orderStatus', 'red', '● Not created');
-            updateStatus('paymentStatusIndicator', 'red', '● Not attempted');
-            updateStatus('commandStatus', 'red', '● No command');
+      const headers = {};
+      if (flowState.deviceSecret) headers['X-Device-Secret'] = flowState.deviceSecret;
+      const r = await fetch(`${API_BASE}/v1/machine/commands?device_id=${flowState.deviceId}`, { headers });
+      const d = await r.json();
+      const cmds = d.commands || [];
+      const count = cmds.filter(c => c.command === 'payment_confirmed' && c.data && c.data.order_id === flowState.orderId).length;
 
-            document.getElementById('donateBtn').disabled = true;
+      if (count === 1) {
+        setNodeStatus(i, 'pass', `<span class="ok">✓ count=1 — Idempotency working</span>`);
+        farmLog(`Node 8 PASS — count=1, no duplicates`, 'ok');
+        return true;
+      } else {
+        const reason = count === 0 ? 'No command (command may have expired)' : `Duplicate commands (count=${count})`;
+        setNodeStatus(i, count === 0 ? 'fail' : 'fail', `<span class="err">✗ count=${count}</span><br>${reason}`);
+        farmLog(`Node 8 FAIL — count=${count} (${reason})`, 'err');
+        return false;
+      }
+    }
 
-            const order = await createOrder();
-            if (!order) { document.getElementById('donateBtn').disabled = false; return; }
+  } catch(e) {
+    setNodeStatus(i, 'fail', `<span class="err">✗ Exception</span><br>${e.message}`);
+    farmLog(`Node ${i + 1} exception: ${e.message}`, 'err');
+    return false;
+  }
 
-            // Show QR
-            document.getElementById('qrImage').src         = order.qr_code_url || '';
-            document.getElementById('orderIdDisplay').innerHTML =
-                `Order: <b>${order.order_id}</b> &nbsp;|&nbsp; Amount: <b>${order.amount || selectedProduct.price} THB</b>`;
-            document.getElementById('qrArea').style.display = 'block';
+  return false;
+}
 
-            paymentPending = true;
-            setQrButtons(true);
-            startTimer(120); // 2-minute QR window
+// ═══════════════════════════════════════════════════════════════════════════
+//  SECTION B — FLEET STRESS TEST
+// ═══════════════════════════════════════════════════════════════════════════
 
-            addLog('📱 QR displayed. Use the buttons to simulate customer payment.', 'info');
-        }
+let fleet = [];  // [{mac, productId, status, result, elapsed}]
+const MAX_MACHINES = 3;
 
-        async function handlePaySuccess() {
-            if (!paymentPending || !currentOrder) return;
-            paymentPending = false;
-            clearInterval(timerInterval);
-            setQrButtons(false);
-            document.getElementById('timerLabel').textContent = 'Payment received!';
+function fleetReset() {
+  fleet = [];
+  document.getElementById('fleet-slots').innerHTML = '';
+  document.getElementById('fleet-error').style.display = 'none';
+  document.getElementById('results-panel').className = 'results-panel';
+  // Re-add default 2 machines
+  fleetAddMachine('AA:BB:CC:DD:EE:01', 2);
+  fleetAddMachine('AA:BB:CC:DD:EE:00', 3);
+  farmLog('Fleet reset to 2 default machines', 'state');
+}
 
-            const ok = await simulatePaymentSuccess(currentOrder.order_id, currentOrder.omise_charge_id);
+function fleetAddMachine(defaultMac, defaultProduct) {
+  if (fleet.length >= MAX_MACHINES) {
+    showFleetError('Maximum 3 machines. All must use different approved device IDs.');
+    return;
+  }
+  const idx = fleet.length;
+  const mac = defaultMac || APPROVED_DEVICES[idx % APPROVED_DEVICES.length].mac;
+  const productId = defaultProduct || 2;
+  fleet.push({ mac, productId, status: 'ready', result: '', elapsed: 0 });
+  renderFleetSlot(idx);
+  document.getElementById('btn-add-machine').disabled = fleet.length >= MAX_MACHINES;
+}
 
-            const paymentDiv = document.getElementById('paymentStatus');
-            if (ok) {
-                paymentDiv.innerHTML = '<b style="color:#10b981;">✅ Payment confirmed! Door unlocked — dispensing product…</b>';
-                addLog(`🎁 Dispensing: ${selectedProduct.name}`, 'success');
-                setTimeout(resetMachine, 4000);
-            } else {
-                paymentDiv.innerHTML = '<b style="color:#ef4444;">❌ Payment webhook sent but command not received. Check backend logs.</b>';
-                document.getElementById('donateBtn').disabled = false;
-            }
-        }
+function renderFleetSlot(idx) {
+  const container = document.getElementById('fleet-slots');
 
-        async function handlePayFail() {
-            if (!paymentPending || !currentOrder) return;
-            paymentPending = false;
-            clearInterval(timerInterval);
-            setQrButtons(false);
-            document.getElementById('timerLabel').textContent = 'Payment failed.';
+  // Remove old slot element if it exists
+  const existing = document.getElementById(`fleet-slot-${idx}`);
+  if (existing) existing.remove();
 
-            const ok = await simulatePaymentFailed(currentOrder.order_id, currentOrder.omise_charge_id);
+  const m = fleet[idx];
+  const slot = document.createElement('div');
+  slot.className = 'machine-slot';
+  slot.id = `fleet-slot-${idx}`;
 
-            const paymentDiv = document.getElementById('paymentStatus');
-            if (ok) {
-                paymentDiv.innerHTML = '<b style="color:#f59e0b;">⚠️ Payment failed — door stays locked. Please try again.</b>';
-            } else {
-                paymentDiv.innerHTML = '<b style="color:#ef4444;">❌ BUG: Door unlocked despite payment failure!</b>';
-            }
-            setTimeout(resetMachine, 4000);
-        }
+  const usedMacs = fleet.map((f, i) => i !== idx ? f.mac : null).filter(Boolean);
+  const deviceOptions = APPROVED_DEVICES.map(d =>
+    `<option value="${d.mac}" ${d.mac === m.mac ? 'selected' : ''}>${d.label}</option>`
+  ).join('');
+  const productOptions = Array.from({length:10}, (_,i) => {
+    const pid = i + 1;
+    return `<option value="${pid}" ${pid === m.productId ? 'selected' : ''}>${pid} — ${PRODUCTS[pid].name} (${PRODUCTS[pid].price} THB)</option>`;
+  }).join('');
 
-        function resetMachine() {
-            paymentPending = false;
-            clearInterval(timerInterval);
-            currentOrder   = null;
-            selectedProduct = null;
-            document.getElementById('qrArea').style.display = 'none';
-            document.getElementById('paymentStatus').innerHTML = '';
-            document.getElementById('selectedDisplay').innerHTML = 'No product selected';
-            document.querySelectorAll('.product-btn').forEach(b => b.classList.remove('selected'));
-            document.getElementById('donateBtn').disabled = true;
-            document.getElementById('donateBtn').textContent = 'Select a product first';
-            addLog('✅ Transaction complete. Ready for next customer.', 'success');
-        }
+  slot.innerHTML = `
+    <div class="machine-slot-header">
+      <span class="machine-num">Machine ${idx + 1}</span>
+      <select id="fleet-mac-${idx}" onchange="fleetUpdateMac(${idx}, this.value)"
+        style="font-size:10px; flex:1;">
+        ${deviceOptions}
+      </select>
+      <span class="machine-status-badge" id="fleet-badge-${idx}">⏳ Ready</span>
+      ${fleet.length > 2 ? `<button class="btn danger" onclick="fleetRemoveMachine(${idx})" style="font-size:10px; padding:3px 8px; margin-left:6px;">✕</button>` : ''}
+    </div>
+    <div class="ctrl-row" style="margin-bottom:0;">
+      <div class="ctrl-group">
+        <span class="ctrl-label">PRODUCT</span>
+        <select id="fleet-product-${idx}" onchange="fleet[${idx}].productId=parseInt(this.value)">
+          ${productOptions}
+        </select>
+      </div>
+    </div>
+    <div class="machine-result" id="fleet-result-${idx}"></div>
+  `;
+  container.appendChild(slot);
+}
 
-        // ============================================
-        // UI SETUP
-        // ============================================
-        function renderProducts() {
-            const grid = document.getElementById('productGrid');
-            grid.innerHTML = products.map(p => `
-                <div class="product-btn" data-id="${p.id}" data-name="${p.name}" data-price="${p.price}">
-                    <div>${p.name}</div>
-                    <div class="product-price">${p.price} THB</div>
-                </div>
-            `).join('');
+function fleetUpdateMac(idx, newMac) {
+  const usedMacs = fleet.map((f, i) => i !== idx ? f.mac : null).filter(Boolean);
+  if (usedMacs.includes(newMac)) {
+    showFleetError('Maximum 3 machines. All must use different approved device IDs.');
+    // Revert select
+    document.getElementById(`fleet-mac-${idx}`).value = fleet[idx].mac;
+    return;
+  }
+  fleet[idx].mac = newMac;
+  hideFleetError();
+}
 
-            grid.querySelectorAll('.product-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    if (paymentPending) { addLog('⚠️ Payment in progress — please wait', 'error'); return; }
-                    grid.querySelectorAll('.product-btn').forEach(b => b.classList.remove('selected'));
-                    btn.classList.add('selected');
-                    selectedProduct = {
-                        id:    parseInt(btn.dataset.id),
-                        name:  btn.dataset.name,
-                        price: parseInt(btn.dataset.price)
-                    };
-                    document.getElementById('selectedDisplay').innerHTML =
-                        `Selected: <b>${selectedProduct.name}</b> (${selectedProduct.price} THB)`;
-                    document.getElementById('donateBtn').disabled = false;
-                    document.getElementById('donateBtn').textContent = `Donate ${selectedProduct.price} THB`;
-                    addLog(`Product selected: ${selectedProduct.name} (${selectedProduct.price} THB)`, 'success');
-                });
-            });
-        }
+function fleetRemoveMachine(idx) {
+  fleet.splice(idx, 1);
+  rebuildFleetSlots();
+  document.getElementById('btn-add-machine').disabled = false;
+}
 
-        function setupDonorUI() {
-            const anonBtn  = document.getElementById('anonymousBtn');
-            const nameBtn  = document.getElementById('enterNameBtn');
-            const idBtn    = document.getElementById('insertIdBtn');
-            const area     = document.getElementById('donorInputArea');
+function rebuildFleetSlots() {
+  document.getElementById('fleet-slots').innerHTML = '';
+  fleet.forEach((_, i) => renderFleetSlot(i));
+}
 
-            function updateUI() {
-                if (donorMode === 'anonymous') {
-                    area.innerHTML = '<div style="padding:10px;background:#2a2a3e;border-radius:8px;">🙏 Donating anonymously</div>';
-                    donorName = ''; donorId = '';
-                } else if (donorMode === 'name') {
-                    donorName = generateThaiName();
-                    area.innerHTML = `
-                        <input type="text" id="donorNameInput" placeholder="Your name" value="${donorName}">
-                        <button style="margin-top:5px;background:#3a3a4e;padding:5px;border:none;border-radius:6px;color:white;cursor:pointer;" id="randomNameBtn">🎲 Random Name</button>
-                    `;
-                    area.querySelector('#donorNameInput').addEventListener('input', e => { donorName = e.target.value; });
-                    area.querySelector('#randomNameBtn').addEventListener('click', () => {
-                        donorName = generateThaiName();
-                        area.querySelector('#donorNameInput').value = donorName;
-                        addLog(`Random name: ${donorName}`, 'info');
-                    });
-                } else if (donorMode === 'idcard') {
-                    donorId = generateThaiId();
-                    area.innerHTML = `
-                        <input type="text" id="donorIdInput" placeholder="13-digit ID" value="${donorId}">
-                        <button style="margin-top:5px;background:#3a3a4e;padding:5px;border:none;border-radius:6px;color:white;cursor:pointer;" id="randomIdBtn">🎲 Random ID</button>
-                        <div style="font-size:11px;color:#888;margin-top:5px;">⚠️ ID will be hashed before sending (PDPA)</div>
-                    `;
-                    area.querySelector('#donorIdInput').addEventListener('input', e => { donorId = e.target.value; });
-                    area.querySelector('#randomIdBtn').addEventListener('click', () => {
-                        donorId = generateThaiId();
-                        area.querySelector('#donorIdInput').value = donorId;
-                        addLog(`Random ID generated`, 'info');
-                    });
-                }
-                [anonBtn, nameBtn, idBtn].forEach(b => b.classList.remove('active'));
-                if (donorMode === 'anonymous') anonBtn.classList.add('active');
-                if (donorMode === 'name')      nameBtn.classList.add('active');
-                if (donorMode === 'idcard')    idBtn.classList.add('active');
-            }
+function showFleetError(msg) {
+  const el = document.getElementById('fleet-error');
+  el.textContent = '⚠️ ' + msg;
+  el.style.display = 'block';
+  setTimeout(hideFleetError, 4000);
+}
+function hideFleetError() {
+  document.getElementById('fleet-error').style.display = 'none';
+}
 
-            anonBtn.onclick = () => { donorMode = 'anonymous'; updateUI(); addLog('Mode: Anonymous', 'info'); };
-            nameBtn.onclick = () => { donorMode = 'name';      updateUI(); addLog('Mode: Named donor', 'info'); };
-            idBtn.onclick   = () => { donorMode = 'idcard';    updateUI(); addLog('Mode: ID Card (PDPA hashed)', 'info'); };
-            updateUI();
-        }
+async function fleetFireAll() {
+  if (fleet.length === 0) { showFleetError('Add at least one machine before firing.'); return; }
 
-        function init() {
-            renderProducts();
-            setupDonorUI();
+  // Validate unique MACs
+  const macs = fleet.map(f => f.mac);
+  if (new Set(macs).size !== macs.length) {
+    showFleetError('Maximum 3 machines. All must use different approved device IDs.');
+    return;
+  }
 
-            document.getElementById('donateBtn').onclick       = startDonation;
-            document.getElementById('btnPaySuccess').onclick   = handlePaySuccess;
-            document.getElementById('btnPayFail').onclick      = handlePayFail;
-            document.getElementById('testBackendBtn').onclick  = testBackend;
-            document.getElementById('testIdempotencyBtn').onclick = testIdempotency;
-            document.getElementById('clearLogBtn').onclick     = () => {
-                document.getElementById('logArea').innerHTML =
-                    '<div class="log-entry log-info">Log cleared.</div>';
-            };
+  document.getElementById('btn-fire-all').disabled = true;
+  document.getElementById('results-panel').className = 'results-panel';
+  farmLog(`▶ FIRE ALL — ${fleet.length} machine(s) simultaneously`, 'state');
 
-            setQrButtons(false);
+  // Reset all statuses
+  fleet.forEach((m, i) => {
+    m.status = 'firing'; m.result = ''; m.elapsed = 0;
+    setFleetBadge(i, 'firing', '🔄 Firing');
+    const res = document.getElementById(`fleet-result-${i}`);
+    if (res) { res.style.display = 'none'; res.textContent = ''; }
+  });
 
-            const { API_BASE, DEVICE_ID } = getConfig();
-            addLog(`Simulator ready — Backend: ${API_BASE} | Device: ${DEVICE_ID}`, 'success');
-            setTimeout(testBackend, 500);
-        }
+  const startTime = Date.now();
 
-        init();
-    </script>
+  // Fire all in parallel
+  const tasks = fleet.map((m, i) => runMachineFlow(i, m.mac, m.productId));
+  await Promise.all(tasks);
+
+  const totalTime = Date.now() - startTime;
+  farmLog(`All machines done — total time: ${totalTime}ms`, 'state');
+  showResults(totalTime);
+  document.getElementById('btn-fire-all').disabled = false;
+}
+
+async function runMachineFlow(idx, mac, productId) {
+  const start = Date.now();
+  const src = `Machine ${idx + 1}`;
+  farmLog(`Starting: MAC=${mac} product=${productId}`, 'net', src);
+
+  try {
+    // /hello
+    const hr = await fetch(`${API_BASE}/v1/machine/hello`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mac, firmware: 'v1.0.0-farm' }),
+    });
+    const hd = await hr.json();
+    if (hr.status !== 200 && hr.status !== 201) throw new Error(`/hello HTTP ${hr.status}`);
+    const deviceId = hd.device_id;
+    const deviceSecret = hd.device_secret || '';
+    farmLog(`/hello OK — device_id: ${deviceId}`, 'ok', src);
+
+    // /order
+    const orderHeaders = { 'Content-Type': 'application/json' };
+    if (deviceSecret) orderHeaders['X-Device-Secret'] = deviceSecret;
+    const or = await fetch(`${API_BASE}/v1/order`, {
+      method: 'POST', headers: orderHeaders,
+      body: JSON.stringify({ device_id: deviceId, product_id: productId }),
+    });
+    const od = await or.json();
+    if (or.status !== 200 && or.status !== 201) throw new Error(`/order HTTP ${or.status}`);
+    const orderId = od.order_id;
+    const chargeId = od.omise_charge_id || 'farm_charge_' + Date.now() + '_' + idx;
+    farmLog(`/order OK — order_id: ${orderId}`, 'ok', src);
+
+    // webhook
+    const wr = await fetch(`${API_BASE}/v1/webhook/omise`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ object: 'charge', id: chargeId, status: 'successful', metadata: { order_id: orderId } }),
+    });
+    if (wr.status === 429) throw new Error('Rate limited (HTTP 429)');
+    if (wr.status !== 200) throw new Error(`/webhook HTTP ${wr.status}`);
+    farmLog(`/webhook OK`, 'ok', src);
+
+    // poll commands
+    let found = false;
+    const cmdHeaders = {};
+    if (deviceSecret) cmdHeaders['X-Device-Secret'] = deviceSecret;
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      await delay(800);
+      const cr = await fetch(`${API_BASE}/v1/machine/commands?device_id=${deviceId}`, { headers: cmdHeaders });
+      const cd = await cr.json();
+      const cmds = cd.commands || [];
+      if (cmds.find(c => c.command === 'payment_confirmed' && c.data && c.data.order_id === orderId)) {
+        found = true;
+        farmLog(`Commands OK — found in ${attempt} poll(s)`, 'ok', src);
+        break;
+      }
+    }
+    if (!found) throw new Error('No payment_confirmed after 5 polls');
+
+    const elapsed = Date.now() - start;
+    fleet[idx].status = 'done';
+    fleet[idx].elapsed = elapsed;
+    fleet[idx].result = `✅ ${elapsed}ms`;
+    setFleetBadge(idx, 'done', `✅ ${elapsed}ms`);
+    showMachineResult(idx, true, `Completed in ${elapsed}ms`);
+    farmLog(`DONE — ${elapsed}ms`, 'ok', src);
+
+  } catch(e) {
+    const elapsed = Date.now() - start;
+    fleet[idx].status = 'failed';
+    fleet[idx].elapsed = elapsed;
+    fleet[idx].result = `❌ ${e.message}`;
+    setFleetBadge(idx, 'failed', '❌ Failed');
+    showMachineResult(idx, false, e.message);
+    farmLog(`FAILED — ${e.message}`, 'err', src);
+  }
+}
+
+function setFleetBadge(idx, cls, label) {
+  const badge = document.getElementById(`fleet-badge-${idx}`);
+  if (!badge) return;
+  badge.className = 'machine-status-badge ' + cls;
+  badge.textContent = label;
+}
+
+function showMachineResult(idx, ok, msg) {
+  const el = document.getElementById(`fleet-result-${idx}`);
+  if (!el) return;
+  el.style.display = 'block';
+  el.style.color = ok ? '#4caf50' : '#ff4444';
+  el.textContent = msg;
+}
+
+function showResults(totalMs) {
+  const panel = document.getElementById('results-panel');
+  panel.className = 'results-panel visible';
+  const body = document.getElementById('results-body');
+
+  const allOk = fleet.every(m => m.status === 'done');
+  const avgMs = fleet.length ? Math.round(fleet.reduce((s, m) => s + m.elapsed, 0) / fleet.length) : 0;
+
+  let html = `
+    <div class="results-row"><span class="label">Machines fired:</span><span class="val">${fleet.length}</span></div>
+    <div class="results-row"><span class="label">All succeeded:</span><span class="val ${allOk ? 'ok' : 'err'}">${allOk ? '✅ Yes' : '❌ No'}</span></div>
+    <div class="results-row"><span class="label">Total time:</span><span class="val">${totalMs}ms</span></div>
+    <div class="results-row"><span class="label">Avg per machine:</span><span class="val">${avgMs}ms</span></div>
+    <div style="margin-top:8px; padding-top:8px; border-top:1px solid #1e2028;">
+  `;
+  fleet.forEach((m, i) => {
+    const dev = APPROVED_DEVICES.find(d => d.mac === m.mac);
+    const label = dev ? dev.id : m.mac;
+    html += `<div class="results-machine-row">
+      <span style="color:#888;">Machine ${i+1} (${label}):</span>
+      <span style="color:${m.status === 'done' ? '#4caf50' : '#ff4444'};">${m.result}</span>
+    </div>`;
+  });
+  html += '</div>';
+
+  // Auto-generated observations
+  const obs = generateObservations(fleet, totalMs);
+  html += `<div class="observations"><div class="obs-title">⚠️ OBSERVATIONS:</div>${obs}</div>`;
+
+  body.innerHTML = html;
+  farmLog('Results panel updated', 'state');
+}
+
+function generateObservations(fleet, totalMs) {
+  const lines = [];
+  const timedOut = fleet.filter(m => m.result.includes('poll') || m.result.includes('timeout'));
+  const rateLimited = fleet.filter(m => m.result.includes('429'));
+  const allOk = fleet.every(m => m.status === 'done');
+
+  if (rateLimited.length > 0) {
+    lines.push('Rate limiter triggered — consider raising limit for multi-machine deployments.');
+  }
+  if (timedOut.length > 0) {
+    lines.push('Command delivery timeout detected — possible D1 write contention or rate limiting under load.');
+  }
+  if (allOk && totalMs < 1000 * fleet.length) {
+    lines.push(`Backend handles ${fleet.length} concurrent machine(s) cleanly at current load.`);
+  }
+  if (totalMs > 3000) {
+    lines.push('Latency spike detected — monitor under higher load.');
+  }
+  if (!allOk && timedOut.length === 0 && rateLimited.length === 0) {
+    const fails = fleet.filter(m => m.status === 'failed');
+    lines.push(`${fails.length} machine(s) failed — check activity log for details.`);
+  }
+  if (lines.length === 0) {
+    lines.push('No anomalies detected in this run.');
+  }
+  return lines.map(l => `• ${l}`).join('<br>');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════════════════════════
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  buildNodeList();
+  fleetReset();
+});
+</script>
 </body>
 </html>

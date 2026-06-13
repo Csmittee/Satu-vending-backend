@@ -2,14 +2,13 @@
 #  SATU — Cloudflare Workers Configuration
 #  File: wrangler.toml
 #
-#  CHANGES IN THIS VERSION:
-#    - Added [assets] block: serves public/ folder as static files
-#      HTML pages are now bundled with the Worker deploy — no GitHub fetch,
-#      no CORS issues, no supply-chain risk.
-#      Files in public/ are served at their path:
-#        public/simulator.html          → api.janishammer.com/simulator.html
-#        public/satu-system-tester.html → api.janishammer.com/satu-system-tester.html
-#        public/satu-machine-tester.html → api.janishammer.com/satu-machine-tester.html
+#  HTML pages served at their filename path:
+#    public/simulator.html              → /simulator
+#    public/satu-system-tester.html     → /satu-system-tester
+#    public/satu-machine-tester.html    → /satu-machine-tester
+#    public/satu-preflight.html         → /satu-preflight
+#    public/satu-admin.html             → /satu-admin
+#    (simulator_r3.html DELETED 2026-06-13)
 #
 #  SECRETS (set via `npx wrangler secret put <n>` — never commit these):
 #    JWT_SECRET           — signs temple owner JWTs (random 32+ char string)

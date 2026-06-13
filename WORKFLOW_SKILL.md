@@ -275,3 +275,30 @@ GitHub sync is confirmed checked.
 
 Here is my handoff: [paste CHAT_HANDOFF.md]"
 ```
+
+---
+
+## CC PROMPT FILE NAMING — PERMANENT CONVENTION (2026-06-13)
+
+All CC prompts written by Chat as downloadable .md files.
+Owner pushes to docs/prompts/ in relevant repo before running CC.
+CC executes then archives stamped ✅ COMPLETE — [date] — [summary].
+
+| Prompt type | Filename pattern |
+|-------------|-----------------|
+| Quick fix (1-2 files) | CC_PROMPT_fix_[topic].md |
+| Build/feature (multi-file) | CC_BUILD_PROMPT_[topic].md |
+| Firmware change | CC_PROMPT_firmware_[topic].md |
+
+Every prompt file MUST contain:
+1. CC INTRO block (repo URL, files to read, role reminder)
+2. CONTEXT — why this prompt exists + sequence position
+3. TASK list — numbered, explicit, file-scoped
+4. DO NOT TOUCH list
+5. VERIFICATION STEPS — what CC confirms before closing
+6. MANDATORY closing actions (RULES.md, PROJECT_STATE.md, archive, merge)
+7. PAYMENT MODE REMINDER
+8. Sequence note (Prompt N of N, next prompt name)
+
+Benefits: full audit trail in docs/prompts/ matching GitHub PR history.
+Owner can hand any prompt to a new CC session independently.
