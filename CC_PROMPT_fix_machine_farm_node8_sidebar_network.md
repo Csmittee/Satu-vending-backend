@@ -58,6 +58,7 @@ Fix the connector elements between nodes so they show clearly:
 - A ▼ arrow at the bottom
 - Color: dark grey when pending, dark green when upstream passed,
   dark red when upstream failed
+- Improve space usage,so it can be seen in one screen height, can go horizonal way if need because fix 3 will give more space to desplay area.
 - Do NOT change any other CSS
 
 ---
@@ -118,7 +119,32 @@ Shows nodes as circles/boxes connected by animated lines.
                             ├──► [BACKEND API] ──► [D1 DATABASE]
 [SATU-TEST001] ─────────────┘
 ```
+Nodes to show (left to right flow):
 
+[Machine 1] ──►  [Backend API]  ──►  [Omise/Fake Gateway]
+[Machine 2] ──►       │         ──►  [Webhook Handler]
+[Machine N] ──►       ▼              [Command Queue]
+                  [D1 Database]  ──►  [Device Commands]
+Each node is expandable — click to see last request/response.
+Backend API node shows sub-nodes when expanded:
+
+/hello handler
+/order handler
+/webhook handler
+/commands handler
+
+Payment Gateway node shows:
+
+Current mode (fake/live) from /health
+Last charge_id processed
+
+Command Queue node shows:
+
+Pending command count
+Last command type + timestamp
+
+Lines animate when active, grey when idle.
+All node data updates after each Fire All run.
 Each machine node shows:
 - Device ID (short form)
 - Status badge: ⏳ Ready / 🔄 Active / ✅ Done / ❌ Failed
