@@ -1,9 +1,17 @@
 # PROJECT_STATE.md — Satu 1.0 Live Status
 <!-- CC updates phase status after Build sessions · Chat updates after design decisions locked -->
-<!-- Last updated: 2026-05-29 — Firmware R3 session + Cloudflare variable audit -->
+<!-- Last updated: 2026-06-13 — wrangler.toml build fix + simulator/tester device dropdown -->
+
+## Session Log (newest first)
+
+### 2026-06-13 — wrangler.toml build fix + device dropdowns
+- **FIX:** wrangler.toml `routes` was nested inside `[[d1_databases]]` — caused Cloudflare build error "Unexpected fields found in d1_databases[0] field: routes". Moved `routes` to top-level (before `[assets]`). R-97 added to RULES.md.
+- **FIX:** simulator.html MAC input (readonly text) → dropdown of 3 approved devices. `genMac()` removed. No ghost devices possible.
+- **FIX:** satu-machine-tester.html locked SATU-T001 (not in D1) → dropdown defaulting to SATU-TEST001. Lock overlay removed.
+- Approved devices in D1: SATU-TEST001 (AA:BB:CC:DD:EE:00) · SATU-SIM01 (AA:BB:CC:DD:EE:01) · SATU-4R473R (3C:DC:75:5D:DD:2C)
 
 ## Current Goal
-Flash firmware R3 to ESP32-S3 board. Confirm display + touch. Then fix Cloudflare variables.
+Flash firmware R5 to SATU-4R473R. Monitor CI compile check on PRs.
 
 ---
 

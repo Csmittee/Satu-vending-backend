@@ -27,6 +27,12 @@ compatibility_date   = "2024-04-01"
 compatibility_flags  = ["nodejs_compat"]
 workers_dev          = true
 
+# ── Custom Domain Route ───────────────────────────────────────────────────────
+# MUST be top-level — never inside [[d1_databases]] or any other section (R-97)
+routes = [
+  { pattern = "api.janishammer.com/*", zone_name = "janishammer.com" }
+]
+
 # ── Static Assets ─────────────────────────────────────────────────────────────
 # HTML files in ./public/ are served at their filename path automatically.
 # The Worker fetch() handler handles /v1/* API routes.
@@ -41,11 +47,6 @@ binding   = "ASSETS"
 binding       = "DB"
 database_name = "satu_db"
 database_id   = "be41fa29-3310-423f-bb18-1e4c6f8480c8"
-
-# ── Custom Domain Route ───────────────────────────────────────────────────────
-routes = [
-  { pattern = "api.janishammer.com/*", zone_name = "janishammer.com" }
-]
 
 # ── Cron Triggers ─────────────────────────────────────────────────────────────
 [triggers]
