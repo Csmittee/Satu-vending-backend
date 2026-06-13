@@ -4,6 +4,10 @@
 
 ## Session Log (newest first)
 
+### 2026-06-13 — esbuild template literal fix (wrangler 4.100 breaking change)
+- **FIX:** src/index.js handleAdminDashboard() — 5 inner template literals inside HTML template literal converted to string concatenation. Wrangler 4.100+ esbuild strict mode fails on nested `${...}` inside outer backtick strings. R-98 added to RULES.md.
+- **Files:** src/index.js only
+
 ### 2026-06-13 — wrangler.toml build fix + device dropdowns
 - **FIX:** wrangler.toml `routes` was nested inside `[[d1_databases]]` — caused Cloudflare build error "Unexpected fields found in d1_databases[0] field: routes". Moved `routes` to top-level (before `[assets]`). R-97 added to RULES.md.
 - **FIX:** simulator.html MAC input (readonly text) → dropdown of 3 approved devices. `genMac()` removed. No ghost devices possible.

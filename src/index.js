@@ -360,17 +360,17 @@ async function handleAdminDashboard(env, adminPath) {
         const c = document.getElementById('recent-orders');
         if (!recentOrders.length) { c.innerHTML='<p>No orders yet</p>'; return; }
         c.innerHTML = '<table><thead><tr><th>Order ID</th><th>Device</th><th>Amount</th><th>Status</th><th>Time (UTC+7)</th></tr></thead><tbody>'
-            + recentOrders.map(o=>`<tr><td>${h(o.order_id)}</td><td>${h(o.device_id)}</td><td>${h(o.amount)} THB</td><td class="status-${h(o.status)}">${h(o.status)}</td><td>${h(o.created)}</td></tr>`).join('')+'</tbody></table>';
+            + recentOrders.map(o=>'<tr><td>'+h(o.order_id)+'</td><td>'+h(o.device_id)+'</td><td>'+h(o.amount)+' THB</td><td class="status-'+h(o.status)+'">'+h(o.status)+'</td><td>'+h(o.created)+'</td></tr>').join('')+'</tbody></table>';
     }
     function renderRecentDevices() {
         const c = document.getElementById('recent-devices');
         if (!recentDevices.length) { c.innerHTML='<p>No devices</p>'; return; }
         c.innerHTML = '<table><thead><tr><th>Device ID</th><th>Temple</th><th>Status</th><th>Last Seen (UTC+7)</th></tr></thead><tbody>'
-            + recentDevices.map(d=>`<tr><td>${h(d.device_id)}</td><td>${h(d.temple_name)}</td><td class="status-${h(d.status)}">${h(d.status)}</td><td>${h(d.last_seen)}</td></tr>`).join('')+'</tbody></table>';
+            + recentDevices.map(d=>'<tr><td>'+h(d.device_id)+'</td><td>'+h(d.temple_name)+'</td><td class="status-'+h(d.status)+'">'+h(d.status)+'</td><td>'+h(d.last_seen)+'</td></tr>').join('')+'</tbody></table>';
     }
     function renderTabs() {
         const tabsDiv = document.getElementById('tabs');
-        tabsDiv.innerHTML = tableNames.map(name=>`<button class="tab" onclick="showTab('${h(name)}')">${h(name)}</button>`).join('');
+        tabsDiv.innerHTML = tableNames.map(name=>'<button class="tab" onclick="showTab(\''+h(name)+'\')">'+h(name)+'</button>').join('');
         if (tableNames.length > 0) showTab(tableNames[0]);
     }
     async function showTab(tableName) {
@@ -384,9 +384,9 @@ async function handleAdminDashboard(env, adminPath) {
             const data = await res.json();
             if (!data||data.length===0) { c.innerHTML='<p>No data found</p>'; return; }
             let html='<div class="table-container"><table><thead><tr>';
-            Object.keys(data[0]).forEach(key=>{ html+=`<th>${h(key)}</th>`; });
+            Object.keys(data[0]).forEach(key=>{ html+='<th>'+h(key)+'</th>'; });
             html+='</tr></thead><tbody>';
-            data.forEach(row=>{ html+='<tr>'; Object.values(row).forEach(val=>{ const d=typeof val==='object'?JSON.stringify(val):val; html+=`<td>${h(String(d??'-').substring(0,100))}</td>`; }); html+='</tr>'; });
+            data.forEach(row=>{ html+='<tr>'; Object.values(row).forEach(val=>{ const d=typeof val==='object'?JSON.stringify(val):val; html+='<td>'+h(String(d??'-').substring(0,100))+'</td>'; }); html+='</tr>'; });
             html+='</tbody></table></div>';
             c.innerHTML=html;
         } catch(e) { c.innerHTML='<p style="color:#ef4444;">Error loading data</p>'; }

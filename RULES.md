@@ -17,6 +17,13 @@
 8. **Three-repo system** — read all three repos before any decision (detail → RULES-workflow R-83)
 9. **Session closing** — archive → RULES.md → PROJECT_STATE.md → commit (detail → RULES-workflow R-84)
 10. **No ghost devices** — only SATU-TEST001 (AA:BB:CC:DD:EE:00) + SATU-SIM01 (AA:BB:CC:DD:EE:01)
+- **R-98 TEMPLATE LITERALS IN WORKERS HTML — PERMANENT RULE (2026-06-13):**
+  In Cloudflare Workers, when returning HTML as a template literal that contains
+  inline `<script>` blocks, any JS inside those script blocks MUST use string
+  concatenation — NOT backtick template literals. Wrangler 4.100+ esbuild strict
+  mode mis-parses nested `${...}` expressions inside outer template literal strings.
+  Use: `'<td>'+h(val)+'</td>'` — NOT: `\`<td>${h(val)}</td>\``
+  Also: `</script>` inside outer template literal must be written as `<\/script>`.
 - **R-97 wrangler.toml ROUTES MUST BE TOP-LEVEL — PERMANENT RULE (2026-06-13):**
   `routes = [...]` must be a top-level key in wrangler.toml — never inside `[[d1_databases]]`
   or any other `[section]`. In TOML, all keys after a section header belong to that section.
