@@ -17,6 +17,25 @@
 8. **Three-repo system** — read all three repos before any decision (detail → RULES-workflow R-83)
 9. **Session closing** — archive → RULES.md → PROJECT_STATE.md → commit (detail → RULES-workflow R-84)
 10. **No ghost devices** — only SATU-TEST001 (AA:BB:CC:DD:EE:00) + SATU-SIM01 (AA:BB:CC:DD:EE:01)
+- **R-100 MACHINE FARM STRESS TEST — PERMANENT (2026-06-13):**
+  Machine Farm Simulator supports max 3 concurrent machines.
+  All must use approved device IDs from D1 — no random MACs.
+  Promise.all() parallel firing tests D1 contention + rate limits.
+  Results panel auto-generates observations for capacity planning.
+
+- **R-99 CC PROMPT FILE CONVENTION — PERMANENT (2026-06-13):**
+  All CC prompts = downloadable .md files written by Chat.
+  Naming: CC_PROMPT_fix / CC_BUILD_PROMPT / CC_PROMPT_firmware
+  Stored in docs/prompts/. Archived ✅ COMPLETE after merge.
+  Follow 8-section template defined in WORKFLOW_SKILL.md.
+
+- **R-94 THREE-TESTER ARCHITECTURE — PERMANENT (2026-06-13):**
+  satu-system-tester.html = Backend API suite (14 tests, never modify)
+  simulator.html          = Vending Machine Simulator (touch UI + drawer)
+  satu-machine-tester.html = Machine Farm Simulator (node flow + stress)
+  simulator_r3.html DELETED 2026-06-13.
+  No new test files without owner + Chat approval.
+
 - **R-98 TEMPLATE LITERALS IN WORKERS HTML — PERMANENT RULE (2026-06-13):**
   In Cloudflare Workers, when returning HTML as a template literal that contains
   inline `<script>` blocks, any JS inside those script blocks MUST use string

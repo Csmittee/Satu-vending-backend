@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SATU Machine Simulator — ESP32-8048S070C</title>
+<title>SATU VENDING MACHINE SIMULATOR</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Kanit:wght@400;600;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════
@@ -755,7 +755,7 @@ canvas#qr-canvas { display: block; }
 
 <!-- Simulator shell -->
 <div class="sim-header">
-  <div class="sim-title">🕉 SATU MACHINE SIMULATOR</div>
+  <div class="sim-title">🕉 SATU VENDING MACHINE SIMULATOR</div>
   <div class="sim-status">API: <span id="api-status">—</span> &nbsp;|&nbsp; Device: <span id="dev-status">—</span> &nbsp;|&nbsp; State: <span id="state-status">BOOT</span></div>
 </div>
 
@@ -1173,7 +1173,65 @@ canvas#qr-canvas { display: block; }
   <button class="sim-btn" onclick="pollCmds()">📡 Poll Commands</button>
   <button class="sim-btn danger" onclick="simDisable()">🚫 Disable</button>
   <button class="sim-btn danger" onclick="simRebootCmd()">💥 Reboot Cmd</button>
+  <button class="sim-btn" id="conn-drawer-btn" onclick="toggleConnDrawer()" style="margin-left:auto;">📊 Connection Status ▼</button>
 </div>
+
+<!-- Connection Status Drawer -->
+<div id="conn-drawer" style="display:none; width:800px; margin-top:6px; background:#0a0b0e; border:1px solid #2a2a2e; border-radius:6px; padding:12px 16px;">
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;">
+    <div class="conn-indicator" id="ci-backend">
+      <span class="ci-dot" id="ci-backend-dot">●</span>
+      <span class="ci-label">🔌 Backend Connection</span>
+      <span class="ci-val" id="ci-backend-val">—</span>
+    </div>
+    <div class="conn-indicator" id="ci-db">
+      <span class="ci-dot" id="ci-db-dot" style="color:#888;">●</span>
+      <span class="ci-label">💾 Database (D1)</span>
+      <span class="ci-val" id="ci-db-val">—</span>
+    </div>
+    <div class="conn-indicator" id="ci-order">
+      <span class="ci-dot" id="ci-order-dot" style="color:#888;">●</span>
+      <span class="ci-label">📦 Order Creation</span>
+      <span class="ci-val" id="ci-order-val">—</span>
+    </div>
+    <div class="conn-indicator" id="ci-payment">
+      <span class="ci-dot" id="ci-payment-dot" style="color:#888;">●</span>
+      <span class="ci-label">💳 Payment Gateway</span>
+      <span class="ci-val" id="ci-payment-val">—</span>
+    </div>
+    <div class="conn-indicator" id="ci-cmd">
+      <span class="ci-dot" id="ci-cmd-dot" style="color:#888;">●</span>
+      <span class="ci-label">🤖 Machine Command</span>
+      <span class="ci-val" id="ci-cmd-val">—</span>
+    </div>
+    <div class="conn-indicator" id="ci-idempotency">
+      <span class="ci-dot" id="ci-idempotency-dot" style="color:#888;">●</span>
+      <span class="ci-label">🔁 Webhook Idempotency</span>
+      <span class="ci-val" id="ci-idempotency-val">Not tested</span>
+    </div>
+  </div>
+  <div style="border-top:1px solid #1a1a2e; padding-top:10px; text-align:center;">
+    <button class="sim-btn" onclick="runIdempotencyTest()" style="width:240px;">🔁 Run Idempotency Test</button>
+    <div id="ci-idempotency-detail" style="font-size:10px; color:#555; margin-top:6px; font-family:monospace;"></div>
+  </div>
+</div>
+
+<style>
+.conn-indicator {
+  background:#111318; border:1px solid #1e2028; border-radius:6px;
+  padding:8px 12px; display:flex; flex-direction:column; gap:3px;
+}
+.ci-dot { font-size:14px; color:#888; }
+.ci-label { font-size:10px; color:#666; letter-spacing:0.5px; }
+.ci-val { font-family:monospace; font-size:10px; color:#555; }
+.ci-green .ci-dot { color:#4caf50; }
+.ci-green .ci-val { color:#4caf50; }
+.ci-red .ci-dot { color:#ff4444; }
+.ci-red .ci-val { color:#ff4444; }
+.ci-yellow .ci-dot { color:#ff8c00; }
+.ci-yellow .ci-val { color:#ff8c00; }
+</style>
+
 <!-- Gesture row — context-sensitive buttons shown by state -->
 <div class="sim-controls" id="gesture-row" style="margin-top:4px; border-top:1px solid #1a1a2e; padding-top:8px;">
   <span style="font-size:10px; color:#444; letter-spacing:1px; white-space:nowrap;">GESTURES:</span>
@@ -1185,16 +1243,15 @@ canvas#qr-canvas { display: block; }
   <span id="gest-hint" style="font-size:10px; color:#333; margin-left:8px;">— tap a product to begin —</span>
 </div>
 
-<div class="api-row" style="opacity:0.55; pointer-events:none;">
+<div class="api-row">
   <label>API BASE URL:</label>
   <input type="text" id="api-url" value="https://api.janishammer.com" readonly
-    style="color:#444; cursor:not-allowed;">
-  <button class="sim-btn" style="opacity:0.3;">Connect</button>
-  <label style="margin-left:8px;">Select device (no free entry — prevents ghost devices):</label>
-  <select id="sim-mac" style="margin-left:6px; background:#1a1a1a; color:#e5e7eb; border:1px solid #374151; border-radius:6px; padding:4px 8px;">
-    <option value="AA:BB:CC:DD:EE:01">SATU-SIM01 (AA:BB:CC:DD:EE:01) — Simulator</option>
-    <option value="3C:DC:75:5D:DD:2C">SATU-4R473R (3C:DC:75:5D:DD:2C) — Physical ESP32</option>
-    <option value="AA:BB:CC:DD:EE:00">SATU-TEST001 (AA:BB:CC:DD:EE:00) — 14-test suite</option>
+    style="color:#4fc3f7; cursor:default;">
+  <label style="margin-left:8px; font-size:10px; color:#555; letter-spacing:1px;">DEVICE (approved only — no free entry)</label>
+  <select id="sim-mac" style="background:#111;border:1px solid #333;color:#ccc;padding:4px 8px;font-family:monospace;font-size:11px;">
+    <option value="AA:BB:CC:DD:EE:01">SATU-SIM01 — Simulator</option>
+    <option value="3C:DC:75:5D:DD:2C">SATU-4R473R — Physical ESP32</option>
+    <option value="AA:BB:CC:DD:EE:00">SATU-TEST001 — Backend tests</option>
   </select>
 </div>
 
@@ -1348,6 +1405,8 @@ async function sendHello() {
       log(`[NET] Hello OK: device_id=${STATE.deviceId} status=${data.status}`, 'ok');
       document.getElementById('dev-status').textContent = STATE.deviceId;
       document.getElementById('api-status').textContent = 'Connected';
+      setConnIndicator('backend', 'green', 'Connected');
+      setConnIndicator('db', 'green', 'D1 OK');
       document.getElementById('sb-right').textContent = STATE.deviceId + '\nWiFi OK';
 
       // Update service screen device id
@@ -1363,11 +1422,13 @@ async function sendHello() {
     } else {
       log(`[NET] Hello FAILED: ${status} ${JSON.stringify(data)}`, 'err');
       document.getElementById('api-status').textContent = 'Error';
+      setConnIndicator('backend', 'red', `HTTP ${status}`);
       showError('Backend Error', `Cannot register machine.\n${data.error || 'Check API URL and try again.'}`);
     }
   } catch(e) {
     log(`[NET] Hello exception: ${e.message}`, 'err');
     document.getElementById('api-status').textContent = 'Offline';
+    setConnIndicator('backend', 'red', 'Offline');
     showError('Offline', 'Cannot reach backend API.\nCheck the API URL above and click Connect.');
   }
 }
@@ -1585,6 +1646,8 @@ async function createOrder() {
       STATE.currentAmount = data.amount;
       STATE.currentProductName = data.product_name || p.name;
       log(`[NET] Order created: ${STATE.currentOrderId}  QR=${STATE.currentQrUrl}`, 'ok');
+      setConnIndicator('order', 'green', 'Created');
+      setConnIndicator('payment', 'yellow', data.payment_mode || 'fake_omise');
       document.getElementById('qr-order-id-display').textContent = STATE.currentOrderId;
 
       // Load real QR image if URL is an image
@@ -1595,6 +1658,7 @@ async function createOrder() {
       startPaymentTimer(120);
     } else {
       log(`[NET] Order FAILED: ${status} ${JSON.stringify(data)}`, 'err');
+      setConnIndicator('order', 'red', `HTTP ${status}`);
       showError('Payment Error', `Cannot create order.\n${data.error || 'Try again.'}`);
     }
   } catch(e) {
@@ -1833,6 +1897,7 @@ function handleCommand(cmd, data) {
   log(`[CMD] Executing: ${cmd}`, 'state');
   if (cmd === 'payment_confirmed' && STATE.screen === 'qr') {
     clearInterval(STATE.paymentTimer);
+    setConnIndicator('cmd', 'green', 'payment_confirmed');
     onPaymentConfirmed();
   } else if (cmd === 'disable') {
     showError('Machine Disabled', 'This machine has been disabled by the administrator.\nPlease contact your temple manager.');
@@ -2231,6 +2296,115 @@ function forceOTA() {
   log('[OTA] Force OTA requested — in simulator mode this is a no-op', 'state');
   alert('Force OTA: not available in simulator. On real hardware, this downloads firmware.bin from backend and reboots.');
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  CONNECTION STATUS DRAWER
+// ═══════════════════════════════════════════════════════════════════════════
+function toggleConnDrawer() {
+  const d = document.getElementById('conn-drawer');
+  const btn = document.getElementById('conn-drawer-btn');
+  const open = d.style.display === 'none';
+  d.style.display = open ? 'block' : 'none';
+  btn.textContent = open ? '📊 Connection Status ▲' : '📊 Connection Status ▼';
+}
+
+function setConnIndicator(id, state, val) {
+  const el = document.getElementById('ci-' + id);
+  if (!el) return;
+  el.className = 'conn-indicator ci-' + state;
+  const valEl = document.getElementById('ci-' + id + '-val');
+  if (valEl) valEl.textContent = val;
+}
+
+// Hook into sendHello to update Backend + D1 indicators
+const _origSendHello = sendHello;
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  IDEMPOTENCY TEST
+// ═══════════════════════════════════════════════════════════════════════════
+async function runIdempotencyTest() {
+  const detail = document.getElementById('ci-idempotency-detail');
+  setConnIndicator('idempotency', 'yellow', 'Running...');
+  detail.textContent = 'Creating order...';
+  detail.style.color = '#ff8c00';
+
+  if (!STATE.deviceId) {
+    setConnIndicator('idempotency', 'red', '❌ Not registered');
+    detail.textContent = 'Device not registered — reboot first';
+    return;
+  }
+
+  try {
+    // Step 1: create order with product_id 2
+    const { status: os, data: od } = await apiPost('/v1/order', {
+      device_id: STATE.deviceId,
+      product_id: 2,
+    });
+    if (os !== 200 && os !== 201) {
+      setConnIndicator('idempotency', 'red', '❌ Order failed');
+      detail.textContent = `Order creation failed: HTTP ${os}`;
+      return;
+    }
+    const orderId = od.order_id;
+    const chargeId = od.omise_charge_id || 'test_charge_idempotency';
+    log(`[IDEM] Order created: ${orderId}`, 'net');
+    detail.textContent = `Order: ${orderId} — firing webhook ×2...`;
+
+    const webhookBody = {
+      object: 'charge',
+      id: chargeId,
+      status: 'successful',
+      metadata: { order_id: orderId },
+    };
+
+    // Step 2: POST webhook twice, 1200ms apart
+    const r1 = await fetch(`${apiUrl()}/v1/webhook/omise`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(webhookBody),
+    });
+    log(`[IDEM] Webhook #1: HTTP ${r1.status}`, 'net');
+    await new Promise(r => setTimeout(r, 1200));
+
+    const r2 = await fetch(`${apiUrl()}/v1/webhook/omise`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(webhookBody),
+    });
+    log(`[IDEM] Webhook #2: HTTP ${r2.status}`, 'net');
+
+    // Step 3: wait then poll commands
+    detail.textContent = 'Waiting 1200ms then polling commands...';
+    await new Promise(r => setTimeout(r, 1200));
+
+    const { data: cmdsData } = await apiGet('/v1/machine/commands');
+    const allCmds = cmdsData.commands || [];
+    const count = allCmds.filter(c => c.command === 'payment_confirmed' && c.data && c.data.order_id === orderId).length;
+    log(`[IDEM] payment_confirmed count for ${orderId}: ${count}`, count === 1 ? 'ok' : 'err');
+
+    if (count === 1) {
+      setConnIndicator('idempotency', 'green', '✅ PASS');
+      detail.style.color = '#4caf50';
+      detail.textContent = `count=1 — Webhook idempotency working correctly`;
+    } else if (count === 0) {
+      setConnIndicator('idempotency', 'red', '❌ No command');
+      detail.style.color = '#ff4444';
+      detail.textContent = `count=0 — No payment_confirmed received for ${orderId}`;
+    } else {
+      setConnIndicator('idempotency', 'red', '❌ FAIL duplicate');
+      detail.style.color = '#ff4444';
+      detail.textContent = `count=${count} — Duplicate commands! Idempotency FAILED`;
+    }
+  } catch(e) {
+    setConnIndicator('idempotency', 'red', '❌ Error');
+    detail.style.color = '#ff4444';
+    detail.textContent = `Exception: ${e.message}`;
+    log(`[IDEM] Exception: ${e.message}`, 'err');
+  }
+}
+
+// ─── Update conn indicators from existing API calls ───────────────────────
+// Patch sendHello to update indicators
+const _sendHelloPatch = sendHello;
+// Note: indicators are updated directly in the patched versions below
 
 // Legacy stubs (referenced from old code)
 function buildServiceLaneGrid() { buildFreeplayGrid(); }
