@@ -17,6 +17,14 @@
 8. **Three-repo system** — read all three repos before any decision (detail → RULES-workflow R-83)
 9. **Session closing** — archive → RULES.md → PROJECT_STATE.md → commit (detail → RULES-workflow R-84)
 10. **No ghost devices** — only SATU-TEST001 (AA:BB:CC:DD:EE:00) + SATU-SIM01 (AA:BB:CC:DD:EE:01)
+- **R-104 CC PROMPT FILE LOCATION — PERMANENT (2026-06-13):**
+  CC_PROMPT files are always at repo ROOT while active.
+  Owner pushes to root → tells CC to execute by filename → CC reads from root.
+  After merge: CC moves to docs/prompts/ stamped ✅ COMPLETE — archive only.
+  CC must NEVER search docs/prompts/ for a file to execute.
+  Root cause of bug: R-50 and R-99 said "stored in docs/prompts/" without
+  clarifying root=active vs docs/prompts/=archive. Fixed this session.
+
 - **R-100 MACHINE FARM STRESS TEST — PERMANENT (2026-06-13):**
   Machine Farm Simulator supports max 3 concurrent machines.
   All must use approved device IDs from D1 — no random MACs.
@@ -26,7 +34,8 @@
 - **R-99 CC PROMPT FILE CONVENTION — PERMANENT (2026-06-13):**
   All CC prompts = downloadable .md files written by Chat.
   Naming: CC_PROMPT_fix / CC_BUILD_PROMPT / CC_PROMPT_firmware
-  Stored in docs/prompts/. Archived ✅ COMPLETE after merge.
+  Active CC_PROMPT files pushed to repo ROOT by owner. CC reads from root.
+         After merge: CC archives to docs/prompts/ stamped ✅ COMPLETE — never execute from there.
   Follow 8-section template defined in WORKFLOW_SKILL.md.
 
 - **R-94 THREE-TESTER ARCHITECTURE — PERMANENT (2026-06-13):**
