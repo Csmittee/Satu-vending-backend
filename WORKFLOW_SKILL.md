@@ -281,7 +281,8 @@ Here is my handoff: [paste CHAT_HANDOFF.md]"
 ## CC PROMPT FILE NAMING — PERMANENT CONVENTION (2026-06-13)
 
 All CC prompts written by Chat as downloadable .md files.
-Owner pushes to docs/prompts/ in relevant repo before running CC.
+Owner pushes to repo ROOT before running CC. CC reads from root.
+After execution: CC archives to docs/prompts/ stamped ✅ COMPLETE.
 CC executes then archives stamped ✅ COMPLETE — [date] — [summary].
 
 | Prompt type | Filename pattern |

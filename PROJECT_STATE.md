@@ -4,6 +4,9 @@
 
 ## Session Log (newest first)
 
+### 2026-06-13 — docs: R-50/R-99/R-104 CC prompt location fixed (root=active, docs/prompts/=archive)
+- R-50/R-99/R-104 CC prompt location fixed
+
 ### 2026-06-13 — machine farm simulator: node8 fix + sidebar + network view
 - **FIX (Node 8 idempotency):** Node 8 now creates its own fresh POST /v1/order before testing. Previously reused Node 3's order (already dispensed by Node 7). Fresh charge_id used for both webhook fires. Polls freshOrderId only. count===1 = pass.
 - **FIX (Arrow connectors):** Replaced invisible 2px div with `.node-connector` (vertical line + CSS ▼ triangle). Dark-grey pending → dark-green pass → dark-red fail/skip.
