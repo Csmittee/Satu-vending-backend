@@ -17,6 +17,11 @@
 8. **Three-repo system** — read all three repos before any decision (detail → RULES-workflow R-83)
 9. **Session closing** — archive → RULES.md → PROJECT_STATE.md → commit (detail → RULES-workflow R-84)
 10. **No ghost devices** — only SATU-TEST001 (AA:BB:CC:DD:EE:00) + SATU-SIM01 (AA:BB:CC:DD:EE:01)
+- **R-97 wrangler.toml ROUTES MUST BE TOP-LEVEL — PERMANENT RULE (2026-06-13):**
+  `routes = [...]` must be a top-level key in wrangler.toml — never inside `[[d1_databases]]`
+  or any other `[section]`. In TOML, all keys after a section header belong to that section.
+  Correct placement: before `[assets]` block, in the top-level preamble.
+  Symptom when wrong: Cloudflare build fails with "Unexpected fields found in d1_databases[0]: routes".
 - **R-85 NO HARDCODED CREDENTIALS — PERMANENT RULE (2026-06-12):**
   WiFi credentials NEVER in source files or git — NVS only (nvs_ssid / nvs_pass).
   config.h WIFI_SSID and WIFI_PASSWORD MUST remain empty strings ("") permanently.
