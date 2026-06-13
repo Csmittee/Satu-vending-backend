@@ -1,8 +1,15 @@
 # PROJECT_STATE.md — Satu 1.0 Live Status
 <!-- CC updates phase status after Build sessions · Chat updates after design decisions locked -->
-<!-- Last updated: 2026-06-13 — tester consolidation: simulator upgrade + machine farm redesign -->
+<!-- Last updated: 2026-06-13 — machine farm: node8 fix + sidebar layout + network view tab -->
 
 ## Session Log (newest first)
+
+### 2026-06-13 — machine farm simulator: node8 fix + sidebar + network view
+- **FIX (Node 8 idempotency):** Node 8 now creates its own fresh POST /v1/order before testing. Previously reused Node 3's order (already dispensed by Node 7). Fresh charge_id used for both webhook fires. Polls freshOrderId only. count===1 = pass.
+- **FIX (Arrow connectors):** Replaced invisible 2px div with `.node-connector` (vertical line + CSS ▼ triangle). Dark-grey pending → dark-green pass → dark-red fail/skip.
+- **FEATURE (Sidebar layout):** 200px sidebar with SATU gold branding + two nav items (gold left-border active state). No CSS colors/fonts changed — layout restructure only.
+- **FEATURE (Network View tab):** Section B now has two tabs: Stress Test (unchanged) + Network View. Network View = SVG canvas: machine nodes → Backend API → D1 + Payment GW / Webhook / Cmd Queue. Lines animate during Fire All; settle green/red on completion. Heartbeat pulse every 3s.
+- **File:** public/satu-machine-tester.html only.
 
 ### 2026-06-13 — esbuild template literal fix (wrangler 4.100 breaking change)
 - **FIX:** src/index.js handleAdminDashboard() — 5 inner template literals inside HTML template literal converted to string concatenation. Wrangler 4.100+ esbuild strict mode fails on nested `${...}` inside outer backtick strings. R-98 added to RULES.md.
