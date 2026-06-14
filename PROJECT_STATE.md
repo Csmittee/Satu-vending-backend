@@ -4,6 +4,16 @@
 
 ## Session Log (newest first)
 
+### 2026-06-13 — QR PNG backend endpoint (CC_PROMPT_fix_qr_png_backend)
+- **ROOT CAUSE:** fake omise worker qr_code_url pointed to api.qrserver.com — returned 510-byte HTML error, not PNG
+- **FIX (Part 1):** `src/handlers/qr.js` NEW — GET /v1/qr/:charge_id → image/png
+  Pure-JS QR matrix (qrcode.create) + CF Workers CompressionStream PNG encoder. No external services.
+- **FIX (Part 2):** `src/index.js` — added GET /v1/qr/:charge_id route (public, no auth)
+- **FIX (Part 3):** `fake-omise-worker.js` — corrected file written to repo root for owner to deploy
+  qr_code_url now → https://api.janishammer.com/v1/qr/${chargeId}
+- **RULES.md:** R-106 appended at TOP
+- **QR PNG status:** ✅ fixed pending owner: (1) deploy corrected fake worker, (2) hardware verify
+
 ### 2026-06-13 — docs: R-50/R-99/R-104 CC prompt location fixed (root=active, docs/prompts/=archive)
 - R-50/R-99/R-104 CC prompt location fixed
 

@@ -17,6 +17,13 @@
 8. **Three-repo system** — read all three repos before any decision (detail → RULES-workflow R-83)
 9. **Session closing** — archive → RULES.md → PROJECT_STATE.md → commit (detail → RULES-workflow R-84)
 10. **No ghost devices** — only SATU-TEST001 (AA:BB:CC:DD:EE:00) + SATU-SIM01 (AA:BB:CC:DD:EE:01)
+- **R-106 QR PNG SERVED BY BACKEND — PERMANENT (2026-06-13):**
+  GET /v1/qr/:charge_id returns image/png directly from backend.
+  Fake worker qr_code_url MUST point to api.janishammer.com/v1/qr/:charge_id.
+  Live Omise returns its own QR URL (real PromptPay PNG) — no change needed for live mode.
+  NEVER use external image services (api.qrserver.com returns HTML not PNG on many requests).
+  Confirmed fix: 2026-06-13. 510 bytes = HTML error page, not a valid PNG.
+
 - **R-104 CC PROMPT FILE LOCATION — PERMANENT (2026-06-13):**
   CC_PROMPT files are always at repo ROOT while active.
   Owner pushes to root → tells CC to execute by filename → CC reads from root.
