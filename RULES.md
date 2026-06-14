@@ -1,7 +1,7 @@
 # RULES.md — Satu 1.0 Universal Rules
 > For domain rules: load `.claude/rules/RULES-[domain].md`
 > Domain files: workflow · backend · firmware · hardware · security
-> Last updated: 2026-06-12
+> Last updated: 2026-06-14
 
 ---
 
@@ -17,6 +17,14 @@
 8. **Three-repo system** — read all three repos before any decision (detail → RULES-workflow R-83)
 9. **Session closing** — archive → RULES.md → PROJECT_STATE.md → commit (detail → RULES-workflow R-84)
 10. **No ghost devices** — only SATU-TEST001 (AA:BB:CC:DD:EE:00) + SATU-SIM01 (AA:BB:CC:DD:EE:01)
+- **R-114 QR IS SERVED AS RAW BITMAP — NOT PNG — PERMANENT (2026-06-14):**
+  PNGdec 1.1.6 on ESP32 fails for ALL PNG variants tested (PRs #16–#19): grayscale+bad-zlib,
+  RGB+stored-zlib, grayscale+stored-zlib, grayscale+real-deflate — every variant rc=2/rc=8.
+  GET /v1/qr/:charge_id/bitmap returns: 4-byte header (width uint16 BE + height uint16 BE)
+  then 1 byte per pixel: 0x00=black module · 0xFF=white background, row by row.
+  Firmware reads with fetchImageBytes(), draws with gfx->fillRect(). No decode library needed.
+  PNG endpoint GET /v1/qr/:charge_id remains for browser/simulator use (test suite HEAD route).
+  Never reintroduce PNGdec for QR rendering on this hardware.
 - **R-113 USE CompressionStream('deflate') + RFC 1950 WRAP FOR PNG IDAT — SUPERSEDES R-110 stored-block fix — PERMANENT (2026-06-14):**
   PNGdec 1.1.6 inflate fails on large BTYPE=00 stored deflate blocks: decodes exactly row 0
   (callback rows=1), then rc=8. The _zlibStore() stored-block approach from R-110 is broken.

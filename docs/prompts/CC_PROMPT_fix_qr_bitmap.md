@@ -1,4 +1,5 @@
 # CC_PROMPT_fix_qr_bitmap.md
+> ✅ COMPLETE — 2026-06-14 — Raw bitmap QR endpoint added (R-114)
 > Created by: Chat (Claude) — 2026-06-14
 > Session goal: Replace PNG QR delivery with raw bitmap — bypass PNGdec entirely
 > Repo: Satu-vending-backend
@@ -180,10 +181,10 @@ Expected: 404
 
 ---
 
-## NEW RULE — append to RULES.md at TOP
+## NEW RULE — appended to RULES.md as R-114 (R-113 was already occupied)
 
 ```
-R-113: QR IS SERVED AS RAW BITMAP — NOT PNG — PERMANENT (2026-06-14)
+R-114: QR IS SERVED AS RAW BITMAP — NOT PNG — PERMANENT (2026-06-14)
 PNGdec 1.1.6 on ESP32 fails for all PNG variants tested (PRs #16–#19).
 The QR bitmap endpoint GET /v1/qr/:charge_id/bitmap returns:
   4-byte header: width (uint16 BE) + height (uint16 BE)
@@ -195,12 +196,22 @@ Never reintroduce PNGdec for QR rendering on this hardware.
 
 ---
 
+## EXECUTION NOTES
+
+- R-113 in RULES.md was already taken (CompressionStream/zlib rule, also 2026-06-14).
+  New bitmap rule was added as R-114 to avoid collision.
+- Bitmap route placed BEFORE PNG catch-all in index.js (path `/bitmap` suffix
+  would match `path.startsWith('/v1/qr/')` — more specific must come first).
+- 14 existing test routes preserved in original order.
+- PRESERVE checklist (R-107): CORS OPTIONS preflight ✅ · public routes before auth ✅
+
+---
+
 ## MANDATORY (end of session)
 
 1. Run 14-test suite (satu-system-tester.html) — all 14 must still pass
-2. Archive this prompt → docs/prompts/ stamped:
-   `✅ COMPLETE — 2026-06-14 — Raw bitmap QR endpoint (R-113)`
-3. Append R-113 to RULES.md (newest at TOP)
+2. Archive this prompt → docs/prompts/ stamped ✅ COMPLETE — 2026-06-14
+3. Append R-114 to RULES.md (newest at TOP)
 4. Update PROJECT_STATE.md:
    - Mark: QR bitmap endpoint ✅ deployed
    - Mark: PNG endpoint kept for browser/simulator
