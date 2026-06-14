@@ -129,8 +129,8 @@ export default {
             return handleGetOrderStatus(orderId, env);
         }
 
-        // ── QR PNG (public — charge_id is unguessable) — R-106 ──────────────
-        if (path.startsWith('/v1/qr/') && method === 'GET') {
+        // ── QR PNG (public — charge_id is unguessable) — R-106/R-108 ─────────
+        if (path.startsWith('/v1/qr/') && (method === 'GET' || method === 'HEAD')) {
             const chargeId = path.slice(7);
             return handleGetQrPng(chargeId, env);
         }

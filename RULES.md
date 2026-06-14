@@ -17,6 +17,14 @@
 8. **Three-repo system** — read all three repos before any decision (detail → RULES-workflow R-83)
 9. **Session closing** — archive → RULES.md → PROJECT_STATE.md → commit (detail → RULES-workflow R-84)
 10. **No ghost devices** — only SATU-TEST001 (AA:BB:CC:DD:EE:00) + SATU-SIM01 (AA:BB:CC:DD:EE:01)
+- **R-108 PUBLIC BINARY ENDPOINTS MUST ACCEPT HEAD — PERMANENT (2026-06-14):**
+  Any public endpoint returning binary content (image/png, etc.) MUST accept both GET and HEAD.
+  HEAD requests must not reach auth middleware — match HEAD in the same public route block as GET.
+  Root cause: satu-system-tester.html Test 4 uses fetch(url, {method:'HEAD'}) to verify reachability.
+  HEAD-only hitting auth = 401 = test fails even when the endpoint is correctly public.
+  Pattern: `if (path.startsWith('/v1/qr/') && (method === 'GET' || method === 'HEAD'))`
+  CF Workers strips response body for HEAD automatically — no change to handler needed.
+
 - **R-107 REWRITE PRESERVE CHECKLIST — PERMANENT (2026-06-14):**
   Any CC prompt that rewrites an EXISTING file MUST include a PRESERVE section
   listing behaviours that must survive the rewrite. CC must verify each item is present
