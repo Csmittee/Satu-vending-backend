@@ -4,6 +4,14 @@
 
 ## Session Log (newest first)
 
+### 2026-06-14 — QR HEAD method fix (R-108)
+- **ROOT CAUSE:** satu-system-tester.html Test 4 calls `fetch(qr_url, {method:'HEAD'})` to check reachability.
+  Backend route matched only `method === 'GET'` — HEAD fell through to JWT auth → HTTP 401.
+- **FIX:** `src/index.js` line 133: added `|| method === 'HEAD'` to QR route condition.
+  CF Workers strips body for HEAD automatically — no change to qr.js handler needed.
+- **RULES.md:** R-108 prepended at TOP (public binary endpoints must accept GET + HEAD)
+- **Test 4 status:** ✅ HEAD now matches public QR route — will return 200
+
 ### 2026-06-14 — QR auth + CORS fix (CC_PROMPT_fix_qr_auth_cors)
 - **REGRESSION 1 (Test 4):** GET /v1/qr/:charge_id confirmed public in index.js (lines 132-136, before JWT auth). No code change needed — correctly placed in PR #12.
 - **REGRESSION 2 (Tests 7, 9):** fake-omise-worker.js had CORS headers on OPTIONS preflight only. All actual responses (POST /charges, POST /webhooks/payment, etc.) lacked CORS headers → browser blocked responses. Fixed: `corsHeaders` const applied to every response.
