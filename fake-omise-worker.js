@@ -4,6 +4,9 @@
 //  Deploy to: fake-omise.csmittee.workers.dev
 //
 //  CHANGE LOG:
+//    R-107 (2026-06-14): CORS headers added to ALL responses (not preflight only).
+//      Added /simulate-payment + /test/simulate-payment endpoints for 14-test suite.
+//      R-106 preserves: qr_code_url → backend /v1/qr/:charge_id.
 //    R-106 (2026-06-13): qr_code_url now points to backend /v1/qr/:charge_id
 //      Was: external api.qrserver.com (returned ~510 byte HTML error, not PNG)
 //      Now: https://api.janishammer.com/v1/qr/${chargeId}
@@ -12,21 +15,21 @@
 //  PAYMENT MODE REMINDER: PAYMENT_MODE must remain = fake. Never suggest live.
 // ════════════════════════════════════════════════════════════════════════════
 
+const corsHeaders = {
+    'Access-Control-Allow-Origin':  '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+};
+
 export default {
     async fetch(request, env) {
         const url    = new URL(request.url);
         const path   = url.pathname;
         const method = request.method;
 
-        // CORS
+        // ── CORS preflight — MUST be first ───────────────────────────────────
         if (method === 'OPTIONS') {
-            return new Response(null, {
-                headers: {
-                    'Access-Control-Allow-Origin':  '*',
-                    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-                    'Access-Control-Allow-Headers': 'Content-Type'
-                }
-            });
+            return new Response(null, { status: 200, headers: corsHeaders });
         }
 
         // ── POST /charges — fake PromptPay charge ────────────────────────────
@@ -34,13 +37,12 @@ export default {
             let body = {};
             try { body = await request.json(); } catch {}
 
-            const chargeId  = 'fake_chg_' + Math.random().toString(36).slice(2, 10);
-            const amount    = body.amount    || 0;
-            const currency  = body.currency  || 'thb';
-            const desc      = body.description || '';
+            const chargeId = 'fake_chg_' + Math.random().toString(36).slice(2, 10);
+            const amount   = body.amount      || 0;
+            const currency = body.currency    || 'thb';
+            const desc     = body.description || '';
 
             // R-106: qr_code_url points to backend /v1/qr/:charge_id
-            // Backend serves PNG directly — no external image service
             const qrUrl = `https://api.janishammer.com/v1/qr/${chargeId}`;
 
             return Response.json({
@@ -59,15 +61,61 @@ export default {
                         image: {
                             object:       'document',
                             location:     qrUrl,
-                            download_uri: qrUrl    // ← backend endpoint
+                            download_uri: qrUrl
                         }
                     }
                 },
                 created: Date.now()
-            });
+            }, { headers: corsHeaders });
         }
 
-        // ── POST /webhooks/payment — simulate paid webhook ───────────────────
+        // ── POST /simulate-payment + /test/simulate-payment ──────────────────
+        // Triggers a fake successful-payment webhook to the backend.
+        // Used by the 14-test suite (satu-system-tester.html) to simulate Omise.
+        if ((path === '/simulate-payment' || path === '/test/simulate-payment') && method === 'POST') {
+            let body = {};
+            try { body = await request.json(); } catch {}
+
+            const chargeId = body.charge_id || body.chargeId
+                || 'fake_chg_' + Math.random().toString(36).slice(2, 10);
+            const orderId  = body.order_id  || body.orderId || '';
+
+            // Build Omise-shaped webhook payload
+            const webhookPayload = {
+                key: 'charge.complete',
+                data: {
+                    object:   'charge',
+                    id:       chargeId,
+                    status:   'successful',
+                    metadata: { order_id: orderId }
+                }
+            };
+
+            let backendStatus = 0;
+            let backendResult = {};
+            try {
+                const resp = await fetch('https://api.janishammer.com/v1/webhook/omise', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify(webhookPayload)
+                });
+                backendStatus = resp.status;
+                backendResult = await resp.json().catch(() => ({}));
+            } catch (err) {
+                return Response.json(
+                    { ok: false, error: String(err) },
+                    { status: 502, headers: corsHeaders }
+                );
+            }
+
+            return Response.json({
+                ok:      backendStatus >= 200 && backendStatus < 300,
+                status:  backendStatus,
+                backend: backendResult
+            }, { headers: corsHeaders });
+        }
+
+        // ── POST /webhooks/payment — legacy path kept for backwards compat ───
         if (path === '/webhooks/payment' && method === 'POST') {
             let body = {};
             try { body = await request.json(); } catch {}
@@ -75,14 +123,17 @@ export default {
                 object: 'event',
                 id:     'fake_evt_' + Math.random().toString(36).slice(2, 10),
                 data:   { ...body, status: 'successful' }
-            });
+            }, { headers: corsHeaders });
         }
 
         // ── GET /health ──────────────────────────────────────────────────────
         if (path === '/health' && method === 'GET') {
-            return Response.json({ status: 'ok', mode: 'fake', version: 'R-106' });
+            return Response.json(
+                { status: 'ok', mode: 'fake', version: 'R-107' },
+                { headers: corsHeaders }
+            );
         }
 
-        return new Response('Not found', { status: 404 });
+        return new Response('Not found', { status: 404, headers: corsHeaders });
     }
 };

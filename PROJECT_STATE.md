@@ -4,6 +4,15 @@
 
 ## Session Log (newest first)
 
+### 2026-06-14 — QR auth + CORS fix (CC_PROMPT_fix_qr_auth_cors)
+- **REGRESSION 1 (Test 4):** GET /v1/qr/:charge_id confirmed public in index.js (lines 132-136, before JWT auth). No code change needed — correctly placed in PR #12.
+- **REGRESSION 2 (Tests 7, 9):** fake-omise-worker.js had CORS headers on OPTIONS preflight only. All actual responses (POST /charges, POST /webhooks/payment, etc.) lacked CORS headers → browser blocked responses. Fixed: `corsHeaders` const applied to every response.
+- **MISSING ENDPOINTS:** /simulate-payment and /test/simulate-payment were missing — 14-test suite calls these. Added: both paths trigger backend /v1/webhook/omise with Omise-shaped charge.complete payload.
+- **RULES.md:** R-107 prepended at TOP (rewrite PRESERVE checklist rule)
+- **QR endpoint status:** ✅ public (no auth required)
+- **Fake worker CORS:** ✅ restored on all responses
+- **14-test suite target:** 14/14 after owner deploys corrected fake-omise-worker.js
+
 ### 2026-06-13 — QR PNG backend endpoint (CC_PROMPT_fix_qr_png_backend)
 - **ROOT CAUSE:** fake omise worker qr_code_url pointed to api.qrserver.com — returned 510-byte HTML error, not PNG
 - **FIX (Part 1):** `src/handlers/qr.js` NEW — GET /v1/qr/:charge_id → image/png
