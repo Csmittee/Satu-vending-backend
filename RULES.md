@@ -17,6 +17,16 @@
 8. **Three-repo system** — read all three repos before any decision (detail → RULES-workflow R-83)
 9. **Session closing** — archive → RULES.md → PROJECT_STATE.md → commit (detail → RULES-workflow R-84)
 10. **No ghost devices** — only SATU-TEST001 (AA:BB:CC:DD:EE:00) + SATU-SIM01 (AA:BB:CC:DD:EE:01)
+- **R-107 REWRITE PRESERVE CHECKLIST — PERMANENT (2026-06-14):**
+  Any CC prompt that rewrites an EXISTING file MUST include a PRESERVE section
+  listing behaviours that must survive the rewrite. CC must verify each item is present
+  in the output before committing.
+  Minimum mandatory PRESERVE items:
+    - worker.js: CORS headers on ALL responses + OPTIONS preflight handler at top
+    - index.js: all public routes placed BEFORE any auth middleware block
+    - webhook.js: idempotency guard + HMAC skip for fake_omise mode
+  Failure to preserve = regression. Regressions require a new fix PR. (Added 2026-06-14)
+
 - **R-106 QR PNG SERVED BY BACKEND — PERMANENT (2026-06-13):**
   GET /v1/qr/:charge_id returns image/png directly from backend.
   Fake worker qr_code_url MUST point to api.janishammer.com/v1/qr/:charge_id.
