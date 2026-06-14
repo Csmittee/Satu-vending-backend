@@ -5,7 +5,32 @@
 
 ---
 
+## Snapshot: 2026-06-14 — 14/14 ✅ ALL PASSING + QR renders on machine
+
+### Backend
+```
+Branch:      claude/vibrant-cray-cqp2em (PRs #12 + #13 — merge to main)
+Test suite:  14/14 ✅ ALL PASSING (2026-06-14)
+Payment:     fake_omise
+```
+
+### Firmware
+```
+Build:    R5.3 (PR #14) — blocking readBytes() — flashed to SATU-4R473R
+QR:       ✅ 449 bytes received + rendered on screen
+Serial:   [UI] QR screen drawn — confirmed 2026-06-14 ~09:50
+```
+
+### Changes that got us here
+- R-105 (firmware): blocking readBytes() — fixed 497-byte truncation
+- R-106 (backend): /v1/qr/:charge_id → serves PNG natively, no external service
+- R-107 (backend): fake worker CORS on all responses + /simulate-payment endpoints
+- R-108 (backend): QR route accepts HEAD (test 4 was getting 401)
+
+---
+
 ## Snapshot: 2026-06-11
+
 
 ### Backend
 ```
