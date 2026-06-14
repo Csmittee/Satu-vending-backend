@@ -8,7 +8,8 @@
     "db:init": "wrangler d1 execute satu_db --file=./src/db/schema.sql"
   },
   "dependencies": {
-    "@cloudflare/workers-types": "^4.0.0"
+    "@cloudflare/workers-types": "^4.0.0",
+    "qrcode": "^1.5.3"
   },
   "devDependencies": {
   "wrangler": "^4.0.0"

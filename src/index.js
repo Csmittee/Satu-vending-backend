@@ -1,5 +1,6 @@
 import { handleMachineHello, handleHeartbeat, handleGetCommands, handleClaimDevice, handleGetSlots, handleSaveSlots, handleMachineCompletion, handleFactoryReset } from './handlers/machine.js';
 import { handleCreateOrder, handleGetOrderStatus } from './handlers/order.js';
+import { handleGetQrPng } from './handlers/qr.js';
 import { handleOmiseWebhook } from './handlers/webhook.js';
 import { handleDisableDevice, handleEnableDevice, handleReassignDevice, handleGetAllDevices } from './handlers/admin.js';
 import { handleGetUserDevices } from './handlers/dashboard.js';
@@ -63,6 +64,7 @@ export default {
                     'POST /v1/machine/factory-reset',
                     'POST /v1/order',
                     'GET  /v1/order/:id/status',
+                    'GET  /v1/qr/:charge_id',
                     'GET  /v1/dashboard/devices',
                     'GET  /v1/dashboard/slots',
                     'PUT  /v1/dashboard/slots',
@@ -125,6 +127,12 @@ export default {
         if (path.match(/^\/v1\/order\/.+\/status$/) && method === 'GET') {
             const orderId = path.split('/')[3];
             return handleGetOrderStatus(orderId, env);
+        }
+
+        // ── QR PNG (public — charge_id is unguessable) — R-106 ──────────────
+        if (path.startsWith('/v1/qr/') && method === 'GET') {
+            const chargeId = path.slice(7);
+            return handleGetQrPng(chargeId, env);
         }
 
         // ── Admin dashboard (X-Admin-Token protected) ────────────────────────
