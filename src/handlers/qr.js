@@ -1,6 +1,7 @@
 // src/handlers/qr.js — R-106: GET /v1/qr/:charge_id → image/png
+//                    — R-114: GET /v1/qr/:charge_id/bitmap → raw pixel bitmap
 //
-// Serves QR PNG directly from backend. No external image services.
+// PNG endpoint: Serves QR PNG directly from backend. No external image services.
 // qr_code_url in fake mode must point here (see fake-omise-worker.js).
 // Live Omise returns its own PromptPay QR URL — no change needed for live.
 // R-112 (supersedes R-109): PNG color type = 0 (grayscale, 1 byte/pixel).
@@ -10,6 +11,9 @@
 // BTYPE=00 stored blocks — decodes row 0, then rc=8 rows=1. Use real compressed
 // deflate: CF Workers CompressionStream('deflate') emits raw RFC 1951; wrap manually
 // with 0x78 0x01 header + Adler-32 → valid RFC 1950 zlib with compressed blocks.
+//
+// Bitmap endpoint (R-114): PNGdec 1.1.6 fails for ALL PNG variants on this hardware.
+// Raw bitmap bypasses PNGdec entirely — firmware draws with gfx->fillRect() directly.
 
 import QRCode from 'qrcode';
 
@@ -121,7 +125,7 @@ async function _buildPng(pixels, width, height) {
     return out;
 }
 
-// ── Handler ──────────────────────────────────────────────────────────────────
+// ── PNG Handler ───────────────────────────────────────────────────────────────
 
 export async function handleGetQrPng(charge_id, env) {
     try {
@@ -174,5 +178,71 @@ export async function handleGetQrPng(charge_id, env) {
     } catch (err) {
         console.error('[QR] handleGetQrPng error:', err);
         return new Response('QR generation failed', { status: 500 });
+    }
+}
+
+// ── Bitmap Handler (R-114) ────────────────────────────────────────────────────
+// PNGdec 1.1.6 fails for all PNG variants tested (PRs #16-#19).
+// Returns raw pixels — firmware draws with gfx->fillRect(), no decoder needed.
+// Response format: 4-byte header (width uint16 BE, height uint16 BE) + 1 byte/pixel.
+// 0x00 = black module, 0xFF = white background.
+
+export async function handleGetQrBitmap(charge_id, env) {
+    try {
+        if (!charge_id || charge_id.length > 200) {
+            return new Response('Invalid charge ID', { status: 400 });
+        }
+
+        const order = await env.DB.prepare(
+            'SELECT order_id FROM orders WHERE omise_charge_id = ?'
+        ).bind(charge_id).first();
+
+        if (!order) {
+            return new Response('Not found', { status: 404 });
+        }
+
+        const qr = QRCode.create(charge_id, { errorCorrectionLevel: 'M' });
+        const { size, data } = qr.modules;
+        const quiet = 4;
+        const scale = 5;
+        const dim   = (size + quiet * 2) * scale;
+
+        // 4-byte header + 1 byte per pixel
+        const buf = new Uint8Array(4 + dim * dim);
+        // Header: width and height as uint16 big-endian
+        buf[0] = (dim >> 8) & 0xFF;
+        buf[1] =  dim       & 0xFF;
+        buf[2] = (dim >> 8) & 0xFF;
+        buf[3] =  dim       & 0xFF;
+
+        // Pixels: white background
+        buf.fill(0xFF, 4);
+
+        // Draw black modules
+        for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size; c++) {
+                if (data[r * size + c]) {
+                    const px = (quiet + c) * scale;
+                    const py = (quiet + r) * scale;
+                    for (let dy = 0; dy < scale; dy++) {
+                        for (let dx = 0; dx < scale; dx++) {
+                            buf[4 + (py + dy) * dim + (px + dx)] = 0x00;
+                        }
+                    }
+                }
+            }
+        }
+
+        return new Response(buf, {
+            headers: {
+                'Content-Type':   'application/octet-stream',
+                'Content-Length': String(buf.length),
+                'Cache-Control':  'public, max-age=3600',
+            }
+        });
+
+    } catch (err) {
+        console.error('[QR] handleGetQrBitmap error:', err);
+        return new Response('Bitmap generation failed', { status: 500 });
     }
 }

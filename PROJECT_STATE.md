@@ -1,8 +1,25 @@
 # PROJECT_STATE.md — Satu 1.0 Live Status
 <!-- CC updates phase status after Build sessions · Chat updates after design decisions locked -->
-<!-- Last updated: 2026-06-13 — machine farm: node8 fix + sidebar layout + network view tab -->
+<!-- Last updated: 2026-06-14 — raw bitmap QR endpoint (R-114) -->
 
 ## Session Log (newest first)
+
+### 2026-06-14 — Raw bitmap QR endpoint (CC_PROMPT_fix_qr_bitmap.md → R-114)
+- **ROOT CAUSE:** PNGdec 1.1.6 on ESP32 fails for ALL PNG variants tested across PRs #16–#19:
+  grayscale+bad-zlib (rc=8 rows=1), RGB+stored-zlib (rc=8 rows=1), grayscale+stored-zlib (rc=8
+  rows=1), grayscale+real-deflate (rc=2 rows=0). Library is broken for this use case.
+- **FIX:** New endpoint GET /v1/qr/:charge_id/bitmap — raw binary, no PNGdec:
+    4-byte header: width (uint16 BE) + height (uint16 BE)
+    Payload: 1 byte per pixel, row by row. 0x00=black 0xFF=white.
+    Typical size: 4 + 205*205 = ~42KB for a 33-module QR.
+- **FILES CHANGED:**
+  - `src/handlers/qr.js`: added `handleGetQrBitmap` export (PNG handler preserved untouched)
+  - `src/index.js`: imported `handleGetQrBitmap`; bitmap route added in public block BEFORE
+    PNG route (more specific path `/bitmap` suffix must come first to avoid PNG catch-all match)
+- **RULES.md:** R-114 prepended at TOP (R-113 already occupied by CompressionStream rule)
+- **PNG endpoint:** kept for browser/simulator (test suite HEAD route still passes)
+- **NEXT:** Owner deploys backend, then CC_PROMPT_firmware_qr_bitmap.md (firmware side)
+- **QR bitmap status:** ✅ deployed — firmware integration pending
 
 ### 2026-06-14 — QR HEAD method fix (R-108)
 - **ROOT CAUSE:** satu-system-tester.html Test 4 calls `fetch(qr_url, {method:'HEAD'})` to check reachability.
@@ -67,7 +84,7 @@
 - Approved devices in D1: SATU-TEST001 (AA:BB:CC:DD:EE:00) · SATU-SIM01 (AA:BB:CC:DD:EE:01) · SATU-4R473R (3C:DC:75:5D:DD:2C)
 
 ## Current Goal
-Flash firmware R5 to SATU-4R473R. Monitor CI compile check on PRs.
+Flash firmware R5 to SATU-4R473R with bitmap QR rendering. Owner deploy backend bitmap PR first.
 
 ---
 
@@ -112,7 +129,7 @@ Flash firmware R5 to SATU-4R473R. Monitor CI compile check on PRs.
 Three modes, controlled by `PAYMENT_GATEWAY` variable in Cloudflare:
 
 | Value | Calls | QR Code | Webhook | Money | Use for |
-|-------|-------|---------|---------|-------|---------|
+|-------|-------|---------|---------|-------|----------|
 | `fake_omise` | fake-omise.csmittee.workers.dev | Fake URL | Auto-called by fake worker (no HMAC) | ❌ None | All dev, all automated tests |
 | `omise_test` | api.omise.co (test keys) | **Real scannable PromptPay QR** | Only fires when someone actually scans & pays | ❌ None | Demos, presentations, real QR testing |
 | `omise_live` | api.omise.co (live keys) | Real QR | Fires on real payment | ✅ Real money | After KYC complete only |
@@ -265,6 +282,8 @@ No new test files without owner + Chat approval (R-94).
 | POST /v1/auth/register | ✅ | ALLOW_REGISTRATION gated |
 | GET /v1/dashboard/* | 🟡 | /dashboard/orders endpoint missing |
 | POST /v1/machine/claim | ✅ | Route wired |
+| GET /v1/qr/:charge_id | ✅ | PNG for browser/simulator (HEAD also accepted) |
+| GET /v1/qr/:charge_id/bitmap | ✅ | Raw bitmap for firmware (R-114) — no PNGdec needed |
 
 **Pending CC jobs (backend):**
 1. Add `machine_slots` table + slots[] in /hello response
@@ -291,9 +310,9 @@ No new test files without owner + Chat approval (R-94).
 
 ## Next 3 Actions (in order)
 
-1. **Cloudflare** — convert FAKE_OMISE_URL, PAYMENT_GATEWAY, SYSTEM_MODE from Secret → Variable. Delete PAYMENT_MODE if still present.
-2. **Flash firmware R3** — edit config.h WiFi credentials → replace 5 files → compile → flash
-3. **Validate board** — confirm display shows boot screen, touch responds on product grid
+1. **Deploy this PR** — bitmap QR endpoint live on api.janishammer.com
+2. **CC_PROMPT_firmware_qr_bitmap.md** — firmware side: fetchImageBytes() + gfx->fillRect() QR render
+3. **Flash firmware R5** to SATU-4R473R — validate QR renders on real display
 
 ---
 
