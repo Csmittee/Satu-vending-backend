@@ -17,6 +17,13 @@
 8. **Three-repo system** — read all three repos before any decision (detail → RULES-workflow R-83)
 9. **Session closing** — archive → RULES.md → PROJECT_STATE.md → commit (detail → RULES-workflow R-84)
 10. **No ghost devices** — only SATU-TEST001 (AA:BB:CC:DD:EE:00) + SATU-SIM01 (AA:BB:CC:DD:EE:01)
+- **R-109 PNG COLOR TYPE MUST BE RGB (TYPE 2) FOR ESP32/PNGdec — PERMANENT (2026-06-14):**
+  Backend QR PNG must use color type 2 (RGB truecolor, 3 bytes/pixel), NOT type 0 (grayscale).
+  PNGdec 1.1.6 getLineAsRGB565() silently fails on grayscale input — decode() returns error but
+  firmware does not check the return value, so screen draws nothing with no serial error logged.
+  Fix in qr.js: ihdrData[9]=2, pixels array = dim*dim*3, 3 bytes per module pixel.
+  Confirmed root cause 2026-06-14. Applies to any future PNG generation for ESP32 display.
+
 - **R-108 PUBLIC BINARY ENDPOINTS MUST ACCEPT HEAD — PERMANENT (2026-06-14):**
   Any public endpoint returning binary content (image/png, etc.) MUST accept both GET and HEAD.
   HEAD requests must not reach auth middleware — match HEAD in the same public route block as GET.

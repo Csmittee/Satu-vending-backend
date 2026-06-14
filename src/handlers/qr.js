@@ -3,6 +3,8 @@
 // Serves QR PNG directly from backend. No external image services.
 // qr_code_url in fake mode must point here (see fake-omise-worker.js).
 // Live Omise returns its own PromptPay QR URL — no change needed for live.
+// R-109: PNG color type = 2 (RGB truecolor). Grayscale (type 0) caused silent
+// decode failure in PNGdec 1.1.6 on ESP32 — getLineAsRGB565 requires RGB input.
 
 import QRCode from 'qrcode';
 
@@ -56,20 +58,23 @@ async function _zlibDeflate(data) {
 async function _buildPng(pixels, width, height) {
     const sig  = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
 
-    // IHDR: width(4) height(4) bitDepth(1) colorType(1=grayscale) compression(1) filter(1) interlace(1)
+    // IHDR: width(4) height(4) bitDepth(1) colorType(2=RGB) compression(1) filter(1) interlace(1)
+    // Color type 2 (RGB truecolor) — PNGdec getLineAsRGB565 handles this reliably.
+    // Color type 0 (grayscale) caused silent decode failure on ESP32/PNGdec 1.1.6.
     const ihdrData = new Uint8Array(13);
     const dv = new DataView(ihdrData.buffer);
     dv.setUint32(0, width,  false);
     dv.setUint32(4, height, false);
-    ihdrData[8] = 8;  // 8-bit depth
-    ihdrData[9] = 0;  // grayscale
+    ihdrData[8] = 8;  // 8-bit per channel
+    ihdrData[9] = 2;  // RGB truecolor (was 0=grayscale — R-109)
     const ihdr = _pngChunk('IHDR', ihdrData);
 
-    // Raw scanline data: filter byte 0 (None) + pixels per row
-    const raw = new Uint8Array(height * (1 + width));
+    // Raw scanline data: filter byte 0 (None) + 3 bytes (R,G,B) per pixel
+    const bytesPerRow = width * 3;
+    const raw = new Uint8Array(height * (1 + bytesPerRow));
     for (let y = 0; y < height; y++) {
-        raw[y * (1 + width)] = 0;
-        raw.set(pixels.subarray(y * width, y * width + width), y * (1 + width) + 1);
+        raw[y * (1 + bytesPerRow)] = 0;
+        raw.set(pixels.subarray(y * bytesPerRow, y * bytesPerRow + bytesPerRow), y * (1 + bytesPerRow) + 1);
     }
 
     const idat = _pngChunk('IDAT', await _zlibDeflate(raw));
@@ -105,8 +110,8 @@ export async function handleGetQrPng(charge_id, env) {
         const scale   = 5;   // 5px per module — gives ~145-185px for typical QR sizes
         const dim     = (size + quiet * 2) * scale;
 
-        // Render grayscale pixel buffer (0=black, 255=white)
-        const pixels = new Uint8Array(dim * dim).fill(255);
+        // Render RGB pixel buffer — 3 bytes per pixel (R,G,B), white background
+        const pixels = new Uint8Array(dim * dim * 3).fill(255);
         for (let r = 0; r < size; r++) {
             for (let c = 0; c < size; c++) {
                 if (data[r * size + c]) {
@@ -114,7 +119,8 @@ export async function handleGetQrPng(charge_id, env) {
                     const py = (quiet + r) * scale;
                     for (let dy = 0; dy < scale; dy++) {
                         for (let dx = 0; dx < scale; dx++) {
-                            pixels[(py + dy) * dim + (px + dx)] = 0;
+                            const i = ((py + dy) * dim + (px + dx)) * 3;
+                            pixels[i] = 0; pixels[i+1] = 0; pixels[i+2] = 0;
                         }
                     }
                 }
