@@ -17,6 +17,16 @@
 8. **Three-repo system** — read all three repos before any decision (detail → RULES-workflow R-83)
 9. **Session closing** — archive → RULES.md → PROJECT_STATE.md → commit (detail → RULES-workflow R-84)
 10. **No ghost devices** — only SATU-TEST001 (AA:BB:CC:DD:EE:00) + SATU-SIM01 (AA:BB:CC:DD:EE:01)
+- **R-112 PNG COLOR TYPE MUST BE GRAYSCALE (TYPE 0) FOR PNGdec 1.1.6 — SUPERSEDES R-109 — PERMANENT (2026-06-14):**
+  PNGdec 1.1.6 uses bitDepth (8 = bits-per-channel from IHDR) as bytes-per-pixel for ALL color types.
+  For grayscale (type 0, 1 channel): BPP=1 = correct. Row stride = 1+width*1 ✓
+  For RGB (type 2, 3 channels): PNGdec uses BPP=1 instead of 3. Row stride = 1+width*1 (should be
+  1+width*3). After row 0, "row 1 filter" byte lands at offset 1+width*1 = pixel data = 0xFF =
+  invalid filter type → rc=8 rows=1. R-109 (use RGB) was wrong — the original grayscale failure was
+  caused by bad zlib (R-110), not the color type.
+  Fix: ihdrData[9]=0 (grayscale), 1 byte/pixel, keep _zlibStore(). PNG ~27KB.
+  Never switch QR PNG to RGB (type 2) or RGBA (type 6) — same BPP bug applies.
+
 - **R-110 CF WORKERS CompressionStream('deflate') = RAW RFC 1951, NOT ZLIB — PERMANENT (2026-06-14):**
   CompressionStream('deflate') in CF Workers emits raw deflate (RFC 1951) with NO 2-byte zlib
   header and NO Adler-32 checksum. PNG IDAT requires RFC 1950 (zlib-wrapped deflate).
@@ -24,12 +34,10 @@
   Fix: build zlib manually — 0x78 0x01 header + stored BTYPE=00 blocks + Adler-32 trailer.
   Never use CompressionStream for PNG IDAT in CF Workers. See qr.js _zlibStore().
 
-- **R-109 PNG COLOR TYPE MUST BE RGB (TYPE 2) FOR ESP32/PNGdec — PERMANENT (2026-06-14):**
-  Backend QR PNG must use color type 2 (RGB truecolor, 3 bytes/pixel), NOT type 0 (grayscale).
-  PNGdec 1.1.6 getLineAsRGB565() silently fails on grayscale input — decode() returns error but
-  firmware does not check the return value, so screen draws nothing with no serial error logged.
-  Fix in qr.js: ihdrData[9]=2, pixels array = dim*dim*3, 3 bytes per module pixel.
-  Confirmed root cause 2026-06-14. Applies to any future PNG generation for ESP32 display.
+- **R-109 ~~PNG COLOR TYPE MUST BE RGB (TYPE 2) FOR ESP32/PNGdec~~ — SUPERSEDED BY R-112 (2026-06-14):**
+  R-109 was wrong. Grayscale failure was caused by bad zlib (R-110), not the color type.
+  PNGdec 1.1.6 BPP bug means RGB (type 2) breaks row stride → rc=8 rows=1 (same symptom).
+  See R-112 for correct fix: use grayscale (type 0), 1 byte/pixel.
 
 - **R-108 PUBLIC BINARY ENDPOINTS MUST ACCEPT HEAD — PERMANENT (2026-06-14):**
   Any public endpoint returning binary content (image/png, etc.) MUST accept both GET and HEAD.
