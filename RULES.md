@@ -17,6 +17,15 @@
 8. **Three-repo system** — read all three repos before any decision (detail → RULES-workflow R-83)
 9. **Session closing** — archive → RULES.md → PROJECT_STATE.md → commit (detail → RULES-workflow R-84)
 10. **No ghost devices** — only SATU-TEST001 (AA:BB:CC:DD:EE:00) + SATU-SIM01 (AA:BB:CC:DD:EE:01)
+- **R-113 USE CompressionStream('deflate') + RFC 1950 WRAP FOR PNG IDAT — SUPERSEDES R-110 stored-block fix — PERMANENT (2026-06-14):**
+  PNGdec 1.1.6 inflate fails on large BTYPE=00 stored deflate blocks: decodes exactly row 0
+  (callback rows=1), then rc=8. The _zlibStore() stored-block approach from R-110 is broken.
+  Fix: use CF Workers CompressionStream('deflate') (raw RFC 1951) + manual RFC 1950 wrap:
+    out = [0x78, 0x01] + <raw deflate output> + <Adler-32 of uncompressed data, 4 bytes BE>
+  This produces real compressed blocks (BTYPE=01/10) that PNGdec's inflate handles correctly.
+  PNG size drops from ~27KB (stored) to ~3-8KB (compressed) for a typical QR code.
+  See qr.js _zlibDeflate(). Never revert to stored blocks for any PNG served to PNGdec.
+
 - **R-112 PNG COLOR TYPE MUST BE GRAYSCALE (TYPE 0) FOR PNGdec 1.1.6 — SUPERSEDES R-109 — PERMANENT (2026-06-14):**
   PNGdec 1.1.6 uses bitDepth (8 = bits-per-channel from IHDR) as bytes-per-pixel for ALL color types.
   For grayscale (type 0, 1 channel): BPP=1 = correct. Row stride = 1+width*1 ✓
@@ -31,8 +40,8 @@
   CompressionStream('deflate') in CF Workers emits raw deflate (RFC 1951) with NO 2-byte zlib
   header and NO Adler-32 checksum. PNG IDAT requires RFC 1950 (zlib-wrapped deflate).
   PNGdec rc=8 (PNG_INVALID_DATA) after row 1 is the symptom.
-  Fix: build zlib manually — 0x78 0x01 header + stored BTYPE=00 blocks + Adler-32 trailer.
-  Never use CompressionStream for PNG IDAT in CF Workers. See qr.js _zlibStore().
+  ~~Fix: stored BTYPE=00 blocks~~ — SUPERSEDED BY R-113. Stored blocks also cause rc=8 rows=1.
+  Correct fix: use CompressionStream('deflate') + manual RFC 1950 wrap. See qr.js _zlibDeflate().
 
 - **R-109 ~~PNG COLOR TYPE MUST BE RGB (TYPE 2) FOR ESP32/PNGdec~~ — SUPERSEDED BY R-112 (2026-06-14):**
   R-109 was wrong. Grayscale failure was caused by bad zlib (R-110), not the color type.
