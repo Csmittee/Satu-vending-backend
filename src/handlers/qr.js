@@ -5,10 +5,14 @@
 // Live Omise returns its own PromptPay QR URL — no change needed for live.
 // R-109: PNG color type = 2 (RGB truecolor). Grayscale (type 0) caused silent
 // decode failure in PNGdec 1.1.6 on ESP32 — getLineAsRGB565 requires RGB input.
+// R-110: IDAT uses manual zlib store (RFC 1950). CompressionStream('deflate') in
+// CF Workers emits raw RFC 1951 (no 2-byte header, no Adler-32 checksum) which
+// causes PNG_INVALID_DATA (rc=8) in PNGdec after the first row. Fixed by building
+// valid zlib with 0x78 0x01 header + stored deflate blocks + Adler-32 trailer.
 
 import QRCode from 'qrcode';
 
-// ── PNG encoder (pure CF Workers — uses CompressionStream, not Node zlib) ───
+// ── PNG encoder (pure synchronous — manual zlib store, no CompressionStream) ─
 
 const _CRC_TABLE = (() => {
     const t = new Uint32Array(256);
@@ -46,16 +50,44 @@ function _pngChunk(type, data) {
     return out;
 }
 
-async function _zlibDeflate(data) {
-    // CompressionStream('deflate') = zlib-wrapped deflate (RFC 1950) — what PNG IDAT needs
-    const cs = new CompressionStream('deflate');
-    const writer = cs.writable.getWriter();
-    writer.write(data);
-    writer.close();
-    return new Uint8Array(await new Response(cs.readable).arrayBuffer());
+function _adler32(data) {
+    let s1 = 1, s2 = 0;
+    for (let i = 0; i < data.length; i++) {
+        s1 = (s1 + data[i]) % 65521;
+        s2 = (s2 + s1) % 65521;
+    }
+    return ((s2 << 16) | s1) >>> 0;
 }
 
-async function _buildPng(pixels, width, height) {
+function _zlibStore(data) {
+    // RFC 1950 zlib using stored (uncompressed) deflate blocks (BTYPE=00).
+    // Replaces CompressionStream('deflate') which emits raw RFC 1951 in CF Workers,
+    // missing the 2-byte header and Adler-32 — causes PNGdec rc=8. (R-110)
+    const MAX_BLOCK = 65535;
+    const numBlocks = Math.ceil(data.length / MAX_BLOCK) || 1;
+    const out = new Uint8Array(2 + numBlocks * 5 + data.length + 4);
+    let pos = 0;
+    // Zlib header: CMF=0x78 FCHECK=0x01 → (0x78*256+0x01) mod 31 = 0 ✓
+    out[pos++] = 0x78; out[pos++] = 0x01;
+    // Stored deflate blocks
+    let offset = 0;
+    for (let i = 0; i < numBlocks; i++) {
+        const bLen  = Math.min(MAX_BLOCK, data.length - offset);
+        const nLen  = (~bLen) & 0xFFFF;
+        out[pos++] = (i === numBlocks - 1) ? 0x01 : 0x00; // BFINAL | BTYPE=00
+        out[pos++] = bLen & 0xFF; out[pos++] = (bLen >> 8) & 0xFF;
+        out[pos++] = nLen & 0xFF; out[pos++] = (nLen >> 8) & 0xFF;
+        out.set(data.subarray(offset, offset + bLen), pos);
+        pos += bLen; offset += bLen;
+    }
+    // Adler-32 checksum, big-endian
+    const a = _adler32(data);
+    out[pos++] = (a >>> 24) & 0xFF; out[pos++] = (a >>> 16) & 0xFF;
+    out[pos++] = (a >>>  8) & 0xFF; out[pos++] =  a         & 0xFF;
+    return out;
+}
+
+function _buildPng(pixels, width, height) {
     const sig  = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
 
     // IHDR: width(4) height(4) bitDepth(1) colorType(2=RGB) compression(1) filter(1) interlace(1)
@@ -77,7 +109,7 @@ async function _buildPng(pixels, width, height) {
         raw.set(pixels.subarray(y * bytesPerRow, y * bytesPerRow + bytesPerRow), y * (1 + bytesPerRow) + 1);
     }
 
-    const idat = _pngChunk('IDAT', await _zlibDeflate(raw));
+    const idat = _pngChunk('IDAT', _zlibStore(raw));
     const iend = _pngChunk('IEND', new Uint8Array(0));
 
     const out = new Uint8Array(sig.length + ihdr.length + idat.length + iend.length);
@@ -127,7 +159,7 @@ export async function handleGetQrPng(charge_id, env) {
             }
         }
 
-        const png = await _buildPng(pixels, dim, dim);
+        const png = _buildPng(pixels, dim, dim);
 
         return new Response(png, {
             headers: {

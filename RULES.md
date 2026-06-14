@@ -17,6 +17,13 @@
 8. **Three-repo system** — read all three repos before any decision (detail → RULES-workflow R-83)
 9. **Session closing** — archive → RULES.md → PROJECT_STATE.md → commit (detail → RULES-workflow R-84)
 10. **No ghost devices** — only SATU-TEST001 (AA:BB:CC:DD:EE:00) + SATU-SIM01 (AA:BB:CC:DD:EE:01)
+- **R-110 CF WORKERS CompressionStream('deflate') = RAW RFC 1951, NOT ZLIB — PERMANENT (2026-06-14):**
+  CompressionStream('deflate') in CF Workers emits raw deflate (RFC 1951) with NO 2-byte zlib
+  header and NO Adler-32 checksum. PNG IDAT requires RFC 1950 (zlib-wrapped deflate).
+  PNGdec rc=8 (PNG_INVALID_DATA) after row 1 is the symptom.
+  Fix: build zlib manually — 0x78 0x01 header + stored BTYPE=00 blocks + Adler-32 trailer.
+  Never use CompressionStream for PNG IDAT in CF Workers. See qr.js _zlibStore().
+
 - **R-109 PNG COLOR TYPE MUST BE RGB (TYPE 2) FOR ESP32/PNGdec — PERMANENT (2026-06-14):**
   Backend QR PNG must use color type 2 (RGB truecolor, 3 bytes/pixel), NOT type 0 (grayscale).
   PNGdec 1.1.6 getLineAsRGB565() silently fails on grayscale input — decode() returns error but
