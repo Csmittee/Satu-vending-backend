@@ -68,7 +68,7 @@ export async function handleOmiseWebhook(request, env) {
             const orderId  = payload.metadata?.order_id;
 
             // Find order by charge ID
-            const order = await env.DB.prepare(
+            let order = await env.DB.prepare(
                 `SELECT order_id, device_id, product_id, status FROM orders WHERE omise_charge_id = ?`
             ).bind(chargeId).first();
 
