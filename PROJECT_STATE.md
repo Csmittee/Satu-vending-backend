@@ -1,8 +1,19 @@
 # PROJECT_STATE.md — Satu 1.0 Live Status
 <!-- CC updates phase status after Build sessions · Chat updates after design decisions locked -->
-<!-- Last updated: 2026-06-14 — raw bitmap QR endpoint (R-114) -->
+<!-- Last updated: 2026-06-15 — revert QR bitmap experiment, add R-115/R-116 -->
 
 ## Session Log (newest first)
+
+### 2026-06-15 — Revert QR bitmap experiment from backend main (R-115/R-116 added)
+- **REASON:** Bitmap approach confirmed working on hardware (serial: `[UI] drawQrFromBitmap: done`) but is fake-mode-only scaffolding. In live mode, Omise serves real PromptPay PNG with official Thai branding and EMVCo payload embedded — we cannot regenerate it. PNGdec must be fixed properly so firmware can decode any PNG: QR codes, amulet photos, Buddha images, temple owner uploads.
+- **ACTION:** Reverted PRs #19 (real deflate R-113) and #20 (bitmap endpoint R-114) from backend main via PR #21 (revert/qr-bitmap-experiment branch). qr.js restored to PR #17 state (_zlibStore RFC 1950 manual). Bitmap import/route removed from index.js. Version back to R4.
+- **FIRMWARE:** Satu-Vending-Firmware PR #17 (bitmap, claude/cool-hopper-6owumd) closed without merging. Firmware main remains at R5.3 (PR #14). Bitmap branch preserved — do NOT delete.
+- **RULES ADDED:** R-115 (Critical Fix Escalation Protocol — PERMANENT) + R-116 (PNGdec Investigation Status) prepended to RULES.md in both repos (backend + firmware).
+- **CC_PROMPT files:** CC_PROMPT_fix_qr_bitmap.md (backend) and CC_PROMPT_firmware_qr_bitmap.md (firmware) already deleted from repo roots in PRs #20/#14. docs/prompts/ archive preserved.
+- **QR bitmap status:** ✅ confirmed working on hardware (fake mode only — 2026-06-14 flash, serial: drawQrFromBitmap done)
+- **QR PNGdec status:** ❌ rc=8 — root cause NOT YET confirmed. Library NOT confirmed broken (works in thousands of ESP32 projects). PSRAM allocation is prime suspect.
+- **Next diagnostic:** esp_ptr_in_psram(g_pngBuf) immediately after ps_malloc in initUI(). One flash cycle. If PSRAM=NO → fix OPI PSRAM board setting. If PSRAM=YES → continue investigation.
+- **Bitmap branch:** preserved at claude/cool-hopper-6owumd — do NOT delete
 
 ### 2026-06-14 — Raw bitmap QR endpoint (CC_PROMPT_fix_qr_bitmap.md → R-114)
 - **ROOT CAUSE:** PNGdec 1.1.6 on ESP32 fails for ALL PNG variants tested across PRs #16–#19:
@@ -84,7 +95,7 @@
 - Approved devices in D1: SATU-TEST001 (AA:BB:CC:DD:EE:00) · SATU-SIM01 (AA:BB:CC:DD:EE:01) · SATU-4R473R (3C:DC:75:5D:DD:2C)
 
 ## Current Goal
-Flash firmware R5 to SATU-4R473R with bitmap QR rendering. Owner deploy backend bitmap PR first.
+PNGdec root cause investigation: esp_ptr_in_psram() diagnostic flash — one cycle. Backend reverted to PR #17 state (_zlibStore). Bitmap branch preserved, not on main.
 
 ---
 
@@ -92,7 +103,7 @@ Flash firmware R5 to SATU-4R473R with bitmap QR rendering. Owner deploy backend 
 
 | Phase | What | Status |
 |-------|------|--------|
-| P1 | Backend API | ✅ DONE — 14/14 tests pass |
+| P1 | Backend API | ✅ DONE — 14/14 tests pass (verify after revert deploy) |
 | P2 | Payment Gateway | 🟡 TEST KEYS ACTIVE — KYC/bank pending |
 | P3 | Firmware R3 | ✅ WRITTEN — ready to flash, not yet validated on board |
 | P4 | Hardware Build | 🔵 DESIGN DONE — components arrived, build not started |
@@ -282,8 +293,8 @@ No new test files without owner + Chat approval (R-94).
 | POST /v1/auth/register | ✅ | ALLOW_REGISTRATION gated |
 | GET /v1/dashboard/* | 🟡 | /dashboard/orders endpoint missing |
 | POST /v1/machine/claim | ✅ | Route wired |
-| GET /v1/qr/:charge_id | ✅ | PNG for browser/simulator (HEAD also accepted) |
-| GET /v1/qr/:charge_id/bitmap | ✅ | Raw bitmap for firmware (R-114) — no PNGdec needed |
+| GET /v1/qr/:charge_id | ✅ | PNG for browser/simulator (HEAD accepted, _zlibStore RFC 1950) |
+| GET /v1/qr/:charge_id/bitmap | ⬜ REVERTED | Removed from main 2026-06-15 — bitmap confirmed working in fake mode only. On branch claude/cool-hopper-6owumd. Live Omise PNG requires PNGdec fix (R-116). |
 
 **Pending CC jobs (backend):**
 1. Add `machine_slots` table + slots[] in /hello response
@@ -298,6 +309,7 @@ No new test files without owner + Chat approval (R-94).
 | Item | Severity | Owner |
 |------|----------|-------|
 | Omise KYC incomplete | 🔴 BLOCKS LAUNCH | You |
+| PNGdec rc=8 root cause unknown | 🔴 Blocks live mode QR | CC — R-116 diagnostic next |
 | Heartbeat HTTP 500 | 🟡 | CC |
 | /v1/machine/completion missing | 🟡 | CC |
 | machine_slots table not yet created | 🟡 | CC |
@@ -310,9 +322,9 @@ No new test files without owner + Chat approval (R-94).
 
 ## Next 3 Actions (in order)
 
-1. **Deploy this PR** — bitmap QR endpoint live on api.janishammer.com
-2. **CC_PROMPT_firmware_qr_bitmap.md** — firmware side: fetchImageBytes() + gfx->fillRect() QR render
-3. **Flash firmware R5** to SATU-4R473R — validate QR renders on real display
+1. **esp_ptr_in_psram() diagnostic** — Add `Serial.printf("[PSRAM] g_pngBuf in PSRAM: %s\n", esp_ptr_in_psram(g_pngBuf)?"YES":"NO");` immediately after `g_pngBuf = (uint8_t*)ps_malloc(200*1024);` in initUI(). Flash to SATU-4R473R, report output.
+2. **If PSRAM=NO** — Fix Arduino IDE: Boards > ESP32S3 Dev Module > PSRAM = "OPI PSRAM". This is the most likely root cause of PNGdec rc=8. Reflash with correct PSRAM setting.
+3. **If PSRAM=YES** — Continue PNGdec investigation: try smaller QR (scale=2), confirm 200KB buffer sufficient, check openRAM rc in detail. Do not change PNG format again until measured.
 
 ---
 

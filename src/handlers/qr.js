@@ -1,23 +1,21 @@
 // src/handlers/qr.js — R-106: GET /v1/qr/:charge_id → image/png
-//                    — R-114: GET /v1/qr/:charge_id/bitmap → raw pixel bitmap
 //
-// PNG endpoint: Serves QR PNG directly from backend. No external image services.
+// Serves QR PNG directly from backend. No external image services.
 // qr_code_url in fake mode must point here (see fake-omise-worker.js).
 // Live Omise returns its own PromptPay QR URL — no change needed for live.
-// R-112 (supersedes R-109): PNG color type = 0 (grayscale, 1 byte/pixel).
-// PNGdec 1.1.6 uses bitDepth (8) as bytes-per-pixel — correct for grayscale only.
-// RGB (type 2) gives wrong stride → "row 1 filter" byte = pixel data = invalid → rc=8.
-// R-113 (supersedes R-110 stored-block fix): PNGdec 1.1.6 inflate fails on large
-// BTYPE=00 stored blocks — decodes row 0, then rc=8 rows=1. Use real compressed
-// deflate: CF Workers CompressionStream('deflate') emits raw RFC 1951; wrap manually
-// with 0x78 0x01 header + Adler-32 → valid RFC 1950 zlib with compressed blocks.
-//
-// Bitmap endpoint (R-114): PNGdec 1.1.6 fails for ALL PNG variants on this hardware.
-// Raw bitmap bypasses PNGdec entirely — firmware draws with gfx->fillRect() directly.
+// R-112 (supersedes R-109): PNG color type = 0 (grayscale). PNGdec 1.1.6 uses
+// bitDepth (8 = bits-per-channel) as bytes-per-pixel for ALL color types. For
+// grayscale (type 0): BPP=1 = correct. For RGB (type 2): PNGdec uses BPP=1
+// instead of 3, giving wrong row stride → "row 1 filter" byte = pixel data =
+// invalid filter type → rc=8 rows=1. Grayscale is the only correct format.
+// R-110: IDAT uses manual zlib store (RFC 1950). CompressionStream('deflate') in
+// CF Workers emits raw RFC 1951 (no 2-byte header, no Adler-32 checksum) which
+// causes PNG_INVALID_DATA (rc=8) in PNGdec after the first row. Fixed by building
+// valid zlib with 0x78 0x01 header + stored deflate blocks + Adler-32 trailer.
 
 import QRCode from 'qrcode';
 
-// ── PNG encoder ──────────────────────────────────────────────────────────────
+// ── PNG encoder (pure synchronous — manual zlib store, no CompressionStream) ─
 
 const _CRC_TABLE = (() => {
     const t = new Uint32Array(256);
@@ -64,38 +62,35 @@ function _adler32(data) {
     return ((s2 << 16) | s1) >>> 0;
 }
 
-async function _zlibDeflate(data) {
-    // CF Workers CompressionStream('deflate') emits raw RFC 1951 (no zlib header/trailer).
-    // Wrap with 2-byte zlib header (0x78 0x01) + Adler-32 of original data → RFC 1950.
-    // Replaces _zlibStore() stored blocks: PNGdec 1.1.6 inflate fails on large BTYPE=00
-    // stored blocks (decodes row 0, then rc=8 rows=1). Real compressed blocks work. (R-113)
-    const cs = new CompressionStream('deflate');
-    const writer = cs.writable.getWriter();
-    await writer.write(data);
-    await writer.close();
-
-    const reader = cs.readable.getReader();
-    const chunks = [];
-    let totalLen = 0;
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        totalLen += value.length;
+function _zlibStore(data) {
+    // RFC 1950 zlib using stored (uncompressed) deflate blocks (BTYPE=00).
+    // Replaces CompressionStream('deflate') which emits raw RFC 1951 in CF Workers,
+    // missing the 2-byte header and Adler-32 — causes PNGdec rc=8. (R-110)
+    const MAX_BLOCK = 65535;
+    const numBlocks = Math.ceil(data.length / MAX_BLOCK) || 1;
+    const out = new Uint8Array(2 + numBlocks * 5 + data.length + 4);
+    let pos = 0;
+    // Zlib header: CMF=0x78 FCHECK=0x01 → (0x78*256+0x01) mod 31 = 0 ✓
+    out[pos++] = 0x78; out[pos++] = 0x01;
+    // Stored deflate blocks
+    let offset = 0;
+    for (let i = 0; i < numBlocks; i++) {
+        const bLen  = Math.min(MAX_BLOCK, data.length - offset);
+        const nLen  = (~bLen) & 0xFFFF;
+        out[pos++] = (i === numBlocks - 1) ? 0x01 : 0x00; // BFINAL | BTYPE=00
+        out[pos++] = bLen & 0xFF; out[pos++] = (bLen >> 8) & 0xFF;
+        out[pos++] = nLen & 0xFF; out[pos++] = (nLen >> 8) & 0xFF;
+        out.set(data.subarray(offset, offset + bLen), pos);
+        pos += bLen; offset += bLen;
     }
-
-    // 2-byte zlib header + raw deflate output + 4-byte Adler-32 = RFC 1950
-    const out = new Uint8Array(2 + totalLen + 4);
-    out[0] = 0x78; out[1] = 0x01;  // CMF=0x78 FCHECK=0x01 → sum % 31 = 0 ✓
-    let pos = 2;
-    for (const chunk of chunks) { out.set(chunk, pos); pos += chunk.length; }
+    // Adler-32 checksum, big-endian
     const a = _adler32(data);
     out[pos++] = (a >>> 24) & 0xFF; out[pos++] = (a >>> 16) & 0xFF;
     out[pos++] = (a >>>  8) & 0xFF; out[pos++] =  a         & 0xFF;
     return out;
 }
 
-async function _buildPng(pixels, width, height) {
+function _buildPng(pixels, width, height) {
     const sig  = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
 
     // IHDR: width(4) height(4) bitDepth(1) colorType(0=grayscale) compression(1) filter(1) interlace(1)
@@ -116,7 +111,7 @@ async function _buildPng(pixels, width, height) {
         raw.set(pixels.subarray(y * width, y * width + width), y * (1 + width) + 1);
     }
 
-    const idat = _pngChunk('IDAT', await _zlibDeflate(raw));
+    const idat = _pngChunk('IDAT', _zlibStore(raw));
     const iend = _pngChunk('IEND', new Uint8Array(0));
 
     const out = new Uint8Array(sig.length + ihdr.length + idat.length + iend.length);
@@ -125,7 +120,7 @@ async function _buildPng(pixels, width, height) {
     return out;
 }
 
-// ── PNG Handler ───────────────────────────────────────────────────────────────
+// ── Handler ──────────────────────────────────────────────────────────────────
 
 export async function handleGetQrPng(charge_id, env) {
     try {
@@ -165,7 +160,7 @@ export async function handleGetQrPng(charge_id, env) {
             }
         }
 
-        const png = await _buildPng(pixels, dim, dim);
+        const png = _buildPng(pixels, dim, dim);
 
         return new Response(png, {
             headers: {
@@ -178,71 +173,5 @@ export async function handleGetQrPng(charge_id, env) {
     } catch (err) {
         console.error('[QR] handleGetQrPng error:', err);
         return new Response('QR generation failed', { status: 500 });
-    }
-}
-
-// ── Bitmap Handler (R-114) ────────────────────────────────────────────────────
-// PNGdec 1.1.6 fails for all PNG variants tested (PRs #16-#19).
-// Returns raw pixels — firmware draws with gfx->fillRect(), no decoder needed.
-// Response format: 4-byte header (width uint16 BE, height uint16 BE) + 1 byte/pixel.
-// 0x00 = black module, 0xFF = white background.
-
-export async function handleGetQrBitmap(charge_id, env) {
-    try {
-        if (!charge_id || charge_id.length > 200) {
-            return new Response('Invalid charge ID', { status: 400 });
-        }
-
-        const order = await env.DB.prepare(
-            'SELECT order_id FROM orders WHERE omise_charge_id = ?'
-        ).bind(charge_id).first();
-
-        if (!order) {
-            return new Response('Not found', { status: 404 });
-        }
-
-        const qr = QRCode.create(charge_id, { errorCorrectionLevel: 'M' });
-        const { size, data } = qr.modules;
-        const quiet = 4;
-        const scale = 5;
-        const dim   = (size + quiet * 2) * scale;
-
-        // 4-byte header + 1 byte per pixel
-        const buf = new Uint8Array(4 + dim * dim);
-        // Header: width and height as uint16 big-endian
-        buf[0] = (dim >> 8) & 0xFF;
-        buf[1] =  dim       & 0xFF;
-        buf[2] = (dim >> 8) & 0xFF;
-        buf[3] =  dim       & 0xFF;
-
-        // Pixels: white background
-        buf.fill(0xFF, 4);
-
-        // Draw black modules
-        for (let r = 0; r < size; r++) {
-            for (let c = 0; c < size; c++) {
-                if (data[r * size + c]) {
-                    const px = (quiet + c) * scale;
-                    const py = (quiet + r) * scale;
-                    for (let dy = 0; dy < scale; dy++) {
-                        for (let dx = 0; dx < scale; dx++) {
-                            buf[4 + (py + dy) * dim + (px + dx)] = 0x00;
-                        }
-                    }
-                }
-            }
-        }
-
-        return new Response(buf, {
-            headers: {
-                'Content-Type':   'application/octet-stream',
-                'Content-Length': String(buf.length),
-                'Cache-Control':  'public, max-age=3600',
-            }
-        });
-
-    } catch (err) {
-        console.error('[QR] handleGetQrBitmap error:', err);
-        return new Response('Bitmap generation failed', { status: 500 });
     }
 }
