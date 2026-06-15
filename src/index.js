@@ -1,6 +1,6 @@
 import { handleMachineHello, handleHeartbeat, handleGetCommands, handleClaimDevice, handleGetSlots, handleSaveSlots, handleMachineCompletion, handleFactoryReset } from './handlers/machine.js';
 import { handleCreateOrder, handleGetOrderStatus } from './handlers/order.js';
-import { handleGetQrPng, handleGetQrBitmap } from './handlers/qr.js';
+import { handleGetQrPng } from './handlers/qr.js';
 import { handleOmiseWebhook } from './handlers/webhook.js';
 import { handleDisableDevice, handleEnableDevice, handleReassignDevice, handleGetAllDevices } from './handlers/admin.js';
 import { handleGetUserDevices } from './handlers/dashboard.js';
@@ -18,7 +18,6 @@ import { logRequest } from './middleware/logging.js';
 //   R4   — Added: POST /v1/machine/completion
 //          Added: POST /v1/machine/factory-reset
 //          Added: GET  /v1/admin-data/:table  (token OR JWT admin)
-//   R4.1 — Added: GET  /v1/qr/:charge_id/bitmap  (raw pixel bitmap, R-114)
 // ════════════════════════════════════════════════════════════════════════════
 
 export default {
@@ -54,7 +53,7 @@ export default {
             return Response.json({
                 service:   'Satu API',
                 status:    'running',
-                version:   'R4.1',
+                version:   'R4',
                 endpoints: [
                     'GET  /health',
                     'POST /v1/machine/hello',
@@ -66,7 +65,6 @@ export default {
                     'POST /v1/order',
                     'GET  /v1/order/:id/status',
                     'GET  /v1/qr/:charge_id',
-                    'GET  /v1/qr/:charge_id/bitmap',
                     'GET  /v1/dashboard/devices',
                     'GET  /v1/dashboard/slots',
                     'PUT  /v1/dashboard/slots',
@@ -129,12 +127,6 @@ export default {
         if (path.match(/^\/v1\/order\/.+\/status$/) && method === 'GET') {
             const orderId = path.split('/')[3];
             return handleGetOrderStatus(orderId, env);
-        }
-
-        // ── QR bitmap (public — more specific, must come before PNG route) — R-114 ──
-        if (path.match(/^\/v1\/qr\/[^/]+\/bitmap$/) && (method === 'GET' || method === 'HEAD')) {
-            const charge_id = path.split('/')[3];
-            return handleGetQrBitmap(charge_id, env);
         }
 
         // ── QR PNG (public — charge_id is unguessable) — R-106/R-108 ─────────
@@ -353,7 +345,7 @@ async function handleAdminDashboard(env, adminPath) {
 <body>
 <div class="container">
     <h1>Satu Admin</h1>
-    <div class="subtitle">System Dashboard — R4.1</div>
+    <div class="subtitle">System Dashboard — R4</div>
     <div class="auth-note">Authenticated via X-Admin-Token header</div>
     <div class="stats-grid">
         <div class="stat-card"><div class="stat-number">${orders?.count || 0}</div><div class="stat-label">Total Orders</div></div>
