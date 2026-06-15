@@ -1,9 +1,46 @@
 # SKILL_esp32s3_rgb_panel_constraints.md
 # ESP32-S3 RGB Panel + PSRAM Constraints
-> Version: 1.0 — 2026-06-15
+> Version: 1.1 — 2026-06-15 (updated with final root cause)
 > Location in repo: .claude/rules/SKILL_esp32s3_rgb_panel_constraints.md
 > Author: Chat (Satu project) — built from 4-session investigation + web research
 > Load this file when: Any image decode · PNG/JPEG/GIF · PSRAM allocation · display DMA · WiFi+display conflict
+
+---
+## UPDATE — 2026-06-15 (appended from PNG investigation session — final resolution)
+
+### ACTUAL ROOT CAUSE CONFIRMED ON HARDWARE — 2026-06-15 16:41:32
+
+The PSRAM bandwidth contention analysis below is VALID and remains documented for future reference.
+However, the immediate cause of rc=8 rows=1 in the Satu session was NOT PSRAM contention alone.
+
+**The one-character fix that resolved 48 hours of investigation:**
+`_pngDrawRow()` was returning `0` instead of `1`.
+
+PNGdec v1.1.4 release note: "return 0 from PNGDRAW callback = stop decode early."
+The library documented this. We never read the release notes. 48 hours lost.
+
+| Return value | Meaning |
+|---|---|
+| `return 0` | STOP decode — library treats as intentional early-stop → rc=8 rows=1 |
+| `return 1` | CONTINUE decode — correct for full image |
+
+Serial confirmation: `[UI] PNG decode: rc=0 rows=165 w=165 h=165` ✅
+Hardware: SATU-4R473R, 2026-06-15 16:41:32
+
+**CORRECTED DECISION TREE — check this FIRST before assuming DMA contention:**
+```
+rc=8 rows=1?
+  └── Step 0 (BEFORE any hardware investigation):
+       Check _pngDrawRow() return value
+         └── returning 0 → change to return 1 → done
+         └── returning 1 → PSRAM contention may still apply
+              → apply pause-decode-resume pattern below
+```
+
+**ADD TO CONFIRMED BROKEN APPROACHES TABLE:**
+| return 0 in _pngDrawRow | PNGdec stop-early signal — rc=8 rows=1 every time | This session |
+
+Reference: `.claude/rules/LIBRARY_pngdec.md` — full PNGdec callback documentation (R-121/R-123)
 
 ---
 
