@@ -72,10 +72,22 @@ export async function handleOmiseWebhook(request, env) {
                 `SELECT order_id, device_id, product_id, status FROM orders WHERE omise_charge_id = ?`
             ).bind(chargeId).first();
 
-            if (!order) {
-                // Charge ID not found — could be from a different system, just ack
-                console.warn(`Webhook: no order found for charge ${chargeId}`);
-                return Response.json({ status: 'ok', note: 'charge not found' });
+          if (!order) {
+                // Fallback: fake-omise sends a random charge_id — look up by order_id from metadata instead
+                // Real Omise always sends a real charge_id so this branch never fires in production
+                if (orderId) {
+                    const orderByMeta = await env.DB.prepare(
+                        `SELECT order_id, device_id, product_id, status FROM orders WHERE order_id = ?`
+                    ).bind(orderId).first();
+                    if (orderByMeta) {
+                        // Re-assign so the rest of the handler works unchanged
+                        Object.assign(order = {}, orderByMeta);
+                    }
+                }
+                if (!order) {
+                    console.warn(`Webhook: no order found for charge ${chargeId} or order ${orderId}`);
+                    return Response.json({ status: 'ok', note: 'charge not found' });
+                }
             }
 
             // ════════════════════════════════════════════════════════════════
