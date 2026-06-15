@@ -5,6 +5,45 @@
 
 ---
 
+- **R-123: CALLBACK RETURN VALUES — for any library using callbacks, document what each return value means in LIBRARY_xxx.md BEFORE writing project code (2026-06-15).**
+  Wrong return value = silent failure that mimics hardware bugs.
+  Example: PNGdec return 0 = stop decode. return 1 = continue. (48hr lesson — R-121 prevents recurrence)
+  See: `.claude/rules/SKILL_library_onboarding.md`
+
+- **R-122: LIBRARY EXAMPLE FIRST — before writing project-specific library code, run the designer's own simplest example on target hardware (2026-06-15).**
+  Confirm it works. "Library broken" is never the first hypothesis.
+  See: `.claude/rules/SKILL_library_onboarding.md`
+
+- **R-121: LIBRARY ONBOARDING — when any new library is added to firmware or backend (2026-06-15):**
+  Chat or CC visits designer's GitHub, reads README + releases + /examples/,
+  creates `.claude/rules/LIBRARY_[name].md` BEFORE writing any code.
+  Commit the LIBRARY file first. Code second. No exceptions.
+  See: `.claude/rules/SKILL_library_onboarding.md` for full process.
+
+- **R-120: NVS writes must not occur during image decode or QR display — schedule at idle state only (2026-06-15)**
+- **R-119: lineBuf in _pngDrawRow must be static (not stack-allocated) — stable layout during decode (2026-06-15)**
+- **R-118: Product images = JPEG ≤320×320px served from backend. Only Omise QR = PNG (EMVCo requirement) (2026-06-15)**
+- **R-117: PNG decode CONFIRMED WORKING — root cause was return 0 in callback (2026-06-15 CORRECTED):**
+  Root cause confirmed on hardware 2026-06-15 16:41:32: `_pngDrawRow()` returned `0` = PNGdec stop-early (v1.1.4 feature).
+  Fix: `return 1` in callback. One character. rc=0 rows=165 w=165 h=165 confirmed.
+  pause-decode-resume pattern (TFT_BL gate) was tested alongside but was NOT the root cause.
+  PSRAM bus contention is a real constraint on this board class and remains documented for future reference.
+  Reference: `.claude/rules/LIBRARY_pngdec.md` · `.claude/rules/SKILL_esp32s3_rgb_panel_constraints.md`
+- **R-116 PNGDEC ROOT CAUSE CONFIRMED — PSRAM BANDWIDTH CONTENTION (2026-06-15 update):**
+  Root cause = RGB DMA engine reads 800×480 frame buffer from PSRAM continuously at ~16MHz,
+  consuming ~50% of OPI PSRAM bus bandwidth at all times. zlib inflate needs 32KB sliding
+  window with random PSRAM reads — DMA wins every bus arbitration. Fix = pause-decode-resume (R-117).
+  CLOSED: do not run further format/allocation diagnostics on this issue.
+- **R-116 PNGDEC INVESTIGATION STATUS — (2026-06-14) [SUPERSEDED by above 2026-06-15]:**
+  PNGdec 1.1.6 openRAM() returns rc=8 rows=1 for all PNG variants tested.
+  The library is NOT confirmed broken — it works for thousands of ESP32
+  projects. Root cause NOT yet identified.
+  Next diagnostic: esp_ptr_in_psram(g_pngBuf) immediately after ps_malloc
+  in initUI(). If PSRAM=NO, zlib inflate fails due to insufficient 
+  sliding window in internal RAM. This is the most likely root cause.
+  Do not change PNG format or architecture again until this is measured.
+  Bitmap branch preserved as fallback only.
+
 ## Universal — Apply to Every Session
 
 1. **Never hardcode secrets** — always Cloudflare secrets manager
@@ -17,15 +56,6 @@
 8. **Three-repo system** — read all three repos before any decision (detail → RULES-workflow R-83)
 9. **Session closing** — archive → RULES.md → PROJECT_STATE.md → commit (detail → RULES-workflow R-84)
 10. **No ghost devices** — only SATU-TEST001 (AA:BB:CC:DD:EE:00) + SATU-SIM01 (AA:BB:CC:DD:EE:01)
-- **R-116 PNGDEC INVESTIGATION STATUS — (2026-06-14):**
-  PNGdec 1.1.6 openRAM() returns rc=8 rows=1 for all PNG variants tested.
-  The library is NOT confirmed broken — it works for thousands of ESP32
-  projects. Root cause NOT yet identified.
-  Next diagnostic: esp_ptr_in_psram(g_pngBuf) immediately after ps_malloc
-  in initUI(). If PSRAM=NO, zlib inflate fails due to insufficient 
-  sliding window in internal RAM. This is the most likely root cause.
-  Do not change PNG format or architecture again until this is measured.
-  Bitmap branch preserved as fallback only.
 - **R-115 CRITICAL FIX ESCALATION PROTOCOL — PERMANENT (2026-06-14):**
   When any fix attempt exceeds 2 loops without solving the root cause,
   STOP ALL CODE CHANGES immediately. Do not create a workaround that

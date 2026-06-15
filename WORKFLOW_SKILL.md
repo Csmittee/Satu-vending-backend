@@ -1,5 +1,5 @@
 # 🎯 WORKFLOW SKILL — Satu 1.0
-> Version 1.0 — 2026-06-11
+> Version 1.1 — 2026-06-15 (added intervention levels, library onboarding, KT framework, session closing checklist)
 > Adapted from Chaijohn OS WORKFLOW_SKILL v3.0
 > Key difference: Firmware layer requires physical hardware — see constraints below.
 
@@ -127,6 +127,48 @@ Firmware fix: Owner → Chat → CC → Owner (compile+flash+serial) → 2-4 cyc
 
 ---
 
+## INTERVENTION LEVELS — CHOOSE THE RIGHT TOOL
+
+4 levels — use the lightest one that fits:
+
+| Level | Who | When | Example |
+|---|---|---|---|
+| Full CC prompt | CC reads all context | Multi-file, new feature | New screen, API endpoint |
+| Hot fix prompt | CC stays in context, no re-read | Single function change | Fix one function |
+| Rapid fire phrase | Chat tells owner exactly what to type to CC | One line change | Change one parameter |
+| Owner direct edit | Owner edits GitHub UI directly | One character | return 0 → return 1 |
+
+**Rule: never use a heavier intervention than needed. Saves tokens and time.**
+
+---
+
+## LIBRARY ONBOARDING — MANDATORY (R-121)
+
+When any new library is added:
+1. CC visits designer's GitHub — reads README + releases + examples
+2. Creates `.claude/rules/LIBRARY_[name].md` before writing any code
+3. Documents callback return values, memory requirements, known failure modes
+4. Runs designer's example on hardware first (R-122)
+
+See: `.claude/rules/SKILL_library_onboarding.md`
+
+---
+
+## PROBLEM SOLVING — KT FRAMEWORK (R-111 trigger)
+
+When any fix fails twice on the same symptom → STOP → invoke KT IS/IS-NOT:
+See: `.claude/rules/SKILL_problem_solving_kt.md`
+
+Quick checklist:
+- IS: where/when/what the problem EXISTS
+- IS NOT: where/when/what it does NOT exist
+- Hypothesis must explain BOTH IS and IS-NOT or it is eliminated
+- **Step 0 before Phase 3a: read library designer's docs (R-121) — eliminates API misuse hypotheses**
+- Send a spy (Serial.printf) before sending a fix
+- Read library designer's docs before any hardware hypothesis
+
+---
+
 ## SESSION MODES
 
 ### Fix Mode (low token — R-02)
@@ -219,6 +261,49 @@ Never suggest changing to live.
 
 ---
 
+## SESSION CLOSING CHECKLIST (R-84)
+
+Every CC session ends with:
+1. Archive prompt → `docs/prompts/` stamped ✅ COMPLETE
+2. Append RULES.md (newest rule at top)
+3. Update PROJECT_STATE.md (newest session at top of SESSION LOG)
+4. Overwrite CHAT_HANDOFF.md
+5. Update KNOWN_GOOD.md (newest snapshot at top)
+6. Commit all docs
+7. Merge to main
+
+No session closes without this sequence complete.
+
+---
+
+## CC PROMPT FILE NAMING — PERMANENT CONVENTION (2026-06-13)
+
+All CC prompts written by Chat as downloadable .md files.
+Owner pushes to repo ROOT before running CC. CC reads from root.
+After execution: CC archives to docs/prompts/ stamped ✅ COMPLETE.
+CC executes then archives stamped ✅ COMPLETE — [date] — [summary].
+
+| Prompt type | Filename pattern |
+|-------------|-----------------|
+| Quick fix (1-2 files) | CC_PROMPT_fix_[topic].md |
+| Build/feature (multi-file) | CC_BUILD_PROMPT_[topic].md |
+| Firmware change | CC_PROMPT_firmware_[topic].md |
+
+Every prompt file MUST contain:
+1. CC INTRO block (repo URL, files to read, role reminder)
+2. CONTEXT — why this prompt exists + sequence position
+3. TASK list — numbered, explicit, file-scoped
+4. DO NOT TOUCH list
+5. VERIFICATION STEPS — what CC confirms before closing
+6. MANDATORY closing actions (RULES.md, PROJECT_STATE.md, archive, merge)
+7. PAYMENT MODE REMINDER
+8. Sequence note (Prompt N of N, next prompt name)
+
+Benefits: full audit trail in docs/prompts/ matching GitHub PR history.
+Owner can hand any prompt to a new CC session independently.
+
+---
+
 ## WHAT CC CANNOT DO FOR SATU (firmware constraint)
 
 | Task | Workaround |
@@ -275,31 +360,3 @@ GitHub sync is confirmed checked.
 
 Here is my handoff: [paste CHAT_HANDOFF.md]"
 ```
-
----
-
-## CC PROMPT FILE NAMING — PERMANENT CONVENTION (2026-06-13)
-
-All CC prompts written by Chat as downloadable .md files.
-Owner pushes to repo ROOT before running CC. CC reads from root.
-After execution: CC archives to docs/prompts/ stamped ✅ COMPLETE.
-CC executes then archives stamped ✅ COMPLETE — [date] — [summary].
-
-| Prompt type | Filename pattern |
-|-------------|-----------------|
-| Quick fix (1-2 files) | CC_PROMPT_fix_[topic].md |
-| Build/feature (multi-file) | CC_BUILD_PROMPT_[topic].md |
-| Firmware change | CC_PROMPT_firmware_[topic].md |
-
-Every prompt file MUST contain:
-1. CC INTRO block (repo URL, files to read, role reminder)
-2. CONTEXT — why this prompt exists + sequence position
-3. TASK list — numbered, explicit, file-scoped
-4. DO NOT TOUCH list
-5. VERIFICATION STEPS — what CC confirms before closing
-6. MANDATORY closing actions (RULES.md, PROJECT_STATE.md, archive, merge)
-7. PAYMENT MODE REMINDER
-8. Sequence note (Prompt N of N, next prompt name)
-
-Benefits: full audit trail in docs/prompts/ matching GitHub PR history.
-Owner can hand any prompt to a new CC session independently.
