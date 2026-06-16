@@ -5,6 +5,12 @@
 
 ---
 
+- **R-125: HW Trigger is Section C of satu-machine-builder.html (2026-06-16).**
+  Filename and title tag never change. Section C is a test-only hardware bypass.
+  Payment buttons call fake-omise /simulate-payment (PASS) or /v1/webhook/omise with status:'failed' (FAIL).
+  Dispensing buttons call /v1/machine/completion — endpoint is LIVE as of 2026-06-16.
+  showSection() always handles 'a', 'b', 'c' — never revert to two-section array.
+
 - **R-124: fake-omise-worker wraps charge in { key:'charge.complete', data:{ object:'charge', ... } }.
   webhook.js MUST use: const charge = payload.data || payload;
   Then read charge.object, charge.status, charge.id, charge.metadata — never payload.* directly.
@@ -173,7 +179,7 @@
   clarifying root=active vs docs/prompts/=archive. Fixed this session.
 
 - **R-100 MACHINE FARM STRESS TEST — PERMANENT (2026-06-13):**
-  Machine Farm Simulator supports max 3 concurrent machines.
+  Machine Builder supports max 3 concurrent machines.
   All must use approved device IDs from D1 — no random MACs.
   Promise.all() parallel firing tests D1 contention + rate limits.
   Results panel auto-generates observations for capacity planning.
@@ -188,7 +194,7 @@
 - **R-94 THREE-TESTER ARCHITECTURE — PERMANENT (2026-06-13):**
   satu-system-tester.html = Backend API suite (14 tests, never modify)
   simulator.html          = Vending Machine Simulator (touch UI + drawer)
-  satu-machine-tester.html = Machine Farm Simulator (node flow + stress)
+  satu-machine-builder.html = Machine Builder (node flow + stress)
   simulator_r3.html DELETED 2026-06-13.
   No new test files without owner + Chat approval.
 

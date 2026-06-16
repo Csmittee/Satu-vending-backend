@@ -5,7 +5,7 @@
 #  HTML pages served at their filename path:
 #    public/simulator.html              → /simulator
 #    public/satu-system-tester.html     → /satu-system-tester
-#    public/satu-machine-tester.html    → /satu-machine-tester
+#    public/satu-machine-builder.html   → /satu-machine-builder
 #    public/satu-preflight.html         → /satu-preflight
 #    public/satu-admin.html             → /satu-admin
 #    (simulator_r3.html DELETED 2026-06-13)
