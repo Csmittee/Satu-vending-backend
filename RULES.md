@@ -1,9 +1,16 @@
 # RULES.md — Satu 1.0 Universal Rules
 > For domain rules: load `.claude/rules/RULES-[domain].md`
 > Domain files: workflow · backend · firmware · hardware · security
-> Last updated: 2026-06-15
+> Last updated: 2026-06-16
 
 ---
+
+- **R-124: fake-omise-worker wraps charge in { key:'charge.complete', data:{ object:'charge', ... } }.
+  webhook.js MUST use: const charge = payload.data || payload;
+  Then read charge.object, charge.status, charge.id, charge.metadata — never payload.* directly.
+  Real Omise sends charge at top level — payload.data is undefined — falls back to payload correctly.
+  This dual-envelope pattern must be preserved in any future webhook rewrites.
+  (Added 2026-06-16)**
 
 - **R-123: CALLBACK RETURN VALUES — for any library using callbacks, document what each return value means in LIBRARY_xxx.md BEFORE writing project code (2026-06-15).**
   Wrong return value = silent failure that mimics hardware bugs.

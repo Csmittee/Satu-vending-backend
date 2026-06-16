@@ -1,8 +1,21 @@
 # PROJECT_STATE.md — Satu 1.0 Live Status
 <!-- CC updates phase status after Build sessions · Chat updates after design decisions locked -->
-<!-- Last updated: 2026-06-15 — revert QR bitmap experiment, add R-115/R-116 -->
+<!-- Last updated: 2026-06-16 — webhook payload envelope fix R-124 -->
 
 ## Session Log (newest first)
+
+### 2026-06-16 — webhook payload envelope fix (R-124)
+- **ROOT CAUSE:** fake-omise-worker.js (R-107) wraps charge in `{ key:'charge.complete', data:{...} }`
+  but webhook.js read `payload.object` and `payload.status` directly — both undefined at top level.
+  The `if` condition never matched. Handler returned `{status:'ok'}` immediately with no DB write
+  and no command queued. Machine polled forever. simulator.html flow broke at QR payment screen.
+- **FIX:** `src/handlers/webhook.js` — added `const charge = payload.data || payload;` after JSON.parse.
+  All charge field reads changed from `payload.*` to `charge.*` throughout both conditional blocks.
+  Fallback DB lookup by order_id simplified from Object.assign pattern to direct assignment.
+- **RULE ADDED:** R-124 prepended to RULES.md — dual-envelope pattern must be preserved in all future webhook rewrites.
+- **Real Omise:** unaffected — `payload.data` is undefined for real Omise, `charge` falls back to `payload`. Real charge_id always in DB — fallback branch never fires in production.
+- **File changed:** `src/handlers/webhook.js` only.
+- **simulator.html flow:** FIXED 2026-06-16 via R-124 — QR payment → vending screen now advances correctly.
 
 ### 2026-06-15 — Revert QR bitmap experiment from backend main (R-115/R-116 added)
 - **REASON:** Bitmap approach confirmed working on hardware (serial: `[UI] drawQrFromBitmap: done`) but is fake-mode-only scaffolding. In live mode, Omise serves real PromptPay PNG with official Thai branding and EMVCo payload embedded — we cannot regenerate it. PNGdec must be fixed properly so firmware can decode any PNG: QR codes, amulet photos, Buddha images, temple owner uploads.
@@ -95,7 +108,7 @@
 - Approved devices in D1: SATU-TEST001 (AA:BB:CC:DD:EE:00) · SATU-SIM01 (AA:BB:CC:DD:EE:01) · SATU-4R473R (3C:DC:75:5D:DD:2C)
 
 ## Current Goal
-PNGdec root cause investigation: esp_ptr_in_psram() diagnostic flash — one cycle. Backend reverted to PR #17 state (_zlibStore). Bitmap branch preserved, not on main.
+Webhook payload envelope fix deployed (R-124). Backend simulator flow unblocked. Next: run 14-test suite to confirm 14/14, then proceed to PNGdec diagnostic (esp_ptr_in_psram) per RULES R-116.
 
 ---
 
@@ -103,7 +116,7 @@ PNGdec root cause investigation: esp_ptr_in_psram() diagnostic flash — one cyc
 
 | Phase | What | Status |
 |-------|------|--------|
-| P1 | Backend API | ✅ DONE — 14/14 tests pass (verify after revert deploy) |
+| P1 | Backend API | ✅ DONE — 14/14 tests pass (verify after R-124 deploy) |
 | P2 | Payment Gateway | 🟡 TEST KEYS ACTIVE — KYC/bank pending |
 | P3 | Firmware R3 | ✅ WRITTEN — ready to flash, not yet validated on board |
 | P4 | Hardware Build | 🔵 DESIGN DONE — components arrived, build not started |
@@ -288,7 +301,7 @@ No new test files without owner + Chat approval (R-94).
 | POST /v1/machine/completion | ❌ | Missing — firmware calls it, 404 |
 | POST /v1/order | ✅ | Creates order + QR |
 | GET /v1/order/:id/status | ✅ | Payment poll fallback |
-| POST /v1/webhook/omise | ✅ | HMAC skipped on fake_omise |
+| POST /v1/webhook/omise | ✅ | HMAC skipped on fake_omise · R-124: unwraps { key, data } envelope from fake-omise |
 | POST /v1/auth/login | ✅ | PBKDF2 |
 | POST /v1/auth/register | ✅ | ALLOW_REGISTRATION gated |
 | GET /v1/dashboard/* | 🟡 | /dashboard/orders endpoint missing |
@@ -322,9 +335,9 @@ No new test files without owner + Chat approval (R-94).
 
 ## Next 3 Actions (in order)
 
-1. **esp_ptr_in_psram() diagnostic** — Add `Serial.printf("[PSRAM] g_pngBuf in PSRAM: %s\n", esp_ptr_in_psram(g_pngBuf)?"YES":"NO");` immediately after `g_pngBuf = (uint8_t*)ps_malloc(200*1024);` in initUI(). Flash to SATU-4R473R, report output.
-2. **If PSRAM=NO** — Fix Arduino IDE: Boards > ESP32S3 Dev Module > PSRAM = "OPI PSRAM". This is the most likely root cause of PNGdec rc=8. Reflash with correct PSRAM setting.
-3. **If PSRAM=YES** — Continue PNGdec investigation: try smaller QR (scale=2), confirm 200KB buffer sufficient, check openRAM rc in detail. Do not change PNG format again until measured.
+1. **Deploy R-124 fix** — merge this PR, deploy to Cloudflare Workers, run satu-system-tester.html → confirm 14/14.
+2. **esp_ptr_in_psram() diagnostic** — Add `Serial.printf("[PSRAM] g_pngBuf in PSRAM: %s\n", esp_ptr_in_psram(g_pngBuf)?"YES":"NO");` immediately after `g_pngBuf = (uint8_t*)ps_malloc(200*1024);` in initUI(). Flash to SATU-4R473R, report output.
+3. **If PSRAM=NO** — Fix Arduino IDE: Boards > ESP32S3 Dev Module > PSRAM = "OPI PSRAM". This is the most likely root cause of PNGdec rc=8. Reflash with correct PSRAM setting.
 
 ---
 
