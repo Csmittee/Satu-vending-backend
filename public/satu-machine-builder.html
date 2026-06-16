@@ -1125,7 +1125,7 @@ async function hwAutoPoll() {
         statusEl.textContent = '— watching —';
       }
     }
-  } catch(e) { /* silent — network error */ }
+  } catch(e) { if (statusEl) { statusEl.style.color = '#ff4444'; statusEl.textContent = '— network error —'; } }
 }
 
 function updateHwButtonStates() {

@@ -161,7 +161,7 @@ export default {
                 const jwtAuth = await authenticateJWT(request, env);
                 if (jwtAuth.valid && jwtAuth.role === 'admin') authorized = true;
             }
-            if (!authorized) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+            if (!authorized) return Response.json({ error: 'Unauthorized' }, { status: 401, headers: { 'Access-Control-Allow-Origin': '*' } });
             const table = path.replace('/v1/admin-data/', '').split('/')[0];
             const whitelist = ['users','devices','orders','setup_codes','connection_logs','machine_slots','device_commands','ownership_log','admin_log','rate_limit_counters','cron_log'];
             if (!whitelist.includes(table)) return Response.json({ error: 'Invalid table' }, { status: 400 });
