@@ -267,10 +267,11 @@ Every CC session ends with:
 1. Archive prompt → `docs/prompts/` stamped ✅ COMPLETE
 2. Append RULES.md (newest rule at top)
 3. Update PROJECT_STATE.md (newest session at top of SESSION LOG)
-4. Overwrite CHAT_HANDOFF.md
-5. Update KNOWN_GOOD.md (newest snapshot at top)
-6. Commit all docs
-7. Merge to main
+4. Update KNOWN_GOOD.md (newest snapshot at top)
+5. Commit all docs
+6. Merge to main
+
+**CHAT_HANDOFF.md = Chat's responsibility only. CC never writes it. (R-05)**
 
 No session closes without this sequence complete.
 
