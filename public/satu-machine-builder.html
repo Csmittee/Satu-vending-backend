@@ -396,8 +396,8 @@ select {
         <div class="ctrl-row">
           <div class="ctrl-group">
             <span class="ctrl-label">Order ID</span>
-            <input type="text" id="hw-order-id" placeholder="SATU-20260614-XXXXXX"
-              oninput="updateHwButtonStates()" />
+            <input type="text" id="hw-order-id" placeholder="SATU-20260616-XXXXXX"
+              autocomplete="off" oninput="updateHwButtonStates()" />
             <div class="hw-hint" id="hw-autofill-status" style="color:#555;">Paste from ESP32 serial, or enter Admin Token below to auto-fill</div>
           </div>
         </div>
@@ -422,7 +422,7 @@ select {
         <div class="ctrl-row">
           <div class="ctrl-group">
             <span class="ctrl-label">Admin Token</span>
-            <input type="password" id="hw-admin-token" placeholder="Paste admin token — enables auto-fill" />
+            <input type="password" id="hw-admin-token" placeholder="Paste admin token — enables auto-fill" autocomplete="new-password" />
             <div class="hw-hint">Optional — polls /v1/admin-data/orders every 3s to auto-fill fields. Never logged.</div>
           </div>
         </div>
