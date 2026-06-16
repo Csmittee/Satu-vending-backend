@@ -105,7 +105,7 @@ export async function handleOmiseWebhook(request, env) {
             // If the Worker crashes between these two steps, the next webhook
             // retry will hit the 'paid' guard above and skip safely.
             const updateResult = await env.DB.prepare(
-                `UPDATE orders SET status = 'paid', paid_at = ? WHERE order_id = ? AND status = 'pending'`
+                `UPDATE orders SET status = 'paid', paid_at = ? WHERE order_id = ? AND status IN ('pending', 'vend_failed')`
             ).bind(Date.now(), order.order_id).run();
 
             // Double-check: if rowsAffected is 0, another request beat us to it
