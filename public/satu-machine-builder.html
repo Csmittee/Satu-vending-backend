@@ -398,7 +398,7 @@ select {
             <span class="ctrl-label">Order ID</span>
             <input type="text" id="hw-order-id" placeholder="SATU-20260614-XXXXXX"
               oninput="updateHwButtonStates()" />
-            <div class="hw-hint">Paste from ESP32 serial when QR screen appears</div>
+            <div class="hw-hint" id="hw-autofill-status" style="color:#555;">Paste from ESP32 serial, or enter Admin Token below to auto-fill</div>
           </div>
         </div>
         <div class="ctrl-row">
@@ -417,6 +417,13 @@ select {
               <option value="AA:BB:CC:DD:EE:00">AA:BB:CC:DD:EE:00 — SATU-TEST001</option>
               <option value="AA:BB:CC:DD:EE:01">AA:BB:CC:DD:EE:01 — SATU-SIM01</option>
             </select>
+          </div>
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-group">
+            <span class="ctrl-label">Admin Token</span>
+            <input type="password" id="hw-admin-token" placeholder="Paste admin token — enables auto-fill" />
+            <div class="hw-hint">Optional — polls /v1/admin-data/orders every 3s to auto-fill fields. Never logged.</div>
           </div>
         </div>
       </div>
@@ -503,6 +510,7 @@ function showSection(id) {
     document.getElementById('nav-'+s).classList.toggle('active', s===id);
   });
   if (id==='b') setTimeout(updateNetworkView, 60);
+  if (id==='c') hwStartPoll(); else hwStopPoll();
 }
 
 function showTab(id) {
@@ -1060,6 +1068,66 @@ function drawNetLines(W,H) {
 // ═══════════════════════════════════════════════════════════════════════════
 //  SECTION C — HW TRIGGER
 // ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+//  HW TRIGGER — AUTO-FILL POLLING
+//  Polls /v1/admin-data/orders every 3s when Section C is active.
+//  Requires admin token input (never logged — R-40).
+// ═══════════════════════════════════════════════════════════════════════════
+var _hwPollTimer = null;
+
+function hwStartPoll() {
+  if (_hwPollTimer) return;
+  _hwPollTimer = setInterval(hwAutoPoll, 3000);
+  hwAutoPoll();
+}
+
+function hwStopPoll() {
+  clearInterval(_hwPollTimer);
+  _hwPollTimer = null;
+  var el = document.getElementById('hw-autofill-status');
+  if (el) { el.style.color = '#555'; el.textContent = 'Paste from ESP32 serial, or enter Admin Token below to auto-fill'; }
+}
+
+async function hwAutoPoll() {
+  var token = document.getElementById('hw-admin-token').value.trim();
+  if (!token) return;
+  var deviceId = document.getElementById('hw-device-select').value;
+  var statusEl = document.getElementById('hw-autofill-status');
+  try {
+    var r = await fetch(API_BASE + '/v1/admin-data/orders', {
+      headers: { 'X-Admin-Token': token }
+    });
+    if (!r.ok) {
+      if (statusEl) { statusEl.style.color = '#ff4444'; statusEl.textContent = '— auth error ' + r.status + ' —'; }
+      return;
+    }
+    var orders = await r.json();
+    var match = (orders || []).find(function(o) {
+      return o.device_id === deviceId && o.status === 'pending' && o.omise_charge_id;
+    });
+    if (match && match.order_id !== document.getElementById('hw-order-id').value.trim()) {
+      document.getElementById('hw-order-id').value = match.order_id;
+      document.getElementById('hw-charge-id').value = match.omise_charge_id;
+      updateHwButtonStates();
+      farmLog('[HW] Auto-filled: ' + match.order_id, 'ok', 'HW');
+      if (statusEl) { statusEl.style.color = '#4caf50'; statusEl.textContent = '✅ Auto-filled: ' + match.order_id; }
+      clearInterval(_hwPollTimer);
+      _hwPollTimer = null;
+      setTimeout(function() {
+        if (document.getElementById('section-c').classList.contains('active')) {
+          if (statusEl) { statusEl.style.color = '#555'; statusEl.textContent = '— watching for next order —'; }
+          hwStartPoll();
+        }
+      }, 10000);
+    } else if (!match) {
+      if (statusEl && statusEl.textContent.indexOf('✅') === -1) {
+        statusEl.style.color = '#555';
+        statusEl.textContent = '— watching —';
+      }
+    }
+  } catch(e) { /* silent — network error */ }
+}
+
 function updateHwButtonStates() {
   const hasOrder  = document.getElementById('hw-order-id').value.trim().length > 0;
   const hasCharge = document.getElementById('hw-charge-id').value.trim().length > 0;

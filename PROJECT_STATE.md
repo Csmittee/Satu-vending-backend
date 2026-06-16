@@ -1,8 +1,15 @@
 # PROJECT_STATE.md — Satu 1.0 Live Status
 <!-- CC updates phase status after Build sessions · Chat updates after design decisions locked -->
-<!-- Last updated: 2026-06-16 — HW Trigger Section C added to satu-machine-builder.html -->
+<!-- Last updated: 2026-06-16 — HW Trigger auto-fill + lookup fix (R-126) -->
 
 ## Session Log (newest first)
+
+### 2026-06-16 — HW Trigger auto-fill + lookup fix (R-126)
+- **Bug 1 fixed:** `GET /v1/order/:id/status` SELECT was missing `omise_charge_id` — added to both SELECT and response in `src/handlers/order.js`. HW Trigger Lookup was returning `{status:'pending',...}` with no charge ID field, causing hwLookup() to log "Order not found" even when order existed.
+- **Bug 2 fixed:** `webhook.js` UPDATE `AND status = 'pending'` blocked re-test of timed-out (`vend_failed`) orders — `changes === 0` → "race condition avoided" → no command queued. Widened to `AND status IN ('pending', 'vend_failed')`. Real Omise never fires on vend_failed — safe.
+- **Feature:** HW Trigger auto-fill — polls `/v1/admin-data/orders` every 3s when Section C active. Finds latest `pending` order for selected device with `omise_charge_id`. Auto-fills both fields, logs "[HW] Auto-filled: SATU-..." Pauses 10s after fill, resumes watching. Admin token input added to Session Setup card (password type, never logged — R-40).
+- **Rule added:** R-126 prepended to RULES.md.
+- **Files:** `src/handlers/order.js`, `src/handlers/webhook.js`, `public/satu-machine-builder.html`.
 
 ### 2026-06-16 — HW Trigger Section C added to satu-machine-builder.html (R-125)
 - **FEATURE:** Section C "⚡ HW Trigger" added to `public/satu-machine-builder.html`.

@@ -203,7 +203,7 @@ export async function handleGetOrderStatus(order_id, env) {
         }
 
         const order = await env.DB.prepare(
-            `SELECT status, paid_at, donor_name, amount, product_id, created_at FROM orders WHERE order_id = ?`
+            `SELECT status, paid_at, donor_name, amount, product_id, omise_charge_id, created_at FROM orders WHERE order_id = ?`
         ).bind(order_id).first();
 
         if (!order) {
@@ -211,12 +211,13 @@ export async function handleGetOrderStatus(order_id, env) {
         }
 
         return Response.json({
-            status:     order.status,
-            paid_at:    order.paid_at,
-            donor_name: order.donor_name,
-            amount:     order.amount,
-            product_id: order.product_id,
-            created_at: order.created_at
+            status:          order.status,
+            paid_at:         order.paid_at,
+            donor_name:      order.donor_name,
+            amount:          order.amount,
+            product_id:      order.product_id,
+            omise_charge_id: order.omise_charge_id,
+            created_at:      order.created_at
         });
 
     } catch (error) {

@@ -5,6 +5,11 @@
 
 ---
 
+- **R-126: GET /v1/order/:id/status MUST return omise_charge_id in SELECT and response (2026-06-16).**
+  HW Trigger Lookup depends on this field to activate payment buttons. Never remove it.
+  webhook.js UPDATE WHERE status IN ('pending','vend_failed') — allows re-test of timed-out orders.
+  Real Omise never fires on vend_failed — safe in production. (Added 2026-06-16)
+
 - **R-125: HW Trigger is Section C of satu-machine-builder.html (2026-06-16).**
   Filename and title tag never change. Section C is a test-only hardware bypass.
   Payment buttons call fake-omise /simulate-payment (PASS) or /v1/webhook/omise with status:'failed' (FAIL).
