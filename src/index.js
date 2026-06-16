@@ -78,7 +78,7 @@ export default {
             return Response.redirect('https://api.janishammer.com/satu-system-tester.html', 302);
         }
         if (path === '/demo' && method === 'GET') {
-            return Response.redirect('https://api.janishammer.com/satu-machine-tester.html', 302);
+            return Response.redirect('https://api.janishammer.com/satu-machine-builder.html', 302);
         }
         if (path === '/simulator' && method === 'GET') {
             return Response.redirect('https://api.janishammer.com/simulator.html', 302);

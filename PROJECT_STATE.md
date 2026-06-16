@@ -1,11 +1,11 @@
 # PROJECT_STATE.md — Satu 1.0 Live Status
 <!-- CC updates phase status after Build sessions · Chat updates after design decisions locked -->
-<!-- Last updated: 2026-06-16 — HW Trigger Section C added to satu-machine-tester.html -->
+<!-- Last updated: 2026-06-16 — HW Trigger Section C added to satu-machine-builder.html -->
 
 ## Session Log (newest first)
 
-### 2026-06-16 — HW Trigger Section C added to satu-machine-tester.html (R-125)
-- **FEATURE:** Section C "⚡ HW Trigger" added to `public/satu-machine-tester.html`.
+### 2026-06-16 — HW Trigger Section C added to satu-machine-builder.html (R-125)
+- **FEATURE:** Section C "⚡ HW Trigger" added to `public/satu-machine-builder.html`.
   Three cards: Session Setup (Order ID / Charge ID / Device selector), Payment Simulation
   (Scan PASS via fake-omise worker / Scan FAIL via direct webhook), Dispensing Cycle
   (Item Dispensed OK / Door Blocked / Dispense Timeout via /v1/machine/completion).
@@ -14,7 +14,7 @@
 - **ENDPOINT TABLE UPDATE:** /v1/machine/completion changed from ❌ Missing → ✅ Live.
 - **RULE ADDED:** R-125 prepended to RULES.md — Section C permanent, showSection() always
   handles 'a','b','c', /v1/machine/completion confirmed live.
-- **File changed:** `public/satu-machine-tester.html` only (frontend, no src/ changes).
+- **File changed:** `public/satu-machine-builder.html` only (frontend, no src/ changes).
 - **CC_PROMPT archived:** CC_PROMPT_add_hw_trigger_tab.md → docs/prompts/ stamped ✅ COMPLETE.
 
 ### 2026-06-16 — webhook payload envelope fix (R-124)
@@ -93,7 +93,7 @@
 - **FIX (Arrow connectors):** Replaced invisible 2px div with `.node-connector` (vertical line + CSS ▼ triangle). Dark-grey pending → dark-green pass → dark-red fail/skip.
 - **FEATURE (Sidebar layout):** 200px sidebar with SATU gold branding + two nav items (gold left-border active state). No CSS colors/fonts changed — layout restructure only.
 - **FEATURE (Network View tab):** Section B now has two tabs: Stress Test (unchanged) + Network View. Network View = SVG canvas: machine nodes → Backend API → D1 + Payment GW / Webhook / Cmd Queue. Lines animate during Fire All; settle green/red on completion. Heartbeat pulse every 3s.
-- **File:** public/satu-machine-tester.html only.
+- **File:** public/satu-machine-builder.html only.
 
 ### 2026-06-13 — esbuild template literal fix (wrangler 4.100 breaking change)
 - **FIX:** src/index.js handleAdminDashboard() — 5 inner template literals inside HTML template literal converted to string concatenation. Wrangler 4.100+ esbuild strict mode fails on nested `${...}` inside outer backtick strings. R-98 added to RULES.md.
@@ -105,23 +105,23 @@
   - Title updated. Styled device dropdown (3 approved devices, no free entry).
   - Connection Status toggle drawer: 6 live indicators (Backend, D1, Order, Payment Gateway, Machine Command, Idempotency).
   - [🔁 Run Idempotency Test] button: create order → POST webhook ×2 → poll commands → verify count===1.
-- **REDESIGN:** satu-machine-tester.html → "Machine Farm Simulator"
+- **REDESIGN:** satu-machine-builder.html → "Machine Builder"
   - Section A: 8-node vertical flow diagram (Health → Hello → Order → QR → Webhook → Commands → Completion → Idempotency). Run All / Step / Reset controls. Expandable node details.
   - Section B: Fleet stress test — 2-3 machines fired in parallel via Promise.all(). Results panel with auto-generated observations (D1 contention, rate limits, latency spikes).
   - Section C: Full-width activity log with source tagging ([Machine N] / [Flow]).
   - Gold/dark theme throughout.
 - **RULES:** R-94 (three-tester architecture), R-99 (CC prompt convention), R-100 (machine farm) added to RULES.md.
 - **WORKFLOW:** WORKFLOW_SKILL.md updated with CC Prompt File Naming section.
-- public/ inventory: simulator.html (upgraded) · satu-machine-tester.html (redesigned) · satu-system-tester.html (untouched) · satu-admin.html · satu-preflight.html. simulator_r3.html DELETED.
+- public/ inventory: simulator.html (upgraded) · satu-machine-builder.html (redesigned) · satu-system-tester.html (untouched) · satu-admin.html · satu-preflight.html. simulator_r3.html DELETED.
 
 ### 2026-06-13 — wrangler.toml build fix + device dropdowns
 - **FIX:** wrangler.toml `routes` was nested inside `[[d1_databases]]` — caused Cloudflare build error "Unexpected fields found in d1_databases[0] field: routes". Moved `routes` to top-level (before `[assets]`). R-97 added to RULES.md.
 - **FIX:** simulator.html MAC input (readonly text) → dropdown of 3 approved devices. `genMac()` removed. No ghost devices possible.
-- **FIX:** satu-machine-tester.html locked SATU-T001 (not in D1) → dropdown defaulting to SATU-TEST001. Lock overlay removed.
+- **FIX:** satu-machine-builder.html locked SATU-T001 (not in D1) → dropdown defaulting to SATU-TEST001. Lock overlay removed.
 - Approved devices in D1: SATU-TEST001 (AA:BB:CC:DD:EE:00) · SATU-SIM01 (AA:BB:CC:DD:EE:01) · SATU-4R473R (3C:DC:75:5D:DD:2C)
 
 ## Current Goal
-HW Trigger (Section C) deployed in satu-machine-tester.html (R-125). /v1/machine/completion confirmed LIVE. Owner can now test full physical hardware cycle without wired sensors. Next: run 14-test suite to confirm 14/14, then run full hardware cycle via HW Trigger tab.
+HW Trigger (Section C) deployed in satu-machine-builder.html (R-125). /v1/machine/completion confirmed LIVE. Owner can now test full physical hardware cycle without wired sensors. Next: run 14-test suite to confirm 14/14, then run full hardware cycle via HW Trigger tab.
 
 ---
 
@@ -295,7 +295,7 @@ Price: owner-defined free input. Color auto-tiers by value (50/100/200/300/500).
 |---|------|------|---------|
 | 1 | `satu-system-tester.html` | Backend System Tester | 14-test automated API suite — DO NOT MODIFY |
 | 2 | `simulator.html` | Vending Machine Simulator | Full touch screen UI + connection status drawer |
-| 3 | `satu-machine-tester.html` | Machine Farm Simulator | 8-node flow diagram + multi-machine stress test |
+| 3 | `satu-machine-builder.html` | Machine Builder | 8-node flow diagram + multi-machine stress test |
 
 `simulator_r3.html` — DELETED 2026-06-13. Fully superseded.
 
@@ -349,7 +349,7 @@ No new test files without owner + Chat approval (R-94).
 ## Next 3 Actions (in order)
 
 1. **Run 14-test suite** — open satu-system-tester.html → confirm 14/14 still green after HW Trigger PR.
-2. **HW hardware test** — open satu-machine-tester.html → ⚡ HW Trigger → paste order ID from ESP32 serial → Lookup → Simulate Scan PASS → watch serial for [CMD] payment_confirmed.
+2. **HW hardware test** — open satu-machine-builder.html → ⚡ HW Trigger → paste order ID from ESP32 serial → Lookup → Simulate Scan PASS → watch serial for [CMD] payment_confirmed.
 3. **Fix heartbeat HTTP 500** — connection_logs column mismatch in heartbeat handler — CC job pending.
 
 ---
