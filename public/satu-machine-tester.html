@@ -72,6 +72,12 @@ body {
 .ctrl-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 12px; flex-wrap: wrap; }
 .ctrl-group { display: flex; flex-direction: column; gap: 3px; }
 .ctrl-label { font-size: 10px; color: #555; letter-spacing: 1px; text-transform: uppercase; }
+input[type="text"] {
+  background: #0a0b0e; border: 1px solid #2a2a36; color: #ccc;
+  padding: 5px 8px; border-radius: 4px; font-size: 11px; font-family: monospace;
+  width: 260px;
+}
+input[type="text"]:read-only { color: #555; }
 select {
   background: #0a0b0e; border: 1px solid #2a2a36; color: #ccc;
   padding: 5px 8px; border-radius: 4px; font-size: 11px; font-family: monospace;
@@ -250,6 +256,17 @@ select {
 .log-line.warn  { color: #ff8c00; }
 .log-line.state { color: #d4a843; }
 .err-msg { color: #ff6b6b; font-size: 11px; font-family: monospace; padding: 4px 0; }
+
+/* ══ HW TRIGGER ══ */
+.hw-hint    { font-size: 10px; color: #555; margin-top: 3px; }
+.hw-status  { font-size: 11px; font-family: monospace; padding: 8px 0; color: #555; min-height: 20px; }
+.btn-success {
+  background: none; border: 1px solid #2d6a31; color: #4caf50;
+  padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;
+  font-family: inherit; transition: all 0.15s;
+}
+.btn-success:hover:not(:disabled) { background: #0d1f0d; }
+.btn-success:disabled { opacity: 0.35; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -265,6 +282,7 @@ select {
     <div class="sidebar-nav">
       <div id="nav-a" class="nav-item active" onclick="showSection('a')">🔬 Single Flow Test</div>
       <div id="nav-b" class="nav-item" onclick="showSection('b')">🖥️ Machine Fleet</div>
+      <div id="nav-c" class="nav-item" onclick="showSection('c')">⚡ HW Trigger</div>
     </div>
   </nav>
 
@@ -363,6 +381,73 @@ select {
       </div>
 
     </div><!-- /section-b -->
+
+    <!-- ─── SECTION C: HW Trigger ─── -->
+    <div id="section-c" class="section">
+      <div class="section-header">
+        <div class="section-title">HW Trigger</div>
+        <div class="section-sub">Physical hardware bypass · test without wired sensors</div>
+      </div>
+
+      <!-- CARD 1 — SESSION SETUP -->
+      <div class="card">
+        <div class="card-title">Session Setup</div>
+        <div class="ctrl-row">
+          <div class="ctrl-group">
+            <span class="ctrl-label">Order ID</span>
+            <input type="text" id="hw-order-id" placeholder="SATU-20260614-XXXXXX"
+              oninput="updateHwButtonStates()" />
+            <div class="hw-hint">Paste from ESP32 serial when QR screen appears</div>
+          </div>
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-group">
+            <span class="ctrl-label">Charge ID</span>
+            <input type="text" id="hw-charge-id" readonly placeholder="auto-filled after lookup" />
+            <div class="hw-hint">Filled automatically by Lookup</div>
+          </div>
+          <button class="btn primary" id="hw-btn-lookup" onclick="hwLookup()" disabled>🔍 Lookup Charge ID</button>
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-group">
+            <span class="ctrl-label">Device</span>
+            <select id="hw-device-select">
+              <option value="3C:DC:75:5D:DD:2C" selected>3C:DC:75:5D:DD:2C — SATU-4R473R (Physical)</option>
+              <option value="AA:BB:CC:DD:EE:00">AA:BB:CC:DD:EE:00 — SATU-TEST001</option>
+              <option value="AA:BB:CC:DD:EE:01">AA:BB:CC:DD:EE:01 — SATU-SIM01</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 2 — PAYMENT SIMULATION -->
+      <div class="card">
+        <div class="card-title">Payment Simulation</div>
+        <div style="font-size:10px;color:#555;margin-bottom:12px;line-height:1.7;">
+          Simulates Omise webhook after donor scans QR. Machine receives payment_confirmed and dispenses.
+        </div>
+        <div class="hw-status" id="hw-pay-status">— waiting —</div>
+        <div class="ctrl-row">
+          <button class="btn-success" id="hw-btn-pay-pass" onclick="hwPayPass()" disabled>✅ Simulate Scan PASS</button>
+          <button class="btn danger" id="hw-btn-pay-fail" onclick="hwPayFail()" disabled>❌ Simulate Scan FAIL</button>
+        </div>
+      </div>
+
+      <!-- CARD 3 — DISPENSING CYCLE -->
+      <div class="card">
+        <div class="card-title">Dispensing Cycle</div>
+        <div style="font-size:10px;color:#555;margin-bottom:12px;line-height:1.7;">
+          Simulates physical sensor events after payment confirmed.
+        </div>
+        <div class="ctrl-row">
+          <button class="btn" id="hw-btn-dispensed" onclick="hwDispense('success')" disabled>📦 Item Dispensed OK</button>
+          <button class="btn" id="hw-btn-door-blocked" onclick="hwDispense('door_blocked')" disabled>🚪 Door Blocked</button>
+          <button class="btn" id="hw-btn-timeout" onclick="hwDispense('timeout')" disabled>⏱ Dispense Timeout</button>
+        </div>
+      </div>
+
+    </div><!-- /section-c -->
+
   </main>
 </div><!-- /app-shell -->
 
@@ -412,7 +497,7 @@ const NODE_DEFS = [
 //  NAV
 // ═══════════════════════════════════════════════════════════════════════════
 function showSection(id) {
-  ['a','b'].forEach(function(s){
+  ['a','b','c'].forEach(function(s){
     document.getElementById('section-'+s).classList.toggle('active', s===id);
     document.getElementById('nav-'+s).classList.toggle('active', s===id);
   });
@@ -651,12 +736,11 @@ async function executeNode(i) {
       }
       const d=await r.json().catch(function(){return{};});
       setNodeStatus(i,'fail','<span class="err">✗ HTTP '+r.status+'</span><br>'+JSON.stringify(d).substring(0,120));
-      farmLog('Node 7 FAIL — HTTP '+r.status+' (endpoint may not exist yet)','err'); return false;
+      farmLog('Node 7 FAIL — HTTP '+r.status,'err'); return false;
     }
 
     // ── Node 8: Idempotency — FRESH ORDER → webhook x2 → count===1 ────────
     if (i===7) {
-      // Step 1: create a brand-new order (independent of Node 3 order)
       const oh={'Content-Type':'application/json'};
       if (flowState.deviceSecret) oh['X-Device-Secret']=flowState.deviceSecret;
       const or=await fetch(API_BASE+'/v1/order',{method:'POST',headers:oh,body:JSON.stringify({device_id:flowState.deviceId,product_id:productId})});
@@ -669,18 +753,15 @@ async function executeNode(i) {
       const freshChargeId = od.omise_charge_id||('farm_idem_'+Date.now());
       farmLog('Node 8 — fresh order: '+freshOrderId,'net');
 
-      // Step 2: fire webhook #1 with fresh charge
       const wb={object:'charge',id:freshChargeId,status:'successful',metadata:{order_id:freshOrderId}};
       await fetch(API_BASE+'/v1/webhook/omise',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(wb)});
       farmLog('Node 8 — webhook #1 fired','net');
       await delay(1200);
 
-      // Step 3: fire exact duplicate #2
       await fetch(API_BASE+'/v1/webhook/omise',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(wb)});
       farmLog('Node 8 — webhook #2 (duplicate) fired','net');
       await delay(1200);
 
-      // Step 4: count payment_confirmed for freshOrderId only
       const ch={}; if (flowState.deviceSecret) ch['X-Device-Secret']=flowState.deviceSecret;
       const r=await fetch(API_BASE+'/v1/machine/commands?device_id='+flowState.deviceId,{headers:ch});
       const d=await r.json(); const cmds=d.commands||[];
@@ -907,7 +988,6 @@ function updateNetworkView() {
   const W=canvas.offsetWidth||700;
   const H=canvas.offsetHeight||480;
 
-  // Static nodes
   STATIC_NODES.forEach(function(n){
     const extra=n.key==='backend'?'<br>/hello /order /webhook /commands'
       :n.key==='gateway'?'<br>mode: fake_omise'
@@ -920,7 +1000,6 @@ function updateNetworkView() {
     canvas.appendChild(div);
   });
 
-  // Machine nodes (left column)
   const total=Math.max(fleet.length,1);
   fleet.forEach(function(m,idx){
     const dev=APPROVED_DEVICES.find(function(d){return d.mac===m.mac;});
@@ -978,6 +1057,108 @@ function drawNetLines(W,H) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+//  SECTION C — HW TRIGGER
+// ═══════════════════════════════════════════════════════════════════════════
+function updateHwButtonStates() {
+  const hasOrder  = document.getElementById('hw-order-id').value.trim().length > 0;
+  const hasCharge = document.getElementById('hw-charge-id').value.trim().length > 0;
+  document.getElementById('hw-btn-lookup').disabled       = !hasOrder;
+  document.getElementById('hw-btn-pay-pass').disabled     = !hasCharge;
+  document.getElementById('hw-btn-pay-fail').disabled     = !hasCharge;
+  document.getElementById('hw-btn-dispensed').disabled    = !hasOrder;
+  document.getElementById('hw-btn-door-blocked').disabled = !hasOrder;
+  document.getElementById('hw-btn-timeout').disabled      = !hasOrder;
+}
+
+async function hwLookup() {
+  const orderId = document.getElementById('hw-order-id').value.trim();
+  if (!orderId) return;
+  farmLog('[HW] Looking up order: ' + orderId, 'net', 'HW');
+  try {
+    const r = await fetch(API_BASE + '/v1/order/' + encodeURIComponent(orderId) + '/status');
+    const d = await r.json();
+    if (r.ok && d.omise_charge_id) {
+      document.getElementById('hw-charge-id').value = d.omise_charge_id;
+      farmLog('[HW] Charge ID: ' + d.omise_charge_id, 'ok', 'HW');
+      updateHwButtonStates();
+    } else {
+      farmLog('[HW] Order not found', 'err', 'HW');
+    }
+  } catch(e) {
+    farmLog('[HW] Lookup error: ' + e.message, 'err', 'HW');
+  }
+}
+
+async function hwPayPass() {
+  const orderId  = document.getElementById('hw-order-id').value.trim();
+  const chargeId = document.getElementById('hw-charge-id').value.trim();
+  const status   = document.getElementById('hw-pay-status');
+  farmLog('[HW] Simulate Scan PASS — ' + orderId, 'net', 'HW');
+  try {
+    const r = await fetch('https://fake-omise.csmittee.workers.dev/simulate-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order_id: orderId, charge_id: chargeId }),
+    });
+    const d = await r.json().catch(function(){return{};});
+    if (d.ok !== false && r.ok) {
+      status.style.color = '#4caf50';
+      status.textContent = '✅ Webhook sent — machine polling for command...';
+      farmLog('[HW] Payment PASS triggered — ' + orderId, 'ok', 'HW');
+    } else {
+      status.style.color = '#ff4444';
+      status.textContent = '❌ Webhook failed';
+      farmLog('[HW] Payment PASS failed — ' + JSON.stringify(d).substring(0,80), 'err', 'HW');
+    }
+  } catch(e) {
+    status.style.color = '#ff4444';
+    status.textContent = '❌ Error: ' + e.message;
+    farmLog('[HW] Pay PASS error: ' + e.message, 'err', 'HW');
+  }
+}
+
+async function hwPayFail() {
+  const orderId  = document.getElementById('hw-order-id').value.trim();
+  const chargeId = document.getElementById('hw-charge-id').value.trim();
+  const status   = document.getElementById('hw-pay-status');
+  farmLog('[HW] Simulate Scan FAIL — ' + orderId, 'warn', 'HW');
+  try {
+    const payload = {
+      key: 'charge.complete',
+      data: { object: 'charge', id: chargeId, status: 'failed', metadata: { order_id: orderId } },
+    };
+    await fetch(API_BASE + '/v1/webhook/omise', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    status.style.color = '#ff4444';
+    status.textContent = '❌ Payment FAILED — machine shows error screen';
+    farmLog('[HW] Payment FAIL triggered', 'warn', 'HW');
+  } catch(e) {
+    status.style.color = '#ff4444';
+    status.textContent = '❌ Error: ' + e.message;
+    farmLog('[HW] Pay FAIL error: ' + e.message, 'err', 'HW');
+  }
+}
+
+async function hwDispense(result) {
+  const orderId = document.getElementById('hw-order-id').value.trim();
+  farmLog('[HW] Dispense: ' + result + ' — ' + orderId, 'net', 'HW');
+  try {
+    const r = await fetch(API_BASE + '/v1/machine/completion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order_id: orderId, result: result, slot_idx: 0 }),
+    });
+    const d = await r.json().catch(function(){return{};});
+    farmLog('[HW] Completion HTTP ' + r.status + ' — ' + JSON.stringify(d).substring(0,60), r.ok?'ok':'warn', 'HW');
+  } catch(e) {
+    farmLog('[HW] Dispense error: ' + e.message, 'err', 'HW');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 //  UTILS + INIT
 // ═══════════════════════════════════════════════════════════════════════════
 function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
@@ -985,6 +1166,7 @@ function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
 window.addEventListener('load',function(){
   buildNodeList();
   fleetReset();
+  updateHwButtonStates();
 });
 window.addEventListener('resize',function(){
   if(document.getElementById('tab-network').classList.contains('active')) updateNetworkView();

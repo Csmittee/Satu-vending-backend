@@ -1,4 +1,6 @@
 # CC_PROMPT_add_hw_trigger_tab.md
+> ✅ COMPLETE — 2026-06-16 — HW Trigger Section C added to satu-machine-tester.html
+> /v1/machine/completion confirmed LIVE (owner override) — amber warning box omitted
 > Created by: Chat (Claude)
 > Date: 2026-06-14
 > Session goal: Add Section C "HW Trigger" to satu-machine-tester.html

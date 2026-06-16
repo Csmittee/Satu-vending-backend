@@ -1,8 +1,21 @@
 # PROJECT_STATE.md — Satu 1.0 Live Status
 <!-- CC updates phase status after Build sessions · Chat updates after design decisions locked -->
-<!-- Last updated: 2026-06-16 — webhook payload envelope fix R-124 -->
+<!-- Last updated: 2026-06-16 — HW Trigger Section C added to satu-machine-tester.html -->
 
 ## Session Log (newest first)
+
+### 2026-06-16 — HW Trigger Section C added to satu-machine-tester.html (R-125)
+- **FEATURE:** Section C "⚡ HW Trigger" added to `public/satu-machine-tester.html`.
+  Three cards: Session Setup (Order ID / Charge ID / Device selector), Payment Simulation
+  (Scan PASS via fake-omise worker / Scan FAIL via direct webhook), Dispensing Cycle
+  (Item Dispensed OK / Door Blocked / Dispense Timeout via /v1/machine/completion).
+- **OWNER OVERRIDE:** /v1/machine/completion is LIVE as of 2026-06-16. Amber warning box
+  from CC_PROMPT spec omitted — all 3 dispensing buttons wired normally.
+- **ENDPOINT TABLE UPDATE:** /v1/machine/completion changed from ❌ Missing → ✅ Live.
+- **RULE ADDED:** R-125 prepended to RULES.md — Section C permanent, showSection() always
+  handles 'a','b','c', /v1/machine/completion confirmed live.
+- **File changed:** `public/satu-machine-tester.html` only (frontend, no src/ changes).
+- **CC_PROMPT archived:** CC_PROMPT_add_hw_trigger_tab.md → docs/prompts/ stamped ✅ COMPLETE.
 
 ### 2026-06-16 — webhook payload envelope fix (R-124)
 - **ROOT CAUSE:** fake-omise-worker.js (R-107) wraps charge in `{ key:'charge.complete', data:{...} }`
@@ -108,7 +121,7 @@
 - Approved devices in D1: SATU-TEST001 (AA:BB:CC:DD:EE:00) · SATU-SIM01 (AA:BB:CC:DD:EE:01) · SATU-4R473R (3C:DC:75:5D:DD:2C)
 
 ## Current Goal
-Webhook payload envelope fix deployed (R-124). Backend simulator flow unblocked. Next: run 14-test suite to confirm 14/14, then proceed to PNGdec diagnostic (esp_ptr_in_psram) per RULES R-116.
+HW Trigger (Section C) deployed in satu-machine-tester.html (R-125). /v1/machine/completion confirmed LIVE. Owner can now test full physical hardware cycle without wired sensors. Next: run 14-test suite to confirm 14/14, then run full hardware cycle via HW Trigger tab.
 
 ---
 
@@ -298,7 +311,7 @@ No new test files without owner + Chat approval (R-94).
 | POST /v1/machine/heartbeat | ⚠️ | HTTP 500 — connection_logs column mismatch |
 | GET /v1/machine/commands | ✅ | 30-sec poll |
 | POST /v1/machine/command-ack | ✅ | Queue acknowledgment |
-| POST /v1/machine/completion | ❌ | Missing — firmware calls it, 404 |
+| POST /v1/machine/completion | ✅ | Live as of 2026-06-16 — confirmed by owner |
 | POST /v1/order | ✅ | Creates order + QR |
 | GET /v1/order/:id/status | ✅ | Payment poll fallback |
 | POST /v1/webhook/omise | ✅ | HMAC skipped on fake_omise · R-124: unwraps { key, data } envelope from fake-omise |
@@ -311,7 +324,7 @@ No new test files without owner + Chat approval (R-94).
 
 **Pending CC jobs (backend):**
 1. Add `machine_slots` table + slots[] in /hello response
-2. Add `/v1/machine/completion` endpoint
+2. ~~Add `/v1/machine/completion` endpoint~~ ✅ LIVE 2026-06-16
 3. Fix heartbeat HTTP 500 (connection_logs column)
 4. Add `/v1/dashboard/orders` route
 
@@ -324,7 +337,7 @@ No new test files without owner + Chat approval (R-94).
 | Omise KYC incomplete | 🔴 BLOCKS LAUNCH | You |
 | PNGdec rc=8 root cause unknown | 🔴 Blocks live mode QR | CC — R-116 diagnostic next |
 | Heartbeat HTTP 500 | 🟡 | CC |
-| /v1/machine/completion missing | 🟡 | CC |
+| /v1/machine/completion | ✅ LIVE — confirmed 2026-06-16 | — |
 | machine_slots table not yet created | 🟡 | CC |
 | PDPA consent incomplete | 🔴 Legal risk | Before any live install |
 | Dashboard backend patches not applied | 🟡 | CC |
@@ -335,9 +348,9 @@ No new test files without owner + Chat approval (R-94).
 
 ## Next 3 Actions (in order)
 
-1. **Deploy R-124 fix** — merge this PR, deploy to Cloudflare Workers, run satu-system-tester.html → confirm 14/14.
-2. **esp_ptr_in_psram() diagnostic** — Add `Serial.printf("[PSRAM] g_pngBuf in PSRAM: %s\n", esp_ptr_in_psram(g_pngBuf)?"YES":"NO");` immediately after `g_pngBuf = (uint8_t*)ps_malloc(200*1024);` in initUI(). Flash to SATU-4R473R, report output.
-3. **If PSRAM=NO** — Fix Arduino IDE: Boards > ESP32S3 Dev Module > PSRAM = "OPI PSRAM". This is the most likely root cause of PNGdec rc=8. Reflash with correct PSRAM setting.
+1. **Run 14-test suite** — open satu-system-tester.html → confirm 14/14 still green after HW Trigger PR.
+2. **HW hardware test** — open satu-machine-tester.html → ⚡ HW Trigger → paste order ID from ESP32 serial → Lookup → Simulate Scan PASS → watch serial for [CMD] payment_confirmed.
+3. **Fix heartbeat HTTP 500** — connection_logs column mismatch in heartbeat handler — CC job pending.
 
 ---
 

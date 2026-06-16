@@ -5,6 +5,12 @@
 
 ---
 
+- **R-125: HW Trigger is Section C of satu-machine-tester.html (2026-06-16).**
+  Filename and title tag never change. Section C is a test-only hardware bypass.
+  Payment buttons call fake-omise /simulate-payment (PASS) or /v1/webhook/omise with status:'failed' (FAIL).
+  Dispensing buttons call /v1/machine/completion — endpoint is LIVE as of 2026-06-16.
+  showSection() always handles 'a', 'b', 'c' — never revert to two-section array.
+
 - **R-124: fake-omise-worker wraps charge in { key:'charge.complete', data:{ object:'charge', ... } }.
   webhook.js MUST use: const charge = payload.data || payload;
   Then read charge.object, charge.status, charge.id, charge.metadata — never payload.* directly.
