@@ -7,7 +7,8 @@
 ## Three-Repo + Session Closing (newest first)
 - R-84: Session closing discipline — every CC session ends:
          archive prompt → append RULES.md → update PROJECT_STATE.md →
-         overwrite CHAT_HANDOFF.md → commit all docs → merge to main.
+         commit all docs → merge to main.
+         CHAT_HANDOFF.md = Chat's job only — CC never writes it (R-05).
          No session closes without this sequence complete.
 - R-83: Three-repo system — Chat and CC must read all three repos before any decision:
          backend (Satu-vending-backend), firmware (Satu-Vending-Firmware),
