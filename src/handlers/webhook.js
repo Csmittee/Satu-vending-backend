@@ -54,7 +54,7 @@ export async function handleOmiseWebhook(request, env) {
         // Read body as text first so we can verify signature AND parse JSON
         const bodyText = await request.text();
 
-        // FIX: Verify Omise signature before processing anything
+        // Verify Omise signature before processing anything
         const signatureValid = await verifyOmiseSignature(request, bodyText, env);
         if (!signatureValid) {
             console.warn('Webhook rejected: invalid Omise signature');
@@ -63,35 +63,34 @@ export async function handleOmiseWebhook(request, env) {
 
         const payload = JSON.parse(bodyText);
 
-        if (payload.object === 'charge' && payload.status === 'successful') {
-            const chargeId = payload.id;
-            const orderId  = payload.metadata?.order_id;
+        // R-124: fake-omise wraps charge in { key:'charge.complete', data:{...} }
+        // Real Omise sends charge at top level — payload.data is undefined — falls back to payload
+        const charge = payload.data || payload;
 
-            // Find order by charge ID
+        if (charge.object === 'charge' && charge.status === 'successful') {
+            const chargeId = charge.id;
+            const orderId  = charge.metadata?.order_id;
+
+            // Primary lookup: by charge_id (real Omise path — always hits)
             let order = await env.DB.prepare(
                 `SELECT order_id, device_id, product_id, status FROM orders WHERE omise_charge_id = ?`
             ).bind(chargeId).first();
 
-          if (!order) {
-                // Fallback: fake-omise sends a random charge_id — look up by order_id from metadata instead
-                // Real Omise always sends a real charge_id so this branch never fires in production
-                if (orderId) {
-                    const orderByMeta = await env.DB.prepare(
-                        `SELECT order_id, device_id, product_id, status FROM orders WHERE order_id = ?`
-                    ).bind(orderId).first();
-                    if (orderByMeta) {
-                        // Re-assign so the rest of the handler works unchanged
-                        Object.assign(order = {}, orderByMeta);
-                    }
-                }
-                if (!order) {
-                    console.warn(`Webhook: no order found for charge ${chargeId} or order ${orderId}`);
-                    return Response.json({ status: 'ok', note: 'charge not found' });
-                }
+            // Fallback: fake-omise generates random charge_id not in DB — look up by order_id from metadata
+            // Real Omise always sends a real charge_id so this branch never fires in production
+            if (!order && orderId) {
+                order = await env.DB.prepare(
+                    `SELECT order_id, device_id, product_id, status FROM orders WHERE order_id = ?`
+                ).bind(orderId).first();
+            }
+
+            if (!order) {
+                console.warn(`Webhook: no order found for charge ${chargeId} or order ${orderId}`);
+                return Response.json({ status: 'ok', note: 'charge not found' });
             }
 
             // ════════════════════════════════════════════════════════════════
-            //  FIX: IDEMPOTENCY CHECK
+            //  IDEMPOTENCY CHECK
             //  If order is already paid, silently ignore the duplicate webhook.
             //  Omise retries webhooks on network errors — without this check,
             //  each retry would add another payment_confirmed command to the
@@ -124,18 +123,18 @@ export async function handleOmiseWebhook(request, env) {
             console.log(`Webhook: order ${order.order_id} marked paid, command dispatched to ${order.device_id}`);
         }
 
-        if (payload.object === 'charge' && payload.status === 'failed') {
+        if (charge.object === 'charge' && charge.status === 'failed') {
             // Mark order as failed — no command sent, door stays locked
-            const chargeId = payload.id;
+            const chargeId = charge.id;
             await env.DB.prepare(
                 `UPDATE orders SET status = 'failed', failure_code = ?, failure_message = ? WHERE omise_charge_id = ? AND status = 'pending'`
             ).bind(
-                payload.failure_code || 'unknown',
-                payload.failure_message || 'Payment failed',
+                charge.failure_code || 'unknown',
+                charge.failure_message || 'Payment failed',
                 chargeId
             ).run();
 
-            console.log(`Webhook: payment failed for charge ${chargeId} — ${payload.failure_code}`);
+            console.log(`Webhook: payment failed for charge ${chargeId} — ${charge.failure_code}`);
         }
 
         return Response.json({ status: 'ok' });
