@@ -1,9 +1,17 @@
 # RULES.md — Satu 1.0 Universal Rules
 > For domain rules: load `.claude/rules/RULES-[domain].md`
 > Domain files: workflow · backend · firmware · hardware · security
-> Last updated: 2026-06-16
+> Last updated: 2026-06-17
 
 ---
+
+- **R-127: Wiring tab (Tab 4) is a pin-level browser tool. (2026-06-17)**
+  All hardware constants hardcoded from hardware.h + config.h — never fetched from backend API.
+  Motor stop logic = sensor-triggered (primary); VEND_MAX_SPIN_MS=30000ms = safety cutoff only. Never timer-based.
+  Relay 12 = Spring Flap (pulse HIGH FLAP_PULSE_MS=300ms, spring closes). Not door lock. No REMOVAL_TIMEOUT in dispense path.
+  Multi-model tabs: each model stored independently in localStorage. Node positions draggable and persisted per model.
+  showSection('d') must call wiringSetViewBox(). Never revert showSection to handle fewer than ['a','b','c','d'].
+  (Added 2026-06-17)
 
 - **R-126: GET /v1/order/:id/status MUST return omise_charge_id in SELECT and response (2026-06-16).**
   HW Trigger Lookup depends on this field to activate payment buttons. Never remove it.

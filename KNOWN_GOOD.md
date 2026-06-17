@@ -5,6 +5,26 @@
 
 ---
 
+## Snapshot: 2026-06-17 — Wiring tab v2 built — Tab 4 multi-model drag diagram + R-127 correct motor logic
+
+### Frontend tool (browser-only — no backend changes)
+```
+Tab 4 '🔌 Wiring' added to satu-machine-builder.html
+Multi-model tabs, 15 draggable nodes, 13 layer toggles, 7 warning checks
+Signal flow simulator: 7 scenarios (sensor-triggered, VEND_MAX_SPIN_MS=30000ms safety, FLAP_PULSE_MS=300ms)
+BOM generator with 20% wire length margin
+Hardware constants: from hardware.h + config.h (no API calls)
+Motor stop = sensor-triggered (primary). Relay 12 = Spring Flap.
+```
+
+### Backend status (unchanged from 2026-06-16)
+```
+14-test suite: last confirmed 14/14 ✅ (2026-06-14 — no backend src/ changes since)
+Note: re-confirm 14/14 before hardware build session
+```
+
+---
+
 ## Snapshot: 2026-06-14 — 14/14 ✅ ALL PASSING + QR renders on machine
 
 ### Backend
