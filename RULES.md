@@ -5,6 +5,14 @@
 
 ---
 
+- **R-142: POST /v1/machine/command-inject is an admin-auth test endpoint. (2026-06-17)**
+  Allows any command string to be queued to any device (no command whitelist).
+  Auth: X-Admin-Token header required. Returns { status:'ok', command, device_id }.
+  Never expose publicly. Never add to 14-test suite.
+  Added to support HW Trigger IR sensor simulation in satu-machine-builder.html.
+  Companion: 🔦 IR Sensor Triggered button in Section C Dispensing Cycle card.
+  (Added 2026-06-17)
+
 - **R-127: Wiring tab (Tab 4) is a pin-level browser tool. (2026-06-17)**
   All hardware constants hardcoded from hardware.h + config.h — never fetched from backend API.
   Motor stop logic = sensor-triggered (primary); VEND_MAX_SPIN_MS=30000ms = safety cutoff only. Never timer-based.

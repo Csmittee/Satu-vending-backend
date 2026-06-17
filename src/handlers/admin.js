@@ -149,3 +149,46 @@ export async function handleGetAllDevices(request, env) {
         return Response.json({ error: 'Internal error' }, { status: 500 });
     }
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+//  HANDLE COMMAND INJECT  — POST /v1/machine/command-inject
+//  R-142: Admin-auth test endpoint. Queues any command to any device.
+//  Never expose publicly. Never add to 14-test suite.
+//  Added to support HW Trigger IR sensor simulation (2026-06-17)
+// ════════════════════════════════════════════════════════════════════════════
+export async function handleCommandInject(request, env) {
+    try {
+        const adminToken = request.headers.get('X-Admin-Token');
+        if (!adminToken || adminToken !== env.ADMIN_SECRET) {
+            return Response.json(
+                { error: 'Unauthorized' },
+                { status: 401, headers: { 'Access-Control-Allow-Origin': '*' } }
+            );
+        }
+
+        const body = await request.json();
+        const { device_id, command, data } = body;
+
+        if (!device_id || !command) {
+            return Response.json(
+                { error: 'device_id and command required' },
+                { status: 400, headers: { 'Access-Control-Allow-Origin': '*' } }
+            );
+        }
+
+        console.log('[INJECT] command queued: ' + command + ' → ' + device_id);
+        await addCommand(device_id, command, data || {}, env);
+
+        return Response.json(
+            { status: 'ok', command, device_id },
+            { headers: { 'Access-Control-Allow-Origin': '*' } }
+        );
+
+    } catch (error) {
+        console.error('Command inject error:', error);
+        return Response.json(
+            { error: 'Internal error' },
+            { status: 500, headers: { 'Access-Control-Allow-Origin': '*' } }
+        );
+    }
+}
