@@ -187,6 +187,13 @@ Use for: any ui.h, network.h, or satu_vending.ino change
 Always include: simulator.html as UI spec reference
 Always warn: owner must upload local .h files before CC session (repo may lag local)
 
+### Rapid Fire (phrase to CC)
+CC stays in current context
+Use when: one-line change confirmed by owner
+Output: immediate push, CI check
+
+
+
 ---
 
 ## CC PROMPT TEMPLATE
