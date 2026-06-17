@@ -696,3 +696,6 @@ PURPLE 26AWG  (LED data)           [auto]m
 ## PAYMENT MODE REMINDER
 PAYMENT_MODE stays fake. This prompt makes zero backend changes.
 Never suggest changing to live.
+
+---
+✅ COMPLETE — 2026-06-17 — wiring tab v2 Tab 4 multi-model + drag + R-127/R-128 logic

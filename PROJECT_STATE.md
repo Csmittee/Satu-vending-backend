@@ -1,8 +1,22 @@
 # PROJECT_STATE.md — Satu 1.0 Live Status
 <!-- CC updates phase status after Build sessions · Chat updates after design decisions locked -->
-<!-- Last updated: 2026-06-16 — HW Trigger auto-fill + lookup fix (R-126) -->
+<!-- Last updated: 2026-06-17 — Wiring tab v2 (R-127) -->
 
 ## Session Log (newest first)
+
+### 2026-06-17 — Wiring Tab v2 (Tab 4) added to satu-machine-builder.html (R-127)
+- **FEATURE:** Tab 4 "🔌 Wiring" added — full pin-level interactive wiring reference for Satu 1.0 vending machine.
+- **Multi-model tabs:** Each model stored independently in localStorage (`satu_wiring_models`). Add/rename/delete model tabs.
+- **SVG diagram:** 15 draggable nodes (ESP32, MCP1/MCP2, relays 1-12, sensors 1-10, 12V PSU, power rails, LED strip). Node positions persisted per model.
+- **13 wire layers:** 3V3, 5V, 12V, GND, I2C SDA/SCL, relay-sig, sensor-sig, motor-load, spring-flap, LED, JST labels, warn flags, pin numbers. Individual toggle + Reset Layout.
+- **7 warning checks:** W-01 (12V isolation), W-02 (I2C pull-ups), W-03 (wire gauge), W-04 (decoupling caps), W-05 (relay flyback), W-06 (IR 5V supply), W-07 (JST polarity).
+- **Signal flow simulator:** 7 scenarios — sensor-triggered dispense (primary), VEND_MAX_SPIN_MS=30000ms safety cutoff (motor FORCED OFF, NO flap opens), FLAP_PULSE_MS=300ms spring flap test, stuck relay detection, I2C fault, water pump cycle, all 10 lanes sequential.
+- **BOM generator:** Harness length inputs per run + 20% margin auto-applied. Copy to clipboard.
+- **Hardware constants:** All from hardware.h + config.h. Zero backend API calls. Browser-only tool.
+- **Correct motor logic locked:** Relay 12 = Spring Flap. Motor stops on sensor (primary). Timer = safety only. No REMOVAL_TIMEOUT.
+- **Rule added:** R-127 prepended to RULES.md.
+- **Prompt archived:** CC_BUILD_PROMPT_wiring_tab_v2.md → docs/prompts/ stamped ✅ COMPLETE.
+- **File changed:** `public/satu-machine-builder.html` only (frontend, no src/ changes).
 
 ### 2026-06-16 — HW Trigger auto-fill + lookup fix (R-126)
 - **Bug 1 fixed:** `GET /v1/order/:id/status` SELECT was missing `omise_charge_id` — added to both SELECT and response in `src/handlers/order.js`. HW Trigger Lookup was returning `{status:'pending',...}` with no charge ID field, causing hwLookup() to log "Order not found" even when order existed.
@@ -128,7 +142,7 @@
 - Approved devices in D1: SATU-TEST001 (AA:BB:CC:DD:EE:00) · SATU-SIM01 (AA:BB:CC:DD:EE:01) · SATU-4R473R (3C:DC:75:5D:DD:2C)
 
 ## Current Goal
-HW Trigger (Section C) deployed in satu-machine-builder.html (R-125). /v1/machine/completion confirmed LIVE. Owner can now test full physical hardware cycle without wired sensors. Next: run 14-test suite to confirm 14/14, then run full hardware cycle via HW Trigger tab.
+Wiring Tab v2 (Tab 4) deployed in satu-machine-builder.html (R-127). Owner can now use tab as pin-level wiring reference during hardware build (P4). Next: run 14-test suite to confirm 14/14 still green (no backend changes in this session), then proceed with hardware build using wiring tab reference.
 
 ---
 
