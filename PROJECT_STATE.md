@@ -1,8 +1,18 @@
 # PROJECT_STATE.md — Satu 1.0 Live Status
 <!-- CC updates phase status after Build sessions · Chat updates after design decisions locked -->
-<!-- Last updated: 2026-06-17 — Wiring tab UX fix: canvas height + toolbar layout -->
+<!-- Last updated: 2026-06-17 — HW Trigger IR sensor button + /v1/machine/command-inject (R-142) -->
 
 ## Session Log (newest first)
+
+### 2026-06-17 — HW Trigger IR sensor button + /v1/machine/command-inject (R-142)
+- **SCOPE:** Backend (src/handlers/admin.js, src/index.js) + Frontend (public/satu-machine-builder.html).
+- **TASK 1 (addCommand whitelist):** Confirmed NO whitelist in src/commands/queue.js — addCommand() accepts any command string. No change needed.
+- **TASK 2 (new endpoint):** POST /v1/machine/command-inject added to src/handlers/admin.js as handleCommandInject(). Auth: X-Admin-Token header required. Validation: device_id + command required. No command whitelist (test tool only). Logs: [INJECT] command queued. Returns: {status:'ok', command, device_id}. Wired in src/index.js. Version bumped to R4.1.
+- **TASK 3 (HW Trigger button):** 🔦 IR Sensor Triggered button (id=hw-btn-sensor) added to Section C Dispensing Cycle card — appears BEFORE the 3 existing dispensing buttons. Disabled when hw-order-id empty. hwSensorTriggered() POSTs to /v1/machine/command-inject with command:'sensor_triggered'. farmLog on success/fail.
+- **14-test suite:** UNCHANGED — command-inject intentionally excluded (R-142).
+- **Rule added:** R-142 prepended to RULES.md.
+- **Files changed:** src/handlers/admin.js, src/index.js, public/satu-machine-builder.html, RULES.md.
+- **Prompt archived:** docs/prompts/CC_PROMPT_hw_trigger_ir_sensor.md → ✅ COMPLETE 2026-06-17.
 
 ### 2026-06-17 — Wiring Tab UX fix: toolbar out of canvas + right panel (PR #30, #31)
 - **SCOPE:** UX fix only — Tab 4 wiring tool. Zero backend changes.
@@ -76,7 +86,6 @@
 - **ACTION:** Reverted PRs #19 (real deflate R-113) and #20 (bitmap endpoint R-114) from backend main via PR #21 (revert/qr-bitmap-experiment branch). qr.js restored to PR #17 state (_zlibStore RFC 1950 manual). Bitmap import/route removed from index.js. Version back to R4.
 - **FIRMWARE:** Satu-Vending-Firmware PR #17 (bitmap, claude/cool-hopper-6owumd) closed without merging. Firmware main remains at R5.3 (PR #14). Bitmap branch preserved — do NOT delete.
 - **RULES ADDED:** R-115 (Critical Fix Escalation Protocol — PERMANENT) + R-116 (PNGdec Investigation Status) prepended to RULES.md in both repos (backend + firmware).
-- **CC_PROMPT files:** CC_PROMPT_fix_qr_bitmap.md (backend) and CC_PROMPT_firmware_qr_bitmap.md (firmware) already deleted from repo roots in PRs #20/#14. docs/prompts/ archive preserved.
 - **QR bitmap status:** ✅ confirmed working on hardware (fake mode only — 2026-06-14 flash, serial: drawQrFromBitmap done)
 - **QR PNGdec status:** ❌ rc=8 — root cause NOT YET confirmed. Library NOT confirmed broken (works in thousands of ESP32 projects). PSRAM allocation is prime suspect.
 - **Next diagnostic:** esp_ptr_in_psram(g_pngBuf) immediately after ps_malloc in initUI(). One flash cycle. If PSRAM=NO → fix OPI PSRAM board setting. If PSRAM=YES → continue investigation.
@@ -162,7 +171,7 @@
 - Approved devices in D1: SATU-TEST001 (AA:BB:CC:DD:EE:00) · SATU-SIM01 (AA:BB:CC:DD:EE:01) · SATU-4R473R (3C:DC:75:5D:DD:2C)
 
 ## Current Goal
-Wiring Tab v2 simulator fully verified (all 8 checks pass). No backend changes this session. Owner can use Tab 4 as pin-level wiring reference during hardware build (P4). Next: run 14-test suite to confirm 14/14 still green, then proceed with hardware build.
+IR sensor simulation working in HW Trigger: click 🔦 IR Sensor Triggered → motor stops immediately (<1s) instead of waiting 30s safety cutoff. Next: run 14-test suite to confirm 14/14 still green, then hardware QA with real ESP32.
 
 ---
 
@@ -170,7 +179,7 @@ Wiring Tab v2 simulator fully verified (all 8 checks pass). No backend changes t
 
 | Phase | What | Status |
 |-------|------|--------|
-| P1 | Backend API | ✅ DONE — 14/14 tests pass (verify after R-124 deploy) |
+| P1 | Backend API | ✅ DONE — 14/14 tests pass (verify after R-142 deploy) |
 | P2 | Payment Gateway | 🟡 TEST KEYS ACTIVE — KYC/bank pending |
 | P3 | Firmware R3 | ✅ WRITTEN — ready to flash, not yet validated on board |
 | P4 | Hardware Build | 🔵 DESIGN DONE — components arrived, build not started |
@@ -353,6 +362,7 @@ No new test files without owner + Chat approval (R-94).
 | GET /v1/machine/commands | ✅ | 30-sec poll |
 | POST /v1/machine/command-ack | ✅ | Queue acknowledgment |
 | POST /v1/machine/completion | ✅ | Live as of 2026-06-16 — confirmed by owner |
+| POST /v1/machine/command-inject | ✅ | Admin-token only — test tool — R-142 — 2026-06-17 |
 | POST /v1/order | ✅ | Creates order + QR |
 | GET /v1/order/:id/status | ✅ | Payment poll fallback |
 | POST /v1/webhook/omise | ✅ | HMAC skipped on fake_omise · R-124: unwraps { key, data } envelope from fake-omise |
@@ -389,8 +399,8 @@ No new test files without owner + Chat approval (R-94).
 
 ## Next 3 Actions (in order)
 
-1. **Run 14-test suite** — open satu-system-tester.html → confirm 14/14 still green (no backend changes this session).
-2. **HW hardware test** — open satu-machine-builder.html → ⚡ HW Trigger → paste order ID from ESP32 serial → Lookup → Simulate Scan PASS → watch serial for [CMD] payment_confirmed.
+1. **Run 14-test suite** — open satu-system-tester.html → confirm 14/14 still green (command-inject not in suite per R-142).
+2. **HW hardware QA** — open satu-machine-builder.html → ⚡ HW Trigger → paste order ID → Lookup → Simulate Scan PASS → click 🔦 IR Sensor Triggered → ESP32 serial should show motor stopped in <1s.
 3. **Fix heartbeat HTTP 500** — connection_logs column mismatch in heartbeat handler — CC job pending.
 
 ---

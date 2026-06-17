@@ -2,7 +2,7 @@ import { handleMachineHello, handleHeartbeat, handleGetCommands, handleClaimDevi
 import { handleCreateOrder, handleGetOrderStatus } from './handlers/order.js';
 import { handleGetQrPng } from './handlers/qr.js';
 import { handleOmiseWebhook } from './handlers/webhook.js';
-import { handleDisableDevice, handleEnableDevice, handleReassignDevice, handleGetAllDevices } from './handlers/admin.js';
+import { handleDisableDevice, handleEnableDevice, handleReassignDevice, handleGetAllDevices, handleCommandInject } from './handlers/admin.js';
 import { handleGetUserDevices } from './handlers/dashboard.js';
 import { handleLogin, handleRegister, handleAdminResetPassword } from './handlers/authHandler.js';
 import { authenticateJWT, requireAdmin } from './middleware/auth.js';
@@ -18,6 +18,7 @@ import { logRequest } from './middleware/logging.js';
 //   R4   — Added: POST /v1/machine/completion
 //          Added: POST /v1/machine/factory-reset
 //          Added: GET  /v1/admin-data/:table  (token OR JWT admin)
+//   R4.1 — Added: POST /v1/machine/command-inject  (admin-token, test tool only — R-142)
 // ════════════════════════════════════════════════════════════════════════════
 
 export default {
@@ -28,7 +29,7 @@ export default {
 
         ctx.waitUntil(logRequest(request, env));
 
-        // ── CORS preflight ───────────────────────────────────────────────────
+        // ── CORS preflight ───────────────────────────────────────────
         if (method === 'OPTIONS') {
             return new Response(null, {
                 headers: {
@@ -39,7 +40,7 @@ export default {
             });
         }
 
-        // ── Public health check ──────────────────────────────────────────────
+        // ── Public health check ──────────────────────────────────────────
         if (path === '/health' && method === 'GET') {
             return Response.json({
                 status:       'ok',
@@ -53,7 +54,7 @@ export default {
             return Response.json({
                 service:   'Satu API',
                 status:    'running',
-                version:   'R4',
+                version:   'R4.1',
                 endpoints: [
                     'GET  /health',
                     'POST /v1/machine/hello',
@@ -62,6 +63,7 @@ export default {
                     'POST /v1/machine/claim',
                     'POST /v1/machine/completion',
                     'POST /v1/machine/factory-reset',
+                    'POST /v1/machine/command-inject',
                     'POST /v1/order',
                     'GET  /v1/order/:id/status',
                     'GET  /v1/qr/:charge_id',
@@ -73,7 +75,7 @@ export default {
             });
         }
 
-        // ── Static page aliases ──────────────────────────────────────────────
+        // ── Static page aliases ──────────────────────────────────────────
         if (path === '/test' && method === 'GET') {
             return Response.redirect('https://api.janishammer.com/satu-system-tester.html', 302);
         }
@@ -89,7 +91,7 @@ export default {
             return handleOmiseWebhook(request, env);
         }
 
-        // ── Machine endpoints ────────────────────────────────────────────────
+        // ── Machine endpoints ────────────────────────────────────────────
         if (path === '/v1/machine/hello' && method === 'POST') {
             return handleMachineHello(request, env);
         }
@@ -109,7 +111,7 @@ export default {
             return handleFactoryReset(request, env);
         }
 
-        // ── Auth (rate limited) ──────────────────────────────────────────────
+        // ── Auth (rate limited) ──────────────────────────────────────────
         if (path === '/v1/auth/login' && method === 'POST') {
             return rateLimit(request, env, async () => handleLogin(request, env));
         }
@@ -120,7 +122,7 @@ export default {
             return handleAdminResetPassword(request, env);
         }
 
-        // ── Orders ───────────────────────────────────────────────────────────
+        // ── Orders ───────────────────────────────────────────────────────────────
         if (path === '/v1/order' && method === 'POST') {
             return rateLimit(request, env, async () => handleCreateOrder(request, env));
         }
@@ -129,7 +131,7 @@ export default {
             return handleGetOrderStatus(orderId, env);
         }
 
-        // ── QR PNG (public — charge_id is unguessable) — R-106/R-108 ─────────
+        // ── QR PNG (public — charge_id is unguessable) — R-106/R-108 ─────────────────
         if (path.startsWith('/v1/qr/') && (method === 'GET' || method === 'HEAD')) {
             const chargeId = path.slice(7);
             return handleGetQrPng(chargeId, env);
@@ -151,7 +153,7 @@ export default {
             }
         }
 
-        // ── Admin data browser — token OR JWT admin ──────────────────────────
+        // ── Admin data browser — token OR JWT admin ───────────────────────────
         if (path.startsWith('/v1/admin-data/') && method === 'GET') {
             const adminToken = request.headers.get('X-Admin-Token');
             const authHeader = request.headers.get('Authorization');
@@ -167,6 +169,11 @@ export default {
             if (!whitelist.includes(table)) return Response.json({ error: 'Invalid table' }, { status: 400 });
             const result = await env.DB.prepare(`SELECT * FROM ${table} ORDER BY rowid DESC LIMIT 200`).all();
             return Response.json(result.results);
+        }
+
+        // ── Command inject — X-Admin-Token protected — R-142 ────────────────
+        if (path === '/v1/machine/command-inject' && method === 'POST') {
+            return handleCommandInject(request, env);
         }
 
         // ── JWT-protected routes ─────────────────────────────────────────────
