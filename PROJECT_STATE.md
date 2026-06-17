@@ -1,8 +1,20 @@
 # PROJECT_STATE.md — Satu 1.0 Live Status
 <!-- CC updates phase status after Build sessions · Chat updates after design decisions locked -->
-<!-- Last updated: 2026-06-17 — Wiring tab v2 (R-127) -->
+<!-- Last updated: 2026-06-17 — Wiring tab simulator fix (R-127 scope) -->
 
 ## Session Log (newest first)
+
+### 2026-06-17 — Wiring Tab simulator micro-fix (3 checks failing → all pass)
+- **SCOPE:** MICRO FIX — simulator scenarios only in Tab 4 wiring tool. Zero backend changes.
+- **Fix 1 (Check 8):** `animateDotAlongWire(wireId, color, durationMs)` implemented. Uses `getTotalLength()` + `getPointAtLength()` + `requestAnimationFrame`. Dots tagged `.sim-dot` class for cleanup.
+- **Fix 2 (wBezier):** Added optional `wid` param → `path.setAttribute('id', wid)`. Four wire IDs now assigned: `wire-mcp1-rb1`, `wire-rb1-motor`, `wire-mcp2-rb2`, `wire-rb2-flap`.
+- **Fix 3 (simStop):** Cleans up `.sim-dot` SVG elements on stop — no orphaned dots.
+- **Fix 4 (simS1):** Calls `animateDotAlongWire` at relay fire (t=5ms: blue sig + red motor) and flap fire (t=X+5ms: blue sig + grey flap).
+- **Fix 5 (simS6):** Calls `animateDotAlongWire` at flap fire (t=5ms: blue sig + grey flap).
+- **Fix 6 (simS2):** Added `'... [27 seconds later] ...'` skip indicator between [3000ms] poll and VEND_MAX_SPIN_MS cutoff.
+- **All 8 verification checks pass.** Logic was correct before (sensor-triggered, no door lock, R12=Spring Flap, FLAP_PULSE_MS=300ms). Only animation was missing.
+- **Prompt:** CC_FIX_wiring_simulator.md → docs/prompts/ stamped ✅ COMPLETE.
+- **File changed:** `public/satu-machine-builder.html` only.
 
 ### 2026-06-17 — Wiring Tab v2 (Tab 4) added to satu-machine-builder.html (R-127)
 - **FEATURE:** Tab 4 "🔌 Wiring" added — full pin-level interactive wiring reference for Satu 1.0 vending machine.
@@ -142,7 +154,7 @@
 - Approved devices in D1: SATU-TEST001 (AA:BB:CC:DD:EE:00) · SATU-SIM01 (AA:BB:CC:DD:EE:01) · SATU-4R473R (3C:DC:75:5D:DD:2C)
 
 ## Current Goal
-Wiring Tab v2 (Tab 4) deployed in satu-machine-builder.html (R-127). Owner can now use tab as pin-level wiring reference during hardware build (P4). Next: run 14-test suite to confirm 14/14 still green (no backend changes in this session), then proceed with hardware build using wiring tab reference.
+Wiring Tab v2 simulator fully verified (all 8 checks pass). No backend changes this session. Owner can use Tab 4 as pin-level wiring reference during hardware build (P4). Next: run 14-test suite to confirm 14/14 still green, then proceed with hardware build.
 
 ---
 
@@ -313,7 +325,7 @@ Price: owner-defined free input. Color auto-tiers by value (50/100/200/300/500).
 ## Three-Tester Architecture (R-94) — LOCKED 2026-06-13
 
 | # | File | Name | Purpose |
-|---|------|------|---------|
+|---|------|------|--------|
 | 1 | `satu-system-tester.html` | Backend System Tester | 14-test automated API suite — DO NOT MODIFY |
 | 2 | `simulator.html` | Vending Machine Simulator | Full touch screen UI + connection status drawer |
 | 3 | `satu-machine-builder.html` | Machine Builder | 8-node flow diagram + multi-machine stress test |
@@ -369,7 +381,7 @@ No new test files without owner + Chat approval (R-94).
 
 ## Next 3 Actions (in order)
 
-1. **Run 14-test suite** — open satu-system-tester.html → confirm 14/14 still green after HW Trigger PR.
+1. **Run 14-test suite** — open satu-system-tester.html → confirm 14/14 still green (no backend changes this session).
 2. **HW hardware test** — open satu-machine-builder.html → ⚡ HW Trigger → paste order ID from ESP32 serial → Lookup → Simulate Scan PASS → watch serial for [CMD] payment_confirmed.
 3. **Fix heartbeat HTTP 500** — connection_logs column mismatch in heartbeat handler — CC job pending.
 
