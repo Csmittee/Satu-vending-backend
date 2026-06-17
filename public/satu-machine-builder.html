@@ -318,6 +318,30 @@ select {
 .sim-line.info { color:#4fc3f7; }
 .sim-line.warn { color:#ff8c00; }
 
+/* Right panel: tabs, collapse, resize */
+.wiring-right { position:relative; display:flex; flex-direction:column; overflow:hidden; }
+.wiring-right.wr-hidden { display:none; }
+.wr-resize-handle { position:absolute; left:0; top:0; bottom:0; width:5px; cursor:ew-resize; z-index:10; border-radius:3px 0 0 3px; }
+.wr-resize-handle:hover, .wr-resize-handle.dragging { background:rgba(212,168,67,0.25); }
+.wr-tab-bar { display:flex; align-items:center; gap:2px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid #1e2028; flex-shrink:0; }
+.wr-tab { background:none; border:none; color:#444; font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; padding:2px 6px; border-radius:3px; font-family:inherit; transition:color 0.12s; }
+.wr-tab:hover { color:#aaa; }
+.wr-tab.active { color:#d4a843; background:#12131a; }
+.wr-collapse-btn { margin-left:auto; background:none; border:none; color:#333; cursor:pointer; font-size:13px; padding:1px 4px; line-height:1; font-family:inherit; border-radius:2px; flex-shrink:0; }
+.wr-collapse-btn:hover { color:#888; background:#1a1b26; }
+.wr-panel { overflow-y:auto; flex:1; min-height:0; }
+.wr-sim-bar { display:flex; flex-direction:column; gap:6px; padding-bottom:8px; border-bottom:1px solid #1a1b26; margin-bottom:8px; }
+.wr-sim-bar select { font-size:11px; background:#0a0b0e; border:1px solid #2a2a36; color:#ccc; padding:4px 8px; border-radius:4px; width:100%; }
+.wr-sim-btns { display:flex; gap:6px; }
+.wr-sim-btns .btn { flex:1; }
+.wr-sim-log { background:#06070a; border:1px solid #1a1b26; border-radius:4px; padding:8px 10px; min-height:120px; overflow-y:auto; font-size:10px; font-family:monospace; line-height:1.7; }
+
+/* Zoom slider overlay */
+.zoom-ctrl { display:flex; align-items:center; gap:5px; background:rgba(10,11,14,0.88); border:1px solid #1e2028; border-radius:4px; padding:3px 8px; }
+.zoom-ctrl label { color:#444; font-size:9px; text-transform:uppercase; letter-spacing:1px; white-space:nowrap; }
+.zoom-ctrl input[type=range] { width:80px; accent-color:#d4a843; cursor:pointer; margin:0; }
+.zoom-ctrl .zoom-pct { color:#888; font-size:9px; min-width:28px; text-align:right; font-family:monospace; }
+
 .layer-row {
   display:flex; align-items:center; gap:6px; font-size:10px; color:#666;
   margin-bottom:5px; cursor:pointer; line-height:1.3;
@@ -609,34 +633,52 @@ select {
                   <g id="wlayer-nodes"></g>
                 </g>
               </svg>
-              <div style="position:absolute;bottom:8px;right:8px;display:flex;gap:4px;">
-                <button class="btn" onclick="wiringFitScreen()" style="font-size:10px;padding:3px 8px;">⊞ Fit</button>
-                <button class="btn" onclick="wiringZoomIn()"   style="font-size:10px;padding:3px 8px;">+</button>
-                <button class="btn" onclick="wiringZoomOut()"  style="font-size:10px;padding:3px 8px;">−</button>
+              <div style="position:absolute;bottom:8px;left:8px;right:8px;display:flex;align-items:center;gap:6px;">
+                <div class="zoom-ctrl">
+                  <label>Zoom</label>
+                  <input type="range" id="zoom-slider" min="18" max="300" value="72" oninput="wiringZoomSlider(this.value)">
+                  <span class="zoom-pct" id="zoom-pct">72%</span>
+                </div>
+                <div style="margin-left:auto;display:flex;gap:4px;align-items:center;">
+                  <button class="btn" id="wr-show-btn" onclick="wrShowPanel()" style="font-size:10px;padding:3px 8px;display:none;" title="Show Inspector / Simulator">▷</button>
+                  <button class="btn" onclick="wiringFitScreen()" style="font-size:10px;padding:3px 8px;" title="Fit diagram to screen">⊞ Fit</button>
+                  <button class="btn" onclick="wiringZoomIn()"   style="font-size:10px;padding:3px 8px;">+</button>
+                  <button class="btn" onclick="wiringZoomOut()"  style="font-size:10px;padding:3px 8px;">−</button>
+                </div>
               </div>
             </div>
-            <!-- Simulator -->
-            <div class="wiring-sim-bar">
-              <select id="sim-scenario" style="font-size:11px;background:#0a0b0e;border:1px solid #2a2a36;color:#ccc;padding:4px 8px;border-radius:4px;flex:1;">
-                <option value="1">1. Normal vend — Lane 3 (sensor triggers, motor stops, flap opens)</option>
-                <option value="2">2. Lane empty — VEND_MAX_SPIN_MS=30000ms, sensor never fires</option>
-                <option value="3">3. Relay stuck ON — watchdog fires</option>
-                <option value="4">4. Missing I2C pull-up — bus fault at boot</option>
-                <option value="5">5. Water pump cycle (Relay 11)</option>
-                <option value="6">6. Spring flap test — Relay 12 pulse only</option>
-                <option value="7">7. All lanes sequential (lanes 1–10)</option>
-              </select>
-              <button class="btn primary" id="sim-run-btn" onclick="simRun()">▶ Run</button>
-              <button class="btn" onclick="simStop()">■ Stop</button>
-            </div>
-            <div class="sim-log" id="sim-log"><div class="sim-line">Select a scenario and click ▶ Run</div></div>
           </div>
 
-          <!-- RIGHT: Inspector -->
-          <div class="wiring-right">
-            <div class="wiring-panel-title">INSPECTOR</div>
-            <div id="wiring-inspector">
-              <div style="font-size:10px;color:#333;margin-top:6px;">Click a node to inspect</div>
+          <!-- RIGHT: Inspector + Simulator (tabbed · collapsible · resizable) -->
+          <div class="wiring-right" id="wiring-right">
+            <div class="wr-resize-handle" id="wr-resize-handle"></div>
+            <div class="wr-tab-bar">
+              <button class="wr-tab active" id="wrt-inspector" onclick="wrTab('inspector')">Inspector</button>
+              <button class="wr-tab"        id="wrt-simulator" onclick="wrTab('simulator')">Simulator</button>
+              <button class="wr-collapse-btn" onclick="wrHidePanel()" title="Hide panel">◀</button>
+            </div>
+            <div id="wr-panel-inspector" class="wr-panel">
+              <div id="wiring-inspector">
+                <div style="font-size:10px;color:#333;margin-top:6px;">Click a node to inspect</div>
+              </div>
+            </div>
+            <div id="wr-panel-simulator" class="wr-panel" style="display:none;">
+              <div class="wr-sim-bar">
+                <select id="sim-scenario">
+                  <option value="1">1. Normal vend — Lane 3</option>
+                  <option value="2">2. Lane empty — VEND_MAX_SPIN_MS=30000ms</option>
+                  <option value="3">3. Relay stuck ON — watchdog fires</option>
+                  <option value="4">4. Missing I2C pull-up — bus fault</option>
+                  <option value="5">5. Water pump cycle (Relay 11)</option>
+                  <option value="6">6. Spring flap test — Relay 12</option>
+                  <option value="7">7. All lanes sequential (1–10)</option>
+                </select>
+                <div class="wr-sim-btns">
+                  <button class="btn primary" id="sim-run-btn" onclick="simRun()">▶ Run</button>
+                  <button class="btn" onclick="simStop()">■ Stop</button>
+                </div>
+              </div>
+              <div class="wr-sim-log" id="sim-log"><div class="sim-line">Select a scenario and click ▶ Run</div></div>
             </div>
           </div>
         </div>
@@ -1748,16 +1790,73 @@ function wiringSetViewBox() {
   var svg=document.getElementById('wiring-svg'); if(!wrap||!svg) return;
   var W=wrap.clientWidth||700, H=wrap.clientHeight||500;
   svg.setAttribute('viewBox', (-WV.x)+' '+(-WV.y)+' '+(W/WV.scale)+' '+(H/WV.scale));
+  var sl=document.getElementById('zoom-slider');
+  var lbl=document.getElementById('zoom-pct');
+  var pct=Math.round(WV.scale*100);
+  if(sl)  sl.value=pct;
+  if(lbl) lbl.textContent=pct+'%';
 }
 function wiringFitScreen() { WV={x:-40,y:-20,scale:0.72}; wiringSetViewBox(); }
-function wiringZoomIn()    { WV.scale=Math.min(3,WV.scale*1.2); wiringSetViewBox(); }
-function wiringZoomOut()   { WV.scale=Math.max(0.18,WV.scale/1.2); wiringSetViewBox(); }
+function wiringZoomIn()    { WV.scale=Math.min(3,WV.scale*1.15); wiringSetViewBox(); }
+function wiringZoomOut()   { WV.scale=Math.max(0.18,WV.scale/1.15); wiringSetViewBox(); }
+function wiringZoomSlider(val) {
+  WV.scale=Math.max(0.18,Math.min(3,parseInt(val,10)/100));
+  var wrap=document.getElementById('wiring-canvas-wrap');
+  var svg=document.getElementById('wiring-svg'); if(!wrap||!svg) return;
+  var W=wrap.clientWidth||700, H=wrap.clientHeight||500;
+  svg.setAttribute('viewBox', (-WV.x)+' '+(-WV.y)+' '+(W/WV.scale)+' '+(H/WV.scale));
+  var lbl=document.getElementById('zoom-pct');
+  if(lbl) lbl.textContent=Math.round(WV.scale*100)+'%';
+}
 function wiringZoom(e) {
   e.preventDefault();
-  WV.scale *= (e.deltaY<0?1.1:0.9);
-  WV.scale=Math.max(0.18,Math.min(3,WV.scale));
+  var factor = e.deltaY < 0 ? 1.05 : 0.95;
+  WV.scale = Math.max(0.18, Math.min(3, WV.scale * factor));
   wiringSetViewBox();
 }
+
+// ─── Right panel: tab switch, collapse, resize ────────────────────────────
+function wrTab(tab) {
+  ['inspector','simulator'].forEach(function(t) {
+    document.getElementById('wrt-'+t).classList.toggle('active', t===tab);
+    document.getElementById('wr-panel-'+t).style.display = (t===tab)?'':'none';
+  });
+}
+function wrHidePanel() {
+  var rp=document.getElementById('wiring-right');
+  var sb=document.getElementById('wr-show-btn');
+  if(rp) rp.classList.add('wr-hidden');
+  if(sb) sb.style.display='';
+}
+function wrShowPanel() {
+  var rp=document.getElementById('wiring-right');
+  var sb=document.getElementById('wr-show-btn');
+  if(rp) rp.classList.remove('wr-hidden');
+  if(sb) sb.style.display='none';
+}
+
+// Right panel drag-resize
+(function(){
+  var handle, panel, startX, startW;
+  document.addEventListener('mousedown', function(e) {
+    handle=document.getElementById('wr-resize-handle');
+    if(!handle||e.target!==handle) return;
+    panel=document.getElementById('wiring-right');
+    startX=e.clientX; startW=panel.offsetWidth;
+    handle.classList.add('dragging');
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e) {
+    if(!handle||!handle.classList.contains('dragging')) return;
+    var dx=startX-e.clientX;
+    var nw=Math.max(160, Math.min(420, startW+dx));
+    panel.style.width=nw+'px'; panel.style.minWidth=nw+'px';
+  });
+  document.addEventListener('mouseup', function() {
+    if(handle) handle.classList.remove('dragging');
+    handle=null;
+  });
+})();
 
 // ─── Pan & Drag ───────────────────────────────────────────────────────────
 var WPan  = {active:false, sx:0, sy:0, vx:0, vy:0};
