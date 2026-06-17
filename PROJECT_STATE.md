@@ -1,8 +1,16 @@
 # PROJECT_STATE.md — Satu 1.0 Live Status
 <!-- CC updates phase status after Build sessions · Chat updates after design decisions locked -->
-<!-- Last updated: 2026-06-17 — Wiring tab simulator fix (R-127 scope) -->
+<!-- Last updated: 2026-06-17 — Wiring tab UX fix: canvas height + toolbar layout -->
 
 ## Session Log (newest first)
+
+### 2026-06-17 — Wiring Tab UX fix: toolbar out of canvas + right panel (PR #30, #31)
+- **SCOPE:** UX fix only — Tab 4 wiring tool. Zero backend changes.
+- **Problem 1 (simulator lost after pan):** Run/Stop buttons buried under SVG canvas after any pan. Fixed: moved simulator controls to right panel (collapsible ◀/▷, drag-resizable 160–420px) with Inspector/Simulator tabs. PR #30.
+- **Problem 2 (zoom too sensitive):** Wheel zoom was 1.1×/0.9×. Reduced to 1.05×/0.95×. Added zoom slider + Fit button. PR #30.
+- **Problem 3 (canvas 9955px height):** `.wiring-canvas-wrap` had `flex:1` in unbounded flex column → `clientHeight=9955px` → `wiringSetViewBox()` computed 13826 SVG units tall → diagram invisible at ~5% size. Toolbar at `position:absolute;bottom:8px` was unreachable without scrolling 9955px. PR #31.
+- **Fix (PR #31):** CSS changed `flex:1` → `height:calc(100vh-340px); min-height:420px`. Toolbar (zoom slider, Fit, +/−, ▷ show-panel) moved from absolute overlay inside canvas → `.wiring-toolbar` div above canvas in normal document flow. Always visible regardless of zoom/pan state.
+- **Files changed:** `public/satu-machine-builder.html` only.
 
 ### 2026-06-17 — Wiring Tab simulator micro-fix (3 checks failing → all pass)
 - **SCOPE:** MICRO FIX — simulator scenarios only in Tab 4 wiring tool. Zero backend changes.
