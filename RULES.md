@@ -1,9 +1,40 @@
 # RULES.md — Satu 1.0 Universal Rules
+> Version 1.3 — 2026-06-18
+> Changes: R-143 to R-146 added (CC_CHAT_LOG, CC_SKILL, HTML size limit, doc versioning)
+> Previous: v1.2 — 2026-06-17
 > For domain rules: load `.claude/rules/RULES-[domain].md`
 > Domain files: workflow · backend · firmware · hardware · security
-> Last updated: 2026-06-17
 
 ---
+
+- **R-146: DOCUMENT VERSIONING — PERMANENT (2026-06-18):**
+  Every .md file must carry a version header:
+    > Version X.Y — YYYY-MM-DD
+    > Changes: [one line summary]
+    > Previous: vX.Y — YYYY-MM-DD
+  Increment rule: X.Y→X.Y+1 = detail change only. X.0→X+1.0 = new section or structure.
+  Whoever last edited the file applies the bump — Chat, CC, or Owner.
+  No file is committed without a version bump if content changed.
+
+- **R-145: HTML FILE SIZE LIMIT — PERMANENT (2026-06-18):**
+  Any HTML file in public/ that exceeds 1000 lines must be flagged immediately
+  by Chat or CC. Chat proposes a split plan to owner before next CC session.
+  CC executes the split only after owner confirms.
+  Independent sections must become independent files — each self-contained,
+  no shared JS between files.
+
+- **R-144: CC_SKILL.md MANDATORY READ — PERMANENT (2026-06-18):**
+  CC reads CC_SKILL.md at the start of every session alongside CLAUDE.md and RULES.md.
+  CC_SKILL.md lives at repo root in both repos.
+  It contains: session protocol, 6 skills, CC_CHAT_LOG write format, closing checklist.
+  Never remove CC_SKILL.md from the mandatory read list.
+
+- **R-143: CC_CHAT_LOG PROTOCOL — PERMANENT (2026-06-18):**
+  CC appends one entry to CC_CHAT_LOG.md at the TOP after every session.
+  Format defined in CC_SKILL.md. Max 10 lines per entry. Newest at top always.
+  Chat reads last 3 entries at every session open.
+  If CC_CHAT_LOG is missing or unreadable — Chat tells owner before proceeding.
+  CC never deletes old entries.
 
 - **R-142: POST /v1/machine/command-inject is an admin-auth test endpoint. (2026-06-17)**
   Allows any command string to be queued to any device (no command whitelist).
