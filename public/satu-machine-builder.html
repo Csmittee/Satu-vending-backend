@@ -572,6 +572,9 @@ select {
           Simulates physical sensor events after payment confirmed.
         </div>
         <div class="ctrl-row">
+          <button class="btn" id="hw-btn-sensor" onclick="hwSensorTriggered()" disabled>🔦 IR Sensor Triggered</button>
+        </div>
+        <div class="ctrl-row">
           <button class="btn" id="hw-btn-dispensed" onclick="hwDispense('success')" disabled>📦 Item Dispensed OK</button>
           <button class="btn" id="hw-btn-door-blocked" onclick="hwDispense('door_blocked')" disabled>🚪 Door Blocked</button>
           <button class="btn" id="hw-btn-timeout" onclick="hwDispense('timeout')" disabled>⏱ Dispense Timeout</button>
@@ -1388,6 +1391,7 @@ function updateHwButtonStates() {
   document.getElementById('hw-btn-lookup').disabled       = !hasOrder;
   document.getElementById('hw-btn-pay-pass').disabled     = !hasCharge;
   document.getElementById('hw-btn-pay-fail').disabled     = !hasCharge;
+  document.getElementById('hw-btn-sensor').disabled       = !hasOrder;
   document.getElementById('hw-btn-dispensed').disabled    = !hasOrder;
   document.getElementById('hw-btn-door-blocked').disabled = !hasOrder;
   document.getElementById('hw-btn-timeout').disabled      = !hasOrder;
@@ -1462,6 +1466,28 @@ async function hwPayFail() {
     status.style.color = '#ff4444';
     status.textContent = '❌ Error: ' + e.message;
     farmLog('[HW] Pay FAIL error: ' + e.message, 'err', 'HW');
+  }
+}
+
+async function hwSensorTriggered() {
+  const deviceId   = document.getElementById('hw-device-select').value;
+  const hwOrderId  = document.getElementById('hw-order-id').value.trim();
+  farmLog('[HW] Queuing sensor_triggered → ' + deviceId, 'net', 'HW');
+  const adminToken = document.getElementById('hw-admin-token').value.trim();
+  try {
+    const r = await fetch(API_BASE + '/v1/machine/command-inject', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
+      body: JSON.stringify({ device_id: deviceId, command: 'sensor_triggered', data: { order_id: hwOrderId } }),
+    });
+    const d = await r.json().catch(function(){return{};});
+    if (r.ok) {
+      farmLog('[HW] sensor_triggered queued → motor will stop', 'ok', 'HW');
+    } else {
+      farmLog('[HW] sensor_triggered FAILED: ' + r.status, 'err', 'HW');
+    }
+  } catch(e) {
+    farmLog('[HW] sensor_triggered error: ' + e.message, 'err', 'HW');
   }
 }
 
