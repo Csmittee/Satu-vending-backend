@@ -1,8 +1,19 @@
 # PROJECT_STATE.md — Satu 1.0 Live Status
 <!-- CC updates phase status after Build sessions · Chat updates after design decisions locked -->
-<!-- Last updated: 2026-06-17 — HW Trigger IR sensor button + /v1/machine/command-inject (R-142) -->
+<!-- Last updated: 2026-06-18 — Governance docs wiring: CC_SKILL/CC_CHAT_LOG, R-143 to R-146 (R-84) -->
 
 ## Session Log (newest first)
+
+### 2026-06-18 — Governance docs wiring: CC_SKILL + CC_CHAT_LOG + R-143 to R-146 (R-84)
+- **SCOPE:** Docs only. Zero src/, HTML, .ino, or .h file changes.
+- **New governance files registered:** CC_SKILL.md + CC_CHAT_LOG.md added to CLAUDE.md Key Files in both repos.
+- **New rules added (backend):** R-143 (CC_CHAT_LOG protocol) · R-144 (CC_SKILL.md mandatory read) · R-145 (HTML file size limit >1000 lines = flag) · R-146 (document versioning headers) prepended to RULES.md (v1.3).
+- **Firmware equivalents:** R-138 to R-141 (same 4 rules) prepended to firmware RULES.md.
+- **CLAUDE.md corrections:** Satu-vending-hardware repo reference removed (repo deleted). Duplicate KNOWN_GOOD.md entry removed. Version header v1.1 added.
+- **KNOWLEDGE_MAP.md corrections:** Hardware repo references removed. Two-repo system wording updated. CC_SKILL.md + CC_CHAT_LOG.md entries added. .claude/claude_project/ section added. public/ inventory corrected to 4 actual files.
+- **CC_CHAT_LOG.md created:** Seed entry in both repos. ⚠️ R-145 flag: satu-machine-builder.html is ~127KB (~1800+ lines) — exceeds new 1000-line limit. Chat to propose split plan to owner.
+- **Prompt archived:** docs/prompts/CC_BUILD_PROMPT_governance_v1.md → ✅ COMPLETE 2026-06-18.
+- **Branch:** claude/hopeful-noether-6vkn0x · PR pending.
 
 ### 2026-06-17 — HW Trigger IR sensor button + /v1/machine/command-inject (R-142)
 - **SCOPE:** Backend (src/handlers/admin.js, src/index.js) + Frontend (public/satu-machine-builder.html).
@@ -422,11 +433,6 @@ No new test files without owner + Chat approval (R-94).
 - `WORKFLOW_SKILL.md` — dual-loop (Cloud Loop A + Firmware Loop B), session modes, CC template
 - `CHAT_HANDOFF.md` — session handoff, overwrite each session
 - `KNOWLEDGE_MAP.md` — navigation guide (backend repo copy)
-
-### Hardware Repo Reference
-- `Csmittee/Satu-vending-hardware` — wiring diagrams, BOM
-- Key hardware facts extracted: ESP32-8048S070C board (1600 THB), MCP23017×2 I/O expanders (0x20 sensors 1-8 relays 1-6 / 0x21 sensors 9-10 relays 7-12), 10× IR sensors E18-D80NK, 8+2 channel relays (requires separate 12V supply), RDM6300 ID card reader, WS2812B LEDs, metal frame 1.5mm steel. Total BOM ~8070 THB.
-- Read before any pin mapping or hardware-layer decision
 
 ### Session Closing Discipline (from this point forward)
 Every CC session ends with:
