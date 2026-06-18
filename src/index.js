@@ -29,7 +29,7 @@ export default {
 
         ctx.waitUntil(logRequest(request, env));
 
-        // ── CORS preflight ───────────────────────────────────────────
+        // ── CORS preflight ───────────────────────────────────────────────────
         if (method === 'OPTIONS') {
             return new Response(null, {
                 headers: {
@@ -40,7 +40,7 @@ export default {
             });
         }
 
-        // ── Public health check ──────────────────────────────────────────
+        // ── Public health check ──────────────────────────────────────────────
         if (path === '/health' && method === 'GET') {
             return Response.json({
                 status:       'ok',
@@ -75,7 +75,7 @@ export default {
             });
         }
 
-        // ── Static page aliases ──────────────────────────────────────────
+        // ── Static page aliases ──────────────────────────────────────────────
         if (path === '/test' && method === 'GET') {
             return Response.redirect('https://api.janishammer.com/satu-system-tester.html', 302);
         }
@@ -91,7 +91,7 @@ export default {
             return handleOmiseWebhook(request, env);
         }
 
-        // ── Machine endpoints ────────────────────────────────────────────
+        // ── Machine endpoints ────────────────────────────────────────────────
         if (path === '/v1/machine/hello' && method === 'POST') {
             return handleMachineHello(request, env);
         }
@@ -111,7 +111,7 @@ export default {
             return handleFactoryReset(request, env);
         }
 
-        // ── Auth (rate limited) ──────────────────────────────────────────
+        // ── Auth (rate limited) ──────────────────────────────────────────────
         if (path === '/v1/auth/login' && method === 'POST') {
             return rateLimit(request, env, async () => handleLogin(request, env));
         }
@@ -122,7 +122,7 @@ export default {
             return handleAdminResetPassword(request, env);
         }
 
-        // ── Orders ───────────────────────────────────────────────────────────────
+        // ── Orders ───────────────────────────────────────────────────────────
         if (path === '/v1/order' && method === 'POST') {
             return rateLimit(request, env, async () => handleCreateOrder(request, env));
         }
@@ -131,7 +131,7 @@ export default {
             return handleGetOrderStatus(orderId, env);
         }
 
-        // ── QR PNG (public — charge_id is unguessable) — R-106/R-108 ─────────────────
+        // ── QR PNG (public — charge_id is unguessable) — R-106/R-108 ─────────
         if (path.startsWith('/v1/qr/') && (method === 'GET' || method === 'HEAD')) {
             const chargeId = path.slice(7);
             return handleGetQrPng(chargeId, env);
@@ -153,7 +153,7 @@ export default {
             }
         }
 
-        // ── Admin data browser — token OR JWT admin ───────────────────────────
+        // ── Admin data browser — token OR JWT admin ──────────────────────────
         if (path.startsWith('/v1/admin-data/') && method === 'GET') {
             const adminToken = request.headers.get('X-Admin-Token');
             const authHeader = request.headers.get('Authorization');
