@@ -1,7 +1,7 @@
 # CC_SKILL.md — Satu 1.0
-> Version 1.0 — 2026-06-18
-> Changes: Initial creation — CC session protocol, 6 skills, role awareness,
->          CC_CHAT_LOG write protocol
+> Version 1.1 — 2026-06-19
+> Changes: Added SKILL 7 — Autonomous Docs Permission (owner-granted standing permission)
+> Previous: v1.0 — 2026-06-18
 > Location: Repo root (both repos) — CC reads every session
 
 ---
@@ -178,6 +178,22 @@ Most hardware failures are API misuse, not hardware failure.
 **Step 2 — write in CC_CHAT_LOG:** "KT invoked — IS: [X] IS NOT: [Y] — hypothesis: [Z]"
 
 See: `.claude/rules/SKILL_problem_solving_kt.md`
+
+---
+
+## SKILL 7 — AUTONOMOUS DOCS PERMISSION (PERMANENT)
+
+Owner has granted CC standing permission to read, create, and update all `.md` files under `/` (repo root) and `.claude/` (all subdirectories) without per-session or per-file confirmation.
+
+CC proceeds with all mandatory closing tasks (CC_CHAT_LOG, RULES.md, PROJECT_STATE.md, KNOWN_GOOD.md, KNOWLEDGE_MAP.md, CLAUDE.md, prompt archive, `.claude/rules/`) without pausing to ask owner approval.
+
+**This permission does NOT extend to:**
+- `src/` — backend source files
+- `public/` — static HTML files
+- `firmware/` — `.ino` and `.h` files
+- `schema.sql`
+- `wrangler.toml`
+- `hardware.h` (R2 LOCKED always)
 
 ---
 
