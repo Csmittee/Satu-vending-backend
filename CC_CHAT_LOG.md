@@ -1,9 +1,17 @@
 # CC_CHAT_LOG.md — Satu 1.0
-> Version 1.0 — 2026-06-18
-> Changes: Initial creation — seed entry for governance wiring session
+> Version 1.1 — 2026-06-19
+> Changes: Added session entry for backend CLAUDE.md v1.3 docs update
+> Previous: v1.0 — 2026-06-18
 > CC writes one entry per session at TOP · Chat reads last 3 entries at session open
 > Format defined in CC_SKILL.md · Max 10 lines per entry · Never delete old entries
 
+---
+## 2026-06-19 — Docs-only: CLAUDE.md Key Files update (src/index.js + src/handlers/)
+**Did:** Added src/index.js and src/handlers/ to CLAUDE.md Key Files section. Bumped CLAUDE.md to v1.3. No code files touched.
+**Updated:** CLAUDE.md v1.3, CC_CHAT_LOG.md v1.1
+**New files:** NONE
+**Pending Chat verify:** No backend source files changed. No tests required (docs-only).
+**Flags:** NONE
 ---
 ## 2026-06-19 — CC_BUILD_PROMPT_split_machine_builder_v1 (Machine Builder Split + RULES.md Refactor)
 **Did:** Split satu-machine-builder.html (2493 lines) into 3 self-contained files. RULES.md refactored 285 → 60 lines; domain rules moved to .claude/rules/RULES-[domain].md. Firmware RULES.md synced to backend numbering (R-143 → R-147). wrangler.toml comment updated.

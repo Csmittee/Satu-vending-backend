@@ -1,7 +1,7 @@
 # CLAUDE.md — Satu Project Compass
-> Version 1.2 — 2026-06-19
-> Changes: Added satu-hw-trigger.html + satu-wiring.html to Key Files; RULES.md refactored to 60 lines; R-147
-> Previous: v1.1 — 2026-06-18
+> Version 1.3 — 2026-06-19
+> Changes: Added src/index.js + src/handlers/ to Key Files
+> Previous: v1.2 — 2026-06-19
 <!-- max 35 lines · never grows · CC reads this on every session start -->
 
 ## Stack
@@ -28,6 +28,8 @@
 - `KNOWLEDGE_MAP.md` — navigation guide · what to read for each task
 - `public/satu-hw-trigger.html` — HW Trigger standalone tool · Section C extracted from machine builder
 - `public/satu-wiring.html`     — Wiring + BOM standalone reference · Section D extracted from machine builder
+- `src/index.js`                — route table + middleware · read before any endpoint change
+- `src/handlers/`               — all handler files live here (order.js, webhook.js, admin.js, auth.js, machine.js, dashboard.js)
 
 ## Repos
 - Backend: `Csmittee/Satu-vending-backend`
