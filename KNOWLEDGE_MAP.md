@@ -1,6 +1,6 @@
 # SATU — Knowledge Architecture Guide
-> Version 1.1 — 2026-06-18
-> Changes: Added CC_SKILL.md + CC_CHAT_LOG.md entries; removed deleted hardware repo; added .claude/claude_project/ section; corrected project knowledge docs section
+> Version 1.2 — 2026-06-19
+> Changes: Added satu-hw-trigger.html + satu-wiring.html to Document Map + public/ inventory
 > Previous: v1.0 — 2026-06-11
 
 ## Document Map — What to Read for What Task
@@ -17,7 +17,8 @@
 | Payment integration | PROJECT_STATE.md Omise section | SECURITY.md payment modes |
 | CC build session | CC_BUILD_PROMPT_*.md (repo root) | CC_CHAT_LOG.md last 3 entries |
 | Security review | SECURITY.md | PROJECT_STATE.md known risks |
-| Hardware wiring / BOM | satu-machine-builder.html (Wiring tab) | hardware.h pin arrays |
+| Hardware wiring / BOM | satu-wiring.html | hardware.h pin arrays |
+| HW Trigger testing | satu-hw-trigger.html | R-142 command-inject endpoint |
 | Workflow / session modes | .claude/claude_project/WORKFLOW_SKILL.md | CLAUDE.md |
 | Business / legal | satu-business-model.html | work_instruction.txt |
 | Domain rules (if split) | .claude/rules/RULES-[domain].md | RULES.md universal |
@@ -48,7 +49,7 @@ src/middleware/auth.js  — JWT + device secret auth
 src/middleware/rateLimit.js — D1-backed rate limiting
 src/db/schema.sql       — authoritative D1 schema
 wrangler.toml           — Cloudflare config, routes, cron
-public/                 — static HTML files (4 files: satu-system-tester, simulator, satu-machine-builder, satu-admin)
+public/                 — static HTML files (6 files: satu-system-tester, simulator, satu-machine-builder, satu-hw-trigger, satu-wiring, satu-admin)
 ```
 
 ### Repo root docs

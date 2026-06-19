@@ -8,6 +8,8 @@
 #    public/satu-machine-builder.html   → /satu-machine-builder
 #    public/satu-preflight.html         → /satu-preflight
 #    public/satu-admin.html             → /satu-admin
+#    public/satu-hw-trigger.html        → /satu-hw-trigger
+#    public/satu-wiring.html            → /satu-wiring
 #    (simulator_r3.html DELETED 2026-06-13)
 #
 #  SECRETS (set via `npx wrangler secret put <n>` — never commit these):

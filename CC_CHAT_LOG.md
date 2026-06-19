@@ -5,6 +5,13 @@
 > Format defined in CC_SKILL.md · Max 10 lines per entry · Never delete old entries
 
 ---
+## 2026-06-19 — CC_BUILD_PROMPT_split_machine_builder_v1 (Machine Builder Split + RULES.md Refactor)
+**Did:** Split satu-machine-builder.html (2493 lines) into 3 self-contained files. RULES.md refactored 285 → 60 lines; domain rules moved to .claude/rules/RULES-[domain].md. Firmware RULES.md synced to backend numbering (R-143 → R-147). wrangler.toml comment updated.
+**Updated:** RULES.md v1.4 (both repos), RULES-backend.md v1.1, RULES-firmware.md v1.1, RULES-workflow.md v1.1, wrangler.toml, CLAUDE.md v1.2 (both repos), PROJECT_STATE.md, KNOWLEDGE_MAP.md
+**New files:** public/satu-hw-trigger.html (~280 lines), public/satu-wiring.html (1398 lines), docs/prompts/CC_BUILD_PROMPT_split_machine_builder_v1.md
+**Pending Chat verify:** 14-test suite unchanged ✓. No src/ files touched ✓. R-147 registered ✓. satu-wiring.html 1398 lines — acceptable per R-145 (complexity necessary for self-contained wiring reference).
+**Flags:** satu-wiring.html 1398 lines — not reducible further without losing BOM/sim/model functionality. Documented as acceptable.
+---
 ## 2026-06-18 — CC_BUILD_PROMPT_governance_v1 (Governance Wiring)
 **Did:** Updated CLAUDE.md (backend + firmware) — added CC_SKILL.md + CC_CHAT_LOG.md to Key Files, removed deleted hardware repo. Updated RULES.md backend (R-143 to R-146) + firmware (R-138 to R-141). Updated KNOWLEDGE_MAP.md both repos — added CC_SKILL/CC_CHAT_LOG entries, removed hardware repo refs, added .claude/claude_project/ section. Created CC_CHAT_LOG.md in both repos (this file). Archived prompt to docs/prompts/. Updated PROJECT_STATE.md.
 **Updated:** RULES.md R-143→R-146 (backend), RULES.md R-138→R-141 (firmware), PROJECT_STATE.md session log, KNOWLEDGE_MAP.md v1.1 (both repos), CLAUDE.md v1.1 (both repos)

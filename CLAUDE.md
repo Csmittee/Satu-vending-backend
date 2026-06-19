@@ -1,7 +1,7 @@
 # CLAUDE.md — Satu Project Compass
-> Version 1.1 — 2026-06-18
-> Changes: Added CC_SKILL.md + CC_CHAT_LOG.md to Key Files; removed deleted hardware repo; removed duplicate entry
-> Previous: v1.0 — 2026-06-11
+> Version 1.2 — 2026-06-19
+> Changes: Added satu-hw-trigger.html + satu-wiring.html to Key Files; RULES.md refactored to 60 lines; R-147
+> Previous: v1.1 — 2026-06-18
 <!-- max 35 lines · never grows · CC reads this on every session start -->
 
 ## Stack
@@ -26,6 +26,8 @@
 - `PROJECT_STATE.md` — phase status · endpoint table · CC updates after every fix/PR
 - `KNOWN_GOOD.md` — last confirmed test snapshot · updated by Chat/owner after each test session
 - `KNOWLEDGE_MAP.md` — navigation guide · what to read for each task
+- `public/satu-hw-trigger.html` — HW Trigger standalone tool · Section C extracted from machine builder
+- `public/satu-wiring.html`     — Wiring + BOM standalone reference · Section D extracted from machine builder
 
 ## Repos
 - Backend: `Csmittee/Satu-vending-backend`
