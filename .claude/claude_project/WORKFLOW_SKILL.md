@@ -218,6 +218,7 @@ State every file read before writing a single line.
 5. Update KNOWLEDGE_MAP.md if any new files created
 6. Bump version header on every file changed
 7. Commit all in correct order → merge to main
+8. Remove the CC_promptxxx done from root
 
 ## 8. PAYMENT MODE REMINDER
 PAYMENT_MODE must remain = fake for this entire session.
@@ -228,7 +229,7 @@ Never suggest changing to live.
 
 ## CHAT HANDOFF TEMPLATE
 
-> Chat generates at end of every session. Save to project folder only. Never paste to repo.
+> Chat generates at end of every session. Save to project folder only. Never paste to repo. Output as handoff.md file
 
 ```markdown
 # CHAT HANDOFF — [date] END OF SESSION
@@ -274,10 +275,11 @@ Never suggest changing to live.
 7. Bump version on every file changed
 8. Commit all docs → merge to main
 
+
 **Chat closes every session with:**
 1. Read CC_CHAT_LOG — verify delivery matches what was asked
 2. Flag any gap to owner before session ends
-3. Write CHAT_HANDOFF → save to project folder
+3. Write CHAT_HANDOFF.MD → save to project folder
 
 ---
 
