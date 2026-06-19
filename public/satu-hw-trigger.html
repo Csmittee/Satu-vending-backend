@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ SATU HW Trigger</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+body {
+  background: #0a0b0e;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #ccc;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ══ SIDEBAR LAYOUT ══ */
+.app-shell { display: flex; flex: 1; min-height: 0; }
+
+.sidebar {
+  width: 200px;
+  min-width: 200px;
+  background: #0d0e14;
+  border-right: 1px solid #1e2028;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+.sidebar-brand { padding: 20px 16px 16px; border-bottom: 1px solid #1e2028; }
+.sidebar-title { font-size: 22px; font-weight: 800; color: #d4a843; letter-spacing: 5px; }
+.sidebar-sub   { font-size: 10px; color: #555; letter-spacing: 2px; text-transform: uppercase; margin-top: 3px; }
+.sidebar-nav   { padding: 10px 0; }
+.nav-item {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: #666;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+  line-height: 1.4;
+  user-select: none;
+}
+.nav-item:hover { color: #aaa; background: #12131a; }
+.nav-item.active { color: #d4a843; background: #12131a; border-left-color: #d4a843; }
+a.nav-item { display: block; text-decoration: none; }
+
+/* ══ MAIN AREA ══ */
+.main-area { flex: 1; overflow-y: auto; padding: 16px; min-width: 0; }
+.section { display: none; }
+.section.active { display: block; }
+
+.section-header { border-bottom: 1px solid #1e2028; padding-bottom: 10px; margin-bottom: 14px; }
+.section-title  { font-size: 14px; font-weight: 700; color: #d4a843; letter-spacing: 2px; text-transform: uppercase; }
+.section-sub    { font-size: 10px; color: #555; margin-top: 3px; letter-spacing: 1px; }
+
+/* ══ CARDS ══ */
+.card {
+  background: #12131a; border: 1px solid #1e2028;
+  border-radius: 8px; padding: 14px; margin-bottom: 14px;
+}
+.card-title {
+  font-size: 11px; font-weight: 600; color: #d4a843;
+  letter-spacing: 2px; text-transform: uppercase;
+  margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #1e2028;
+}
+
+/* ══ CONTROLS ══ */
+.ctrl-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 12px; flex-wrap: wrap; }
+.ctrl-group { display: flex; flex-direction: column; gap: 3px; }
+.ctrl-label { font-size: 10px; color: #555; letter-spacing: 1px; text-transform: uppercase; }
+input[type="text"], input[type="password"] {
+  background: #0a0b0e; border: 1px solid #2a2a36; color: #ccc;
+  padding: 5px 8px; border-radius: 4px; font-size: 11px; font-family: monospace;
+  width: 260px;
+}
+input[type="text"]:read-only { color: #555; }
+select {
+  background: #0a0b0e; border: 1px solid #2a2a36; color: #ccc;
+  padding: 5px 8px; border-radius: 4px; font-size: 11px; font-family: monospace;
+}
+.btn {
+  background: #1a1b26; border: 1px solid #2a2a36; color: #aaa;
+  padding: 6px 12px; border-radius: 4px; font-size: 11px;
+  cursor: pointer; letter-spacing: 1px; transition: all 0.15s;
+  white-space: nowrap; font-family: inherit;
+}
+.btn:hover { border-color: #d4a843; color: #d4a843; }
+.btn.primary { border-color: #d4a843; color: #d4a843; }
+.btn.primary:hover { background: #1f1c0a; }
+.btn.danger { border-color: #5a1a1a; color: #ff6b6b; }
+.btn.danger:hover { background: #1a0000; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ══ HW TRIGGER ══ */
+.hw-hint    { font-size: 10px; color: #555; margin-top: 3px; }
+.hw-status  { font-size: 11px; font-family: monospace; padding: 8px 0; color: #555; min-height: 20px; }
+.btn-success {
+  background: none; border: 1px solid #2d6a31; color: #4caf50;
+  padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;
+  font-family: inherit; transition: all 0.15s;
+}
+.btn-success:hover:not(:disabled) { background: #0d1f0d; }
+.btn-success:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ══ ACTIVITY LOG ══ */
+.log-panel { background: #0d0e14; border-top: 1px solid #1e2028; padding: 10px 16px; flex-shrink: 0; }
+.log-area {
+  background: #06070a; border: 1px solid #1a1b26; border-radius: 4px;
+  padding: 8px 10px; height: 120px; overflow-y: auto;
+  font-size: 10px; font-family: monospace; line-height: 1.7;
+}
+.log-line       { color: #444; }
+.log-line.ok    { color: #4caf50; }
+.log-line.err   { color: #ff4444; }
+.log-line.net   { color: #4fc3f7; }
+.log-line.warn  { color: #ff8c00; }
+.log-line.state { color: #d4a843; }
+.err-msg { color: #ff6b6b; font-size: 11px; font-family: monospace; padding: 4px 0; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-title">SATU</div>
+      <div class="sidebar-sub">Machine Farm</div>
+    </div>
+    <div class="sidebar-nav">
+      <a href="/satu-machine-builder" class="nav-item">🔬 Single Flow Test</a>
+      <a href="/satu-machine-builder" class="nav-item">🖥️ Machine Fleet</a>
+      <div class="nav-item active" style="color:#d4a843;">⚡ HW Trigger</div>
+      <a href="/satu-wiring" class="nav-item">🔌 Wiring</a>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-area">
+
+    <!-- ─── SECTION C: HW Trigger ─── -->
+    <div id="section-c" class="section active">
+      <div class="section-header">
+        <div class="section-title">HW Trigger</div>
+        <div class="section-sub">Physical hardware bypass · test without wired sensors</div>
+      </div>
+
+      <!-- CARD 1 — SESSION SETUP -->
+      <div class="card">
+        <div class="card-title">Session Setup</div>
+        <div class="ctrl-row">
+          <div class="ctrl-group">
+            <span class="ctrl-label">Order ID</span>
+            <input type="text" id="hw-order-id" placeholder="SATU-20260616-XXXXXX"
+              autocomplete="off" oninput="updateHwButtonStates()" />
+            <div class="hw-hint" id="hw-autofill-status" style="color:#555;">Paste from ESP32 serial, or enter Admin Token below to auto-fill</div>
+          </div>
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-group">
+            <span class="ctrl-label">Charge ID</span>
+            <input type="text" id="hw-charge-id" readonly placeholder="auto-filled after lookup" />
+            <div class="hw-hint">Filled automatically by Lookup</div>
+          </div>
+          <button class="btn primary" id="hw-btn-lookup" onclick="hwLookup()" disabled>🔍 Lookup Charge ID</button>
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-group">
+            <span class="ctrl-label">Device</span>
+            <select id="hw-device-select">
+              <option value="SATU-4R473R" selected>3C:DC:75:5D:DD:2C — SATU-4R473R (Physical)</option>
+              <option value="SATU-TEST001">AA:BB:CC:DD:EE:00 — SATU-TEST001</option>
+              <option value="SATU-SIM01">AA:BB:CC:DD:EE:01 — SATU-SIM01</option>
+            </select>
+          </div>
+        </div>
+        <div class="ctrl-row">
+          <div class="ctrl-group">
+            <span class="ctrl-label">Admin Token</span>
+            <input type="password" id="hw-admin-token" placeholder="Paste admin token — enables auto-fill" autocomplete="new-password" />
+            <div class="hw-hint">Optional — polls /v1/admin-data/orders every 3s to auto-fill fields. Never logged.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 2 — PAYMENT SIMULATION -->
+      <div class="card">
+        <div class="card-title">Payment Simulation</div>
+        <div style="font-size:10px;color:#555;margin-bottom:12px;line-height:1.7;">
+          Simulates Omise webhook after donor scans QR. Machine receives payment_confirmed and dispenses.
+        </div>
+        <div class="hw-status" id="hw-pay-status">— waiting —</div>
+        <div class="ctrl-row">
+          <button class="btn-success" id="hw-btn-pay-pass" onclick="hwPayPass()" disabled>✅ Simulate Scan PASS</button>
+          <button class="btn danger" id="hw-btn-pay-fail" onclick="hwPayFail()" disabled>❌ Simulate Scan FAIL</button>
+        </div>
+      </div>
+
+      <!-- CARD 3 — DISPENSING CYCLE -->
+      <div class="card">
+        <div class="card-title">Dispensing Cycle</div>
+        <div style="font-size:10px;color:#555;margin-bottom:12px;line-height:1.7;">
+          Simulates physical sensor events after payment confirmed.
+        </div>
+        <div class="ctrl-row">
+          <button class="btn" id="hw-btn-sensor" onclick="hwSensorTriggered()" disabled>🔦 IR Sensor Triggered</button>
+        </div>
+        <div class="ctrl-row">
+          <button class="btn" id="hw-btn-dispensed" onclick="hwDispense('success')" disabled>📦 Item Dispensed OK</button>
+          <button class="btn" id="hw-btn-door-blocked" onclick="hwDispense('door_blocked')" disabled>🚪 Door Blocked</button>
+          <button class="btn" id="hw-btn-timeout" onclick="hwDispense('timeout')" disabled>⏱ Dispense Timeout</button>
+        </div>
+      </div>
+
+    </div><!-- /section-c -->
+
+  </main>
+</div><!-- /app-shell -->
+
+<!-- ACTIVITY LOG — full width, pinned to bottom -->
+<div class="log-panel">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+    <span style="font-size:11px;font-weight:600;color:#d4a843;letter-spacing:2px;text-transform:uppercase;">Activity Log</span>
+    <button class="btn" onclick="clearLog()" style="font-size:10px;padding:3px 10px;">✕ Clear</button>
+  </div>
+  <div class="log-area" id="activity-log">
+    <div class="log-line state">[HW] HW Trigger loaded. Paste Order ID or enter Admin Token to auto-fill.</div>
+  </div>
+</div>
+
+<script>
+const API_BASE = 'https://api.janishammer.com';
+
+function farmLog(msg, type, source) {
+  const el  = document.getElementById('activity-log');
+  const ts  = new Date().toTimeString().slice(0,8);
+  const div = document.createElement('div');
+  div.className   = 'log-line ' + (type||'');
+  div.textContent = '['+ts+'] ['+(source||'HW')+'] '+msg;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+function clearLog() {
+  document.getElementById('activity-log').innerHTML =
+    '<div class="log-line state">[HW] Log cleared.</div>';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  HW TRIGGER — AUTO-FILL POLLING
+//  Polls /v1/admin-data/orders every 3s to auto-fill fields.
+//  Requires admin token input (never logged — R-40).
+// ═══════════════════════════════════════════════════════════════════════════
+var _hwPollTimer = null;
+
+function hwStartPoll() {
+  if (_hwPollTimer) return;
+  _hwPollTimer = setInterval(hwAutoPoll, 3000);
+  hwAutoPoll();
+}
+
+function hwStopPoll() {
+  clearInterval(_hwPollTimer);
+  _hwPollTimer = null;
+  var el = document.getElementById('hw-autofill-status');
+  if (el) { el.style.color = '#555'; el.textContent = 'Paste from ESP32 serial, or enter Admin Token below to auto-fill'; }
+}
+
+async function hwAutoPoll() {
+  var token = document.getElementById('hw-admin-token').value.trim();
+  if (!token) return;
+  var deviceId = document.getElementById('hw-device-select').value;
+  var statusEl = document.getElementById('hw-autofill-status');
+  try {
+    var r = await fetch(API_BASE + '/v1/admin-data/orders', {
+      headers: { 'X-Admin-Token': token }
+    });
+    if (!r.ok) {
+      if (statusEl) { statusEl.style.color = '#ff4444'; statusEl.textContent = '— auth error ' + r.status + ' —'; }
+      return;
+    }
+    var orders = await r.json();
+    var match = (orders || []).find(function(o) {
+      return o.device_id === deviceId && o.status === 'pending' && o.omise_charge_id;
+    });
+    if (match && match.order_id !== document.getElementById('hw-order-id').value.trim()) {
+      document.getElementById('hw-order-id').value = match.order_id;
+      document.getElementById('hw-charge-id').value = match.omise_charge_id;
+      updateHwButtonStates();
+      farmLog('[HW] Auto-filled: ' + match.order_id, 'ok', 'HW');
+      if (statusEl) { statusEl.style.color = '#4caf50'; statusEl.textContent = '✅ Auto-filled: ' + match.order_id; }
+      clearInterval(_hwPollTimer);
+      _hwPollTimer = null;
+      setTimeout(function() {
+        if (document.getElementById('section-c').classList.contains('active')) {
+          if (statusEl) { statusEl.style.color = '#555'; statusEl.textContent = '— watching for next order —'; }
+          hwStartPoll();
+        }
+      }, 10000);
+    } else if (!match) {
+      if (statusEl && statusEl.textContent.indexOf('✅') === -1) {
+        statusEl.style.color = '#555';
+        statusEl.textContent = '— watching —';
+      }
+    }
+  } catch(e) { if (statusEl) { statusEl.style.color = '#ff4444'; statusEl.textContent = '— network error —'; } }
+}
+
+function updateHwButtonStates() {
+  const hasOrder  = document.getElementById('hw-order-id').value.trim().length > 0;
+  const hasCharge = document.getElementById('hw-charge-id').value.trim().length > 0;
+  document.getElementById('hw-btn-lookup').disabled       = !hasOrder;
+  document.getElementById('hw-btn-pay-pass').disabled     = !hasCharge;
+  document.getElementById('hw-btn-pay-fail').disabled     = !hasCharge;
+  document.getElementById('hw-btn-sensor').disabled       = !hasOrder;
+  document.getElementById('hw-btn-dispensed').disabled    = !hasOrder;
+  document.getElementById('hw-btn-door-blocked').disabled = !hasOrder;
+  document.getElementById('hw-btn-timeout').disabled      = !hasOrder;
+}
+
+async function hwLookup() {
+  const orderId = document.getElementById('hw-order-id').value.trim();
+  if (!orderId) return;
+  farmLog('[HW] Looking up order: ' + orderId, 'net', 'HW');
+  try {
+    const r = await fetch(API_BASE + '/v1/order/' + encodeURIComponent(orderId) + '/status');
+    const d = await r.json();
+    if (r.ok && d.omise_charge_id) {
+      document.getElementById('hw-charge-id').value = d.omise_charge_id;
+      farmLog('[HW] Charge ID: ' + d.omise_charge_id, 'ok', 'HW');
+      updateHwButtonStates();
+    } else {
+      farmLog('[HW] Order not found', 'err', 'HW');
+    }
+  } catch(e) {
+    farmLog('[HW] Lookup error: ' + e.message, 'err', 'HW');
+  }
+}
+
+async function hwPayPass() {
+  const orderId  = document.getElementById('hw-order-id').value.trim();
+  const chargeId = document.getElementById('hw-charge-id').value.trim();
+  const status   = document.getElementById('hw-pay-status');
+  farmLog('[HW] Simulate Scan PASS — ' + orderId, 'net', 'HW');
+  try {
+    const r = await fetch('https://fake-omise.csmittee.workers.dev/simulate-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order_id: orderId, charge_id: chargeId }),
+    });
+    const d = await r.json().catch(function(){return{};});
+    if (d.ok !== false && r.ok) {
+      status.style.color = '#4caf50';
+      status.textContent = '✅ Webhook sent — machine polling for command...';
+      farmLog('[HW] Payment PASS triggered — ' + orderId, 'ok', 'HW');
+    } else {
+      status.style.color = '#ff4444';
+      status.textContent = '❌ Webhook failed';
+      farmLog('[HW] Payment PASS failed — ' + JSON.stringify(d).substring(0,80), 'err', 'HW');
+    }
+  } catch(e) {
+    status.style.color = '#ff4444';
+    status.textContent = '❌ Error: ' + e.message;
+    farmLog('[HW] Pay PASS error: ' + e.message, 'err', 'HW');
+  }
+}
+
+async function hwPayFail() {
+  const orderId  = document.getElementById('hw-order-id').value.trim();
+  const chargeId = document.getElementById('hw-charge-id').value.trim();
+  const status   = document.getElementById('hw-pay-status');
+  farmLog('[HW] Simulate Scan FAIL — ' + orderId, 'warn', 'HW');
+  try {
+    const payload = {
+      key: 'charge.complete',
+      data: { object: 'charge', id: chargeId, status: 'failed', metadata: { order_id: orderId } },
+    };
+    await fetch(API_BASE + '/v1/webhook/omise', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    status.style.color = '#ff4444';
+    status.textContent = '❌ Payment FAILED — machine shows error screen';
+    farmLog('[HW] Payment FAIL triggered', 'warn', 'HW');
+  } catch(e) {
+    status.style.color = '#ff4444';
+    status.textContent = '❌ Error: ' + e.message;
+    farmLog('[HW] Pay FAIL error: ' + e.message, 'err', 'HW');
+  }
+}
+
+async function hwSensorTriggered() {
+  const deviceId   = document.getElementById('hw-device-select').value;
+  const hwOrderId  = document.getElementById('hw-order-id').value.trim();
+  farmLog('[HW] Queuing sensor_triggered → ' + deviceId, 'net', 'HW');
+  const adminToken = document.getElementById('hw-admin-token').value.trim();
+  try {
+    const r = await fetch(API_BASE + '/v1/machine/command-inject', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
+      body: JSON.stringify({ device_id: deviceId, command: 'sensor_triggered', data: { order_id: hwOrderId } }),
+    });
+    const d = await r.json().catch(function(){return{};});
+    if (r.ok) {
+      farmLog('[HW] sensor_triggered queued → motor will stop', 'ok', 'HW');
+    } else {
+      farmLog('[HW] sensor_triggered FAILED: ' + r.status, 'err', 'HW');
+    }
+  } catch(e) {
+    farmLog('[HW] sensor_triggered error: ' + e.message, 'err', 'HW');
+  }
+}
+
+async function hwDispense(result) {
+  const orderId  = document.getElementById('hw-order-id').value.trim();
+  const deviceId = document.getElementById('hw-device-select').value;
+  farmLog('[HW] Dispense: ' + result + ' — ' + orderId, 'net', 'HW');
+  try {
+    const r = await fetch(API_BASE + '/v1/machine/completion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order_id: orderId, device_id: deviceId, success: result === 'success', slot: 1 }),
+    });
+    const d = await r.json().catch(function(){return{};});
+    farmLog('[HW] Completion HTTP ' + r.status + ' — ' + JSON.stringify(d).substring(0,60), r.ok?'ok':'warn', 'HW');
+  } catch(e) {
+    farmLog('[HW] Dispense error: ' + e.message, 'err', 'HW');
+  }
+}
+
+window.addEventListener('load', function() {
+  updateHwButtonStates();
+  hwStartPoll();
+});
+</script>
+</body>
+</html>

@@ -4,6 +4,16 @@
 
 ## Session Log (newest first)
 
+### 2026-06-19 — Machine Builder Split + RULES.md Refactor (R-147)
+- **SCOPE:** Frontend only. Zero src/ changes. 14-test suite unchanged.
+- **SPLIT:** satu-machine-builder.html (2493 lines) → 3 self-contained files:
+  - satu-machine-builder.html: Section A (Single Flow) + Section B (Fleet) — ~530 lines
+  - satu-hw-trigger.html (NEW): Section C (HW Trigger) — ~280 lines · serves at /satu-hw-trigger
+  - satu-wiring.html (NEW): Section D (Wiring + BOM) — 1398 lines · serves at /satu-wiring (acceptable per R-145)
+- **RULES.md REFACTOR:** 285 lines → 60 lines. Domain rules moved to .claude/rules/RULES-[domain].md. Firmware RULES.md synced to backend numbering (R-143 to R-147).
+- **R-147 ADDED:** THREE-FILE MACHINE BUILDER ARCHITECTURE permanently registered.
+- **Branch:** claude/wizardly-meitner-uzt1fq · PR pending.
+
 ### 2026-06-18 — Governance docs wiring: CC_SKILL + CC_CHAT_LOG + R-143 to R-146 (R-84)
 - **SCOPE:** Docs only. Zero src/, HTML, .ino, or .h file changes.
 - **New governance files registered:** CC_SKILL.md + CC_CHAT_LOG.md added to CLAUDE.md Key Files in both repos.
@@ -350,13 +360,16 @@ Price: owner-defined free input. Color auto-tiers by value (50/100/200/300/500).
 
 ---
 
-## Three-Tester Architecture (R-94) — LOCKED 2026-06-13
+## Three-Tester Architecture (R-94) + Machine Builder Split (R-147) — public/ inventory
 
 | # | File | Name | Purpose |
 |---|------|------|--------|
 | 1 | `satu-system-tester.html` | Backend System Tester | 14-test automated API suite — DO NOT MODIFY |
 | 2 | `simulator.html` | Vending Machine Simulator | Full touch screen UI + connection status drawer |
-| 3 | `satu-machine-builder.html` | Machine Builder | 8-node flow diagram + multi-machine stress test |
+| 3 | `satu-machine-builder.html` | Machine Builder | Section A (Single Flow) + Section B (Fleet) |
+| 4 | `satu-hw-trigger.html` | HW Trigger | Section C standalone — payment sim + IR sensor bypass · NEW 2026-06-19 |
+| 5 | `satu-wiring.html` | Wiring + BOM | Section D standalone — interactive SVG wiring reference · NEW 2026-06-19 |
+| 6 | `satu-admin.html` | Admin Tool | Admin device management |
 
 `simulator_r3.html` — DELETED 2026-06-13. Fully superseded.
 
