@@ -1,7 +1,7 @@
 # SATU — Knowledge Architecture Guide
-> Version 1.2 — 2026-06-19
-> Changes: Added satu-hw-trigger.html + satu-wiring.html to Document Map + public/ inventory
-> Previous: v1.0 — 2026-06-11
+> Version 1.3 — 2026-06-20
+> Changes: Added 3 Document Map rows (SATU_ROADMAP, HARDWARE_SPEC, UI_SPEC dedicated rows); added SATU_ROADMAP.md + hardware/HARDWARE_SPEC.md to File Locations; updated WORKFLOW_SKILL ref to v2.2; updated UI_SPEC.md description
+> Previous: v1.2 — 2026-06-19
 
 ## Document Map — What to Read for What Task
 
@@ -22,6 +22,9 @@
 | Workflow / session modes | .claude/claude_project/WORKFLOW_SKILL.md | CLAUDE.md |
 | Business / legal | satu-business-model.html | work_instruction.txt |
 | Domain rules (if split) | .claude/rules/RULES-[domain].md | RULES.md universal |
+| Product direction / commercial context | SATU_ROADMAP.md | PROJECT_STATE.md current status |
+| Hardware spec / BOM / wiring decisions | hardware/HARDWARE_SPEC.md (firmware repo) | hardware.h (R2 LOCKED) |
+| UI spec / fonts / screens / service tabs | UI_SPEC.md | ui.h · ui_service.h |
 
 ---
 
@@ -60,15 +63,17 @@ CC_SKILL.md         — CC session protocol, 6 skills, CC_CHAT_LOG format · CC 
 CC_CHAT_LOG.md      — CC→Chat session log · CC writes · Chat reads last 3
 PROJECT_STATE.md    — endpoint status, known bugs, next actions
 KNOWN_GOOD.md       — firmware test snapshots, last confirmed working state
-UI_SPEC.md          — screen inventory, grid system, service tabs, NVS keys
+UI_SPEC.md          — screen inventory, grid system, type scale, service tabs, NVS keys
 SECURITY.md         — auth layers, ownership model, gaps
+SATU_ROADMAP.md     — product direction source of truth · Chat reads headers every session (R-162)
+hardware/HARDWARE_SPEC.md — hardware source of truth (firmware repo only) · renamed from HARDWARE_TRUTH.md (R-160)
 CC_BUILD_PROMPT_*.md — CC session prompts (active at root; archived to docs/prompts/ after use)
 docs/prompts/        — archived CC prompts (✅ COMPLETE stamped)
 ```
 
 ### .claude/claude_project/ (reference copies — Chat reads, CC rarely needs)
 ```
-WORKFLOW_SKILL.md   — v2.0 governance master reference
+WORKFLOW_SKILL.md   — v2.2 governance master reference
 CHAT_RULE.md        — Chat non-negotiables reference
 ```
 
