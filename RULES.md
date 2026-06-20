@@ -1,11 +1,30 @@
 # RULES.md — Satu 1.0 Universal Rules
-> Version 1.4 — 2026-06-19
-> Changes: Added R-147; moved domain rules (R-85 to R-142) to .claude/rules/ domain files
-> Previous: v1.3 — 2026-06-18
+> Version 1.5 — 2026-06-20
+> Changes: Prepended R-160, R-161, R-162 (three sources of truth)
+> Previous: v1.4 — 2026-06-19
 > For domain rules: load `.claude/rules/RULES-[domain].md`
 > Domain files: workflow · backend · firmware · hardware · security
 
 ---
+
+- **R-162: SATU_ROADMAP.md IS THE PRODUCT DIRECTION SOURCE OF TRUTH (2026-06-20):**
+  This file answers "where are we heading" — PROJECT_STATE.md answers "where are we now".
+  Chat reads SATU_ROADMAP.md bullet summaries at every session open (mandatory).
+  Full read required when: new firmware architecture, new screen design, commercial
+  decision, SaaS direction, hardware model choice, or new repo created.
+  CC updates SATU_ROADMAP.md when owner confirms a strategic decision.
+  Never add status columns, progress tracking, or completion icons to SATU_ROADMAP.md.
+
+- **R-161: UI_SPEC.md IS THE UI SOURCE OF TRUTH (2026-06-20):**
+  All font decisions, layout rules, screen inventory, service tab specs, and NVS keys live here.
+  Any UI decision made in a Chat session must trigger a UI_SPEC.md update in the same CC PR.
+  CC reads UI_SPEC.md before any ui.h or ui_service.h change.
+
+- **R-160: HARDWARE_SPEC.md IS THE HARDWARE SOURCE OF TRUTH (2026-06-20):**
+  Renamed from HARDWARE_TRUTH.md. Lives at hardware/HARDWARE_SPEC.md in firmware repo.
+  All pin assignments, relay logic, sensor logic, BOM, and wiring decisions live here.
+  Any hardware change must update this file in the same PR.
+  CC reads hardware/HARDWARE_SPEC.md before any hardware.h or config.h read.
 
 - **R-147: THREE-FILE MACHINE BUILDER ARCHITECTURE — PERMANENT (2026-06-19):**
   satu-machine-builder.html = Section A (Single Flow) + Section B (Fleet)

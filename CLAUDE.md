@@ -1,7 +1,7 @@
 # CLAUDE.md — Satu Project Compass
-> Version 1.3 — 2026-06-19
-> Changes: Added src/index.js + src/handlers/ to Key Files
-> Previous: v1.2 — 2026-06-19
+> Version 1.4 — 2026-06-20
+> Changes: Added hardware/HARDWARE_SPEC.md, UI_SPEC.md, SATU_ROADMAP.md to Key Files (R-160/161/162)
+> Previous: v1.3 — 2026-06-19
 <!-- max 35 lines · never grows · CC reads this on every session start -->
 
 ## Stack
@@ -30,6 +30,9 @@
 - `public/satu-wiring.html`     — Wiring + BOM standalone reference · Section D extracted from machine builder
 - `src/index.js`                — route table + middleware · read before any endpoint change
 - `src/handlers/`               — all handler files live here (order.js, webhook.js, admin.js, auth.js, machine.js, dashboard.js)
+- `hardware/HARDWARE_SPEC.md`   — hardware source of truth · read before any hardware.h or config.h work (R-160)
+- `UI_SPEC.md`                  — screen inventory · font scale · service tabs · NVS keys · read before any ui.h change (R-161)
+- `SATU_ROADMAP.md`             — product direction guide · read section headers every session · full read when task touches architecture/screens/commercial (R-162)
 
 ## Repos
 - Backend: `Csmittee/Satu-vending-backend`

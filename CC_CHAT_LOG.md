@@ -1,10 +1,17 @@
 # CC_CHAT_LOG.md — Satu 1.0
-> Version 1.1 — 2026-06-19
-> Changes: Added session entry for backend CLAUDE.md v1.3 docs update
-> Previous: v1.0 — 2026-06-18
+> Version 1.2 — 2026-06-20
+> Changes: Added governance docs v2 session entry
+> Previous: v1.1 — 2026-06-19
 > CC writes one entry per session at TOP · Chat reads last 3 entries at session open
 > Format defined in CC_SKILL.md · Max 10 lines per entry · Never delete old entries
 
+---
+## 2026-06-20 — CC_BUILD_PROMPT_governance_docs_v2 (Governance Docs v2)
+**Did:** Placed SATU_ROADMAP.md at backend repo root (v2.0, owner-attached). Updated CLAUDE.md v1.4 (3 Key Files: HARDWARE_SPEC, UI_SPEC, SATU_ROADMAP). Updated KNOWLEDGE_MAP.md v1.3 (3 Document Map rows + SATU_ROADMAP/HARDWARE_SPEC File Locations + WORKFLOW_SKILL ref v2.2). Prepended R-160/R-161/R-162 to RULES.md v1.5. Updated WORKFLOW_SKILL.md v2.2 (new step 3 SATU_ROADMAP read, 4 trigger rows, FILE STRUCTURE both repos). Zero source files touched.
+**Updated:** CLAUDE.md v1.4, KNOWLEDGE_MAP.md v1.3, RULES.md v1.5, WORKFLOW_SKILL.md v2.2, CC_CHAT_LOG.md v1.2
+**New files:** SATU_ROADMAP.md (backend root)
+**Pending Chat verify:** SATU_ROADMAP.md present in both repos with identical content. Firmware repo: HARDWARE_SPEC.md exists, HARDWARE_TRUTH.md deleted, CC_BUILD_PROMPT_governance_docs_v2.md deleted from root.
+**Flags:** Docs-only session. Zero source files touched. hardware.h LOCKED. PAYMENT_MODE stays fake. CI not triggered.
 ---
 ## 2026-06-19 — Docs-only: CLAUDE.md Key Files update (src/index.js + src/handlers/)
 **Did:** Added src/index.js and src/handlers/ to CLAUDE.md Key Files section. Bumped CLAUDE.md to v1.3. No code files touched.

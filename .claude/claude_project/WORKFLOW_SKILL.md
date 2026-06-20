@@ -1,8 +1,10 @@
 # 🎯 WORKFLOW SKILL — Satu 1.0
-> Version 2.1 — 2026-06-20
-> Changes: CC PROMPT TEMPLATE delivery rule + first line added; CHAT PRE-DELIVERY SELF-CHECK section added;
->          FILE STRUCTURE firmware tree: ui_service.h added, config.h.example removed, config.h comment updated (R-86)
-> Previous: v2.0 — 2026-06-18
+> Version 2.2 — 2026-06-20
+> Changes: CHAT SESSION OPENING: new step 3 (SATU_ROADMAP.md read), renumbered 3→4, 4→5, 5→6, 6→7;
+>          TRIGGER table: 4 new rows (UI/hardware/direction/new-repo);
+>          FILE STRUCTURE: SATU_ROADMAP.md in both repos + hardware/HARDWARE_SPEC.md in firmware;
+>          .claude/claude_project/ ref updated to v2.2
+> Previous: v2.1 — 2026-06-20
 
 ---
 
@@ -131,6 +133,10 @@ Always tell owner how many flash cycles to expect at start of firmware session.
 | Decision impacts security/payment/scalability | Chat | State impact clearly to owner before writing any prompt | Owner confirms before Chat proceeds |
 | Any document changed without version bump | CC or Chat | Reject — add version header before committing | Whoever reviews next flags it |
 | Repo sync missing at Chat session start | Chat | Cannot read CC_CHAT_LOG → tell owner immediately | Owner syncs before continuing |
+| UI decision made in Chat (font/layout/screen/tab) | Chat | Flag to owner → CC updates UI_SPEC.md in same PR as UI code | Chat reads CC_CHAT_LOG — confirms update present |
+| Hardware decision made in Chat (pins/relays/BOM) | Chat | Flag to owner → CC updates hardware/HARDWARE_SPEC.md in same PR | Chat reads CC_CHAT_LOG — confirms update present |
+| Architecture or product direction discussed in Chat | Chat | Update SATU_ROADMAP.md → owner confirms → CC commits | Next session Chat reads roadmap bullet summary |
+| New Satu generation repo created | Owner + CC | Update SATU_ROADMAP.md repo table in both existing repos | Chat verifies CC_CHAT_LOG confirms both repos updated |
 
 ---
 
@@ -156,10 +162,13 @@ Every new Chat session opens in this order:
 2. Chat reads CC_CHAT_LOG from repo (last 3 entries via project knowledge)
    → If unreadable: tell owner "sync missing — please sync before we continue"
    → If readable: state what CC did last, what is pending verification
-3. Chat reads PROJECT_STATE.md for current status
-4. Chat states: "Memory installed. Last CC session: [summary]. Pending: [items]."
-5. Owner describes today's goal
-6. Chat proceeds
+3. Chat reads SATU_ROADMAP.md bullet summaries — section headers only, not full content
+   → Confirms understanding of current generation, phase, and commercial context
+   → Reads full section only if today's task touches that domain
+4. Chat reads PROJECT_STATE.md for current status
+5. Chat states: "Memory installed. Last CC session: [summary]. Pending: [items]."
+6. Owner describes today's goal
+7. Chat proceeds
 ```
 
 **Owner session start message template:**
@@ -337,6 +346,7 @@ Satu-vending-backend/
 ├── KNOWLEDGE_MAP.md       ← navigation guide
 ├── UI_SPEC.md             ← read before any ui.h change
 ├── SECURITY.md            ← read before any auth change
+├── SATU_ROADMAP.md        ← product direction source of truth (R-162)
 ├── docs/prompts/          ← archived CC prompts (✅ COMPLETE stamped)
 ├── src/                   ← backend source
 ├── public/                ← static HTML tools (each file max 1000 lines)
@@ -351,13 +361,16 @@ Satu-Vending-Firmware/
 ├── CC_CHAT_LOG.md         ← CC writes, Chat reads
 ├── PROJECT_STATE.md       ← firmware status
 ├── KNOWN_GOOD.md          ← flash + compile snapshots
+├── SATU_ROADMAP.md        ← product direction source of truth (R-162)
 ├── satu_vending.ino       ← main state machine
 ├── config.h               ← tracked in repo, WiFi fields empty (R-86)
 ├── hardware.h             ← R2 LOCKED — never modify
 ├── network.h              ← WiFi, NVS, API calls
 ├── ui.h                   ← screens, service mode, fonts
 ├── ui_service.h           ← service mode 5 tabs (included by ui.h)
-└── state_machine.h        ← enum + extern declarations
+├── state_machine.h        ← enum + extern declarations
+└── hardware/
+    └── HARDWARE_SPEC.md   ← hardware source of truth, renamed from HARDWARE_TRUTH.md (R-160)
 ```
 
 **Project folder (Chat only — never in repo):**
