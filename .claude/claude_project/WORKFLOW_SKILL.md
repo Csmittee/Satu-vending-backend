@@ -1,11 +1,8 @@
 # 🎯 WORKFLOW SKILL — Satu 1.0
-> Version 2.0 — 2026-06-18
-> Changes: Added governance table, trigger→action→validator contract, 
->          CC_CHAT_LOG protocol, revised session opening (Chat reads repo),
->          document versioning rule, symmetric 3-doc system, CC_SKILL reference,
->          removed GitHub sync checklist (owner responsibility), 
->          removed CHAT_HANDOFF from repo (project folder only)
-> Previous: v1.1 — 2026-06-15
+> Version 2.1 — 2026-06-20
+> Changes: CC PROMPT TEMPLATE delivery rule + first line added; CHAT PRE-DELIVERY SELF-CHECK section added;
+>          FILE STRUCTURE firmware tree: ui_service.h added, config.h.example removed, config.h comment updated (R-86)
+> Previous: v2.0 — 2026-06-18
 
 ---
 
@@ -176,8 +173,13 @@ No GitHub sync checkbox mention needed — that is owner's own discipline.
 
 ## CC PROMPT TEMPLATE (8 sections — all required)
 
+DELIVERY RULE: Full CC BUILD prompts must be delivered as a
+downloadable .md file — never as a chat text block.
+Rapid-fire phrases and single-fix adjustments may use text blocks.
+
 ```markdown
 ## 1. CC INTRO
+Read and execute: [prompt filename].md
 New session. Ignore all previous context from other projects.
 Repo: https://github.com/Csmittee/[repo-name]
 Read IN FULL before touching anything:
@@ -224,6 +226,19 @@ State every file read before writing a single line.
 PAYMENT_MODE must remain = fake for this entire session.
 Never suggest changing to live.
 ```
+
+---
+
+## CHAT PRE-DELIVERY SELF-CHECK
+Before delivering any CC prompt, Chat must silently verify:
+- [ ] Is this a build prompt? → must be .md file, never a text block
+- [ ] Does CC INTRO Section 1 include "Read and execute: [filename].md"?
+- [ ] Does Section 7 closing steps match the delivery type?
+      (rapid-fire = no archive, no CC_CHAT_LOG / build = full closing required)
+- [ ] Is the target file path explicit? (never assume CC knows where to look)
+- [ ] Does DO NOT TOUCH list include hardware.h + satu-system-tester.html?
+If any check fails → fix before delivering. Never ask owner to remind Chat
+of these — they are Chat's own discipline.
 
 ---
 
@@ -337,11 +352,11 @@ Satu-Vending-Firmware/
 ├── PROJECT_STATE.md       ← firmware status
 ├── KNOWN_GOOD.md          ← flash + compile snapshots
 ├── satu_vending.ino       ← main state machine
-├── config.h               ← IN .gitignore (WiFi credentials)
-├── config.h.example       ← template (empty creds)
+├── config.h               ← tracked in repo, WiFi fields empty (R-86)
 ├── hardware.h             ← R2 LOCKED — never modify
 ├── network.h              ← WiFi, NVS, API calls
 ├── ui.h                   ← screens, service mode, fonts
+├── ui_service.h           ← service mode 5 tabs (included by ui.h)
 └── state_machine.h        ← enum + extern declarations
 ```
 
