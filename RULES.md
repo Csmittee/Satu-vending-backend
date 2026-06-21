@@ -1,7 +1,7 @@
 # RULES.md — Satu 1.0 Universal Rules
-> Version 1.5 — 2026-06-20
-> Changes: Prepended R-160, R-161, R-162 (three sources of truth)
-> Previous: v1.4 — 2026-06-19
+> Version 1.6 — 2026-06-21
+> Changes: Added R-157 (corrected flash command — esptool, baud 460800, write-flash, confirmed port + paths)
+> Previous: v1.5 — 2026-06-20
 > For domain rules: load `.claude/rules/RULES-[domain].md`
 > Domain files: workflow · backend · firmware · hardware · security
 
@@ -25,6 +25,14 @@
   All pin assignments, relay logic, sensor logic, BOM, and wiring decisions live here.
   Any hardware change must update this file in the same PR.
   CC reads hardware/HARDWARE_SPEC.md before any hardware.h or config.h read.
+
+- **R-157: CI ARTIFACT — 3 files required for full flash from scratch (updated 2026-06-21).**
+  compile-check.yml: `--output-dir ./build` routes all build outputs to known path.
+  `ls -la ./build/` step in CI confirms exact filenames in the run log.
+  Artifact `satu-firmware-N` contains: `satu_vending.ino.bootloader.bin` + `satu_vending.ino.partitions.bin` + `satu_vending.ino.bin`.
+  All 3 must be flashed — missing any = black screen. Port confirmed: /dev/cu.usbserial-1420. Baud: 460800.
+  `esptool --chip esp32s3 --port /dev/cu.usbserial-1420 --baud 460800 write-flash 0x0 ~/satu-firmware/satu_vending.ino.bootloader.bin 0x8000 ~/satu-firmware/satu_vending.ino.partitions.bin 0x10000 ~/satu-firmware/satu_vending.ino.bin`
+  Never change FQBN, board config, or locked library versions in compile-check.yml.
 
 - **R-147: THREE-FILE MACHINE BUILDER ARCHITECTURE — PERMANENT (2026-06-19):**
   satu-machine-builder.html = Section A (Single Flow) + Section B (Fleet)
