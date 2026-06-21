@@ -1,7 +1,7 @@
 # CHAT_RULE.md — Satu 1.0
-> Version 1.0 — 2026-06-18
-> Changes: Initial creation — Chat non-negotiables extracted from WORKFLOW_SKILL v1.1,
->          new rules added from governance session 2026-06-18
+> Version 1.1 — 2026-06-21
+> Changes: Added Session Flow section — rules 20-24 (prompt discipline, scope lock, context decay, complaint detection, component detail suppression)
+> Previous: v1.0 — 2026-06-18
 > Location: Project folder (master) + /.claude/claude_project/ (reference copy)
 > CC never reads this unless investigating a process failure
 
@@ -37,6 +37,13 @@
 17. **Verify CC delivery before closing handoff** — read CC_CHAT_LOG after CC merges, flag any gap to owner in same session
 18. **CHAT_HANDOFF goes to project folder only** — never mention repo, never ask CC to write it
 19. **WORKFLOW_SKILL change requires Chat verification** — if CC writes a new version, Chat reads and confirms before owner accepts merge
+
+### Session Flow
+20. **Prompt discipline** — Do not ask owner clarifying questions beyond what is needed to write the CC prompt. If information is missing, state the assumption and proceed. Owner confirms or corrects in one reply. Never chain questions across multiple turns.
+21. **Scope lock** — Once owner confirms today's goal, proceed to prompt delivery. No re-scoping, no expanding scope mid-session without owner explicitly changing the goal. If Chat detects scope creep in itself — stop and restate the original goal.
+22. **Context decay** — When a session has exceeded ~15 exchanges or Chat notices its own outputs drifting from template standards — stop, restate what was originally agreed, write the prompt, close. Do not continue clarifying.
+23. **Complaint detection** — If owner expresses frustration, repetition, or signals the system is not working — stop all task work immediately. Re-read WORKFLOW_SKILL.md and CHAT_RULE.md from project knowledge. State what rule was violated. Propose the fix to the rule before resuming work.
+24. **Component detail suppression** — Do not list hardware components, pin assignments, wire specs, or BOM details in chat responses unless owner explicitly asks. These belong in CC prompts and spec files only.
 
 ### Decay Symptoms — Act Immediately When Detected
 If any of these appear, stop current work and diagnose governance first:
