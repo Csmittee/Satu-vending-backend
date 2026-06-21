@@ -1,9 +1,17 @@
 # CC_CHAT_LOG.md — Satu 1.0
-> Version 1.2 — 2026-06-20
-> Changes: Added governance docs v2 session entry
-> Previous: v1.1 — 2026-06-19
+> Version 1.3 — 2026-06-21
+> Changes: Added docs-only governance session entry — WORKFLOW_SKILL v2.3 + CHAT_RULE v1.1
+> Previous: v1.2 — 2026-06-20
 > CC writes one entry per session at TOP · Chat reads last 3 entries at session open
 > Format defined in CC_SKILL.md · Max 10 lines per entry · Never delete old entries
+
+---
+## 2026-06-21 — Docs-only: WORKFLOW_SKILL v2.3 + CHAT_RULE v1.1 (governance)
+**Did:** Updated .claude/claude_project/WORKFLOW_SKILL.md v2.2→v2.3 (both repos): replaced CHAT SESSION OPENING with self-executing 3-line protocol; replaced CHAT HANDOFF TEMPLATE opening block with 5-step embedded loading sequence (Step 1–4). Updated .claude/claude_project/CHAT_RULE.md v1.0→v1.1 (both repos): added Session Flow section — rules 20-24 (prompt discipline / scope lock / context decay / complaint detection / component detail suppression). CC_CHAT_LOG.md updated both repos.
+**Updated:** .claude/claude_project/WORKFLOW_SKILL.md v2.3, .claude/claude_project/CHAT_RULE.md v1.1, CC_CHAT_LOG.md v1.3 (backend) / v2.10 (firmware)
+**New files:** NONE
+**Pending Chat verify:** NONE (docs-only session)
+**Flags:** Zero source files touched. hardware.h R2 LOCKED. PAYMENT_MODE stays fake. CI not triggered.
 
 ---
 ## 2026-06-20 — CC_BUILD_PROMPT_governance_docs_v2 (Governance Docs v2)
