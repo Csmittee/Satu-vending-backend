@@ -1,7 +1,7 @@
 # CLAUDE.md — Satu Project Compass
-> Version 1.4 — 2026-06-20
-> Changes: Added hardware/HARDWARE_SPEC.md, UI_SPEC.md, SATU_ROADMAP.md to Key Files (R-160/161/162)
-> Previous: v1.3 — 2026-06-19
+> Version 1.5 — 2026-06-21
+> Changes: Added "Flashing Without Arduino IDE" section with corrected esptool command
+> Previous: v1.4 — 2026-06-20
 <!-- max 35 lines · never grows · CC reads this on every session start -->
 
 ## Stack
@@ -33,6 +33,17 @@
 - `hardware/HARDWARE_SPEC.md`   — hardware source of truth · read before any hardware.h or config.h work (R-160)
 - `UI_SPEC.md`                  — screen inventory · font scale · service tabs · NVS keys · read before any ui.h change (R-161)
 - `SATU_ROADMAP.md`             — product direction guide · read section headers every session · full read when task touches architecture/screens/commercial (R-162)
+
+## Flashing Without Arduino IDE
+1. GitHub → Actions tab → latest green run on main → Download artifact `satu-firmware-N`
+2. Unzip → move all 3 .bin files to `~/satu-firmware/`
+3. Find port: `ls /dev/cu.*`
+4. Flash:
+```
+esptool --chip esp32s3 --port /dev/cu.usbserial-1420 --baud 460800 write-flash 0x0 ~/satu-firmware/satu_vending.ino.bootloader.bin 0x8000 ~/satu-firmware/satu_vending.ino.partitions.bin 0x10000 ~/satu-firmware/satu_vending.ino.bin
+```
+All 3 files required — missing any = black screen.
+Port `/dev/cu.usbserial-1420` is confirmed device. Baud 460800 matches Arduino IDE setting.
 
 ## Repos
 - Backend: `Csmittee/Satu-vending-backend`

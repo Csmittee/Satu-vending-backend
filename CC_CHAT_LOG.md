@@ -1,9 +1,17 @@
 # CC_CHAT_LOG.md — Satu 1.0
-> Version 1.3 — 2026-06-21
-> Changes: Added docs-only governance session entry — WORKFLOW_SKILL v2.3 + CHAT_RULE v1.1
-> Previous: v1.2 — 2026-06-20
+> Version 1.4 — 2026-06-21
+> Changes: Added docs-only flash command correction session — CLAUDE.md v1.5 + RULES.md v1.6
+> Previous: v1.3 — 2026-06-21
 > CC writes one entry per session at TOP · Chat reads last 3 entries at session open
 > Format defined in CC_SKILL.md · Max 10 lines per entry · Never delete old entries
+
+---
+## 2026-06-21 — Docs-only: CLAUDE.md v1.5 + RULES.md v1.6 (flash command correction)
+**Did:** CLAUDE.md v1.4→v1.5 (backend): added "Flashing Without Arduino IDE" section with corrected command. RULES.md v1.5→v1.6 (backend): added R-157 with corrected flash command. Key corrections: esptool.py→esptool, baud 921600→460800, write_flash→write-flash, port /dev/cu.XXXX→/dev/cu.usbserial-1420, relative paths→~/satu-firmware/ absolute paths. Same changes applied to firmware repo simultaneously (firmware CLAUDE.md v1.8, RULES.md v2.3 — duplicate R-157 entries consolidated).
+**Updated:** CLAUDE.md v1.5, RULES.md v1.6, CC_CHAT_LOG.md v1.4 (backend)
+**New files:** NONE
+**Pending Chat verify:** NONE (docs-only session)
+**Flags:** Zero source files touched. hardware.h R2 LOCKED. PAYMENT_MODE stays fake. CI not triggered.
 
 ---
 ## 2026-06-21 — Docs-only: WORKFLOW_SKILL v2.3 + CHAT_RULE v1.1 (governance)
