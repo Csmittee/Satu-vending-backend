@@ -705,9 +705,9 @@ const PROJECTS = {
       { id: 'show_shell_back',  label: 'Back Shell',  default: true },
       { id: 'show_shell_top',   label: 'Top Shell',   default: true },
     ],
-    stl:     'https://api.janishammer.com/models/VM-01-v36.stl',
-    stlOpen: 'https://api.janishammer.com/models/VM-01-v36-open.stl',
-    stlC2:   'https://api.janishammer.com/models/VM-01-v37-C2.stl',
+    stl:     'https://api.janishammer.com/models/VM-01-v38-full.stl',
+    stlOpen: 'https://api.janishammer.com/models/VM-01-v38-std.stl',
+    stlC2:   'https://api.janishammer.com/models/VM-01-v38-C2.stl',
     components: [
       { id: 'outer_shell',    label: 'Outer Shell',    default: true, match: 'translate([0, 0, leg_h]) outer_shell_debug();' },
       { id: 'spring_tray',   label: 'Spring Trays',   default: true, match: 'for (t = [0:tray_count-1]) spring_tray(t);' },
@@ -1400,7 +1400,7 @@ function switchProject(id) {
   proj.toggles.forEach(t => { currentToggles[t.id] = t.default; });
   currentComponents = {};
   (proj.components || []).forEach(c => { currentComponents[c.id] = c.default; });
-  stlViewMode = 'full';
+  stlViewMode = 'open'; // default to standard view (open window)
 
   // Meta
   const metaEl = document.getElementById('project-meta');
@@ -1415,7 +1415,9 @@ function switchProject(id) {
   buildVisibilityPanel();
   buildComponentsPanel();
 
-  if (proj.stl) {
+  if (proj.stlOpen) {
+    loadSTL(proj.stlOpen);  // default to standard view (shell + open window)
+  } else if (proj.stl) {
     loadSTL(proj.stl);
   } else if (proj.scad && autoRender) {
     triggerRender();
@@ -1497,9 +1499,9 @@ function buildVisibilityPanel() {
     panel.appendChild(note);
 
     const viewModes = [
-      { key: 'full', label: '⬜ Full Exterior',        url: proj.stl,     cls: '' },
-      { key: 'open', label: '◧ Open Shell',            url: proj.stlOpen, cls: ' off' },
-      { key: 'c2',   label: '⬡ See-Through (C2)',      url: proj.stlC2,   cls: ' off' },
+      { key: 'open', label: '⬡ Standard — open window',  url: proj.stlOpen, cls: '' },
+      { key: 'full', label: '⬜ Full Exterior',            url: proj.stl,     cls: ' off' },
+      { key: 'c2',   label: '◧ C2 — open shell (top+left removed)', url: proj.stlC2, cls: ' off' },
     ].filter(m => m.url);
 
     function updateViewBtn(btn) {
@@ -1659,8 +1661,6 @@ async function loadSTL(url) {
   } catch (err) {
     log(`❌ STL load failed: ${err.message}`, 'err');
     setStatus('❌ STL load failed — see log', 'error');
-    log('Falling back to WASM render...', 'info');
-    triggerRender();
   }
 }
 
@@ -2019,7 +2019,7 @@ function wireEvents() {
   // Actions
   document.getElementById('btn-reload-stl').addEventListener('click', () => {
     const proj = PROJECTS[activeProject];
-    const url = stlViewMode === 'c2' ? proj.stlC2 : stlViewMode === 'open' ? proj.stlOpen : proj.stl;
+    const url = stlViewMode === 'full' ? proj.stl : stlViewMode === 'c2' ? proj.stlC2 : proj.stlOpen;
     if (url) loadSTL(url);
     else log('No STL URL for this project', 'err');
   });
