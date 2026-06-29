@@ -556,6 +556,7 @@
 
     <div>
       <div class="section-label">Actions</div>
+      <button class="btn-action" id="btn-reload-stl">↺ Reload STL</button>
       <button class="btn-action" id="btn-test-3d">⬡ Test 3D Canvas</button>
       <button class="btn-action" id="btn-export-stl">⬇ Export STL</button>
       <button class="btn-action" id="btn-screenshot">📷 Screenshot</button>
@@ -563,8 +564,8 @@
     </div>
 
     <div class="wasm-notice">
-      ⚠ OpenSCAD WASM renders .scad in-browser.<br>
-      First render loads engine from CDN (~30s). If CDN fails, try [Test 3D] to confirm canvas works, then host <code style="color:var(--gold)">openscad.js + openscad.wasm</code> locally and update the src in the HTML.
+      <b style="color:var(--gold)">STL mode:</b> model loads from <code style="color:var(--gold)">/models/VM-01-v36.stl</code> — instant, no WASM.<br>
+      <b style="color:var(--text-dim)">WASM mode:</b> [⟳ Re-render] applies slider/toggle changes live once WASM engine is available.
     </div>
 
   </div>
@@ -587,7 +588,7 @@
     <div>
       <div class="section-label">Parameters</div>
       <div id="params-panel"></div>
-      <button class="btn-apply" id="btn-apply">Apply Changes</button>
+      <button class="btn-apply" id="btn-apply">⟳ Re-render (WASM)</button>
       <button class="btn-reset-params" id="btn-reset-params">Reset Defaults</button>
       <div class="auto-render-row">
         <span>Auto-render on change</span>
@@ -659,6 +660,7 @@ const PROJECTS = {
       { id: 'show_shell_back',  label: 'Back Shell',  default: true },
       { id: 'show_shell_top',   label: 'Top Shell',   default: true },
     ],
+    stl: 'https://api.janishammer.com/models/VM-01-v36.stl',
     components: [
       { id: 'outer_shell',    label: 'Outer Shell',    default: true, match: 'translate([0, 0, leg_h]) outer_shell_debug();' },
       { id: 'spring_tray',   label: 'Spring Trays',   default: true, match: 'for (t = [0:tray_count-1]) spring_tray(t);' },
@@ -1365,10 +1367,11 @@ function switchProject(id) {
   buildVisibilityPanel();
   buildComponentsPanel();
 
-  if (proj.scad) {
-    document.getElementById('canvas-overlay').style.display = 'none';
-    if (autoRender) triggerRender();
-  } else {
+  if (proj.stl) {
+    loadSTL(proj.stl);
+  } else if (proj.scad && autoRender) {
+    triggerRender();
+  } else if (!proj.scad) {
     showPlaceholder(proj);
   }
 }
@@ -1525,6 +1528,42 @@ function showAllComponents() {
 }
 
 // ─────────────────────────────
+// STL LOADER (fetch pre-rendered STL, no WASM)
+// ─────────────────────────────
+
+async function loadSTL(url) {
+  setStatus('● Loading STL...', 'render');
+  log(`Fetching STL: ${url}`);
+  document.getElementById('canvas-overlay').style.display = 'none';
+  const startTime = Date.now();
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`Server returned HTTP ${resp.status} for ${url}`);
+    const buffer = await resp.arrayBuffer();
+
+    const loader = new THREE.STLLoader();
+    const geometry = loader.parse(buffer);
+    geometry.computeVertexNormals();
+    geometry.center();
+
+    updateScene(geometry);
+    lastSTLBuffer = buffer;
+
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    const tris = Math.floor(geometry.attributes.position.count / 3);
+    log(`✅ STL loaded: ${elapsed}s — ${tris.toLocaleString()} triangles`, 'ok');
+    document.getElementById('canvas-stats').textContent =
+      `${tris.toLocaleString()} tri · ${elapsed}s · STL`;
+    setStatus(`✅ Ready — ${elapsed}s`, 'ready');
+  } catch (err) {
+    log(`❌ STL load failed: ${err.message}`, 'err');
+    setStatus('❌ STL load failed — see log', 'error');
+    log('Falling back to WASM render...', 'info');
+    triggerRender();
+  }
+}
+
+// ─────────────────────────────
 // TEST GEOMETRY (no WASM — verifies Three.js pipeline)
 // ─────────────────────────────
 
@@ -1664,10 +1703,10 @@ async function renderScad() {
   }
 }
 
-// CDN candidates tried in order. jsdelivr and unpkg serve the same npm packages.
-// The .wasm binary is fetched by the JS wrapper relative to its own URL,
-// so the base URL must resolve to a directory containing both .js and .wasm.
+// Local path is tried first — host openscad.js + openscad.wasm in public/wasm/ on Satu.
+// CDN fallbacks follow in case local files are not present.
 const WASM_CDN_CANDIDATES = [
+  '/wasm/openscad.js',
   'https://unpkg.com/@openscad/wasm@0.0.3/dist/openscad.js',
   'https://cdn.jsdelivr.net/npm/@openscad/wasm@0.0.3/dist/openscad.js',
   'https://unpkg.com/@openscad/wasm/dist/openscad.js',
@@ -1877,6 +1916,11 @@ function wireEvents() {
   });
 
   // Actions
+  document.getElementById('btn-reload-stl').addEventListener('click', () => {
+    const proj = PROJECTS[activeProject];
+    if (proj.stl) loadSTL(proj.stl);
+    else log('No STL URL for this project', 'err');
+  });
   document.getElementById('btn-test-3d').addEventListener('click', testGeometry);
   document.getElementById('btn-export-stl').addEventListener('click', exportSTL);
   document.getElementById('btn-screenshot').addEventListener('click', takeScreenshot);
@@ -1902,7 +1946,7 @@ document.addEventListener('DOMContentLoaded', () => {
   wireEvents();
   switchProject(activeProject);
   log('Janis Product Design Viewer v1.1 ready');
-  log('Select a project and click [Apply Changes] to render');
+  log('VM-01: loading STL from api.janishammer.com/models/VM-01-v36.stl...');
 });
 </script>
 </body>
