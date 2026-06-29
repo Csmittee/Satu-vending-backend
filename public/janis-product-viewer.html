@@ -1,0 +1,1819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Janis Product Design — 3D Viewer v1.1</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-dark:     #0a0a0a;
+    --bg-panel:    #111111;
+    --bg-card:     #1a1a1a;
+    --border:      #2a2a2a;
+    --gold:        #d4a843;
+    --gold-dim:    #8a6a2a;
+    --text:        #cccccc;
+    --text-dim:    #666666;
+    --text-bright: #ffffff;
+    --green:       #27ae60;
+    --red:         #c0392b;
+  }
+
+  body {
+    background: var(--bg-dark);
+    color: var(--text);
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    height: 52px;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .header-logo {
+    color: var(--gold);
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+  .header-subtitle {
+    color: var(--text-dim);
+    font-size: 11px;
+  }
+  .header-version {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+  header select {
+    margin-left: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    padding: 4px 8px;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  header select:focus { outline: 1px solid var(--gold); }
+
+  /* ── BODY ── */
+  .body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── SIDEBAR SHARED ── */
+  .sidebar {
+    background: var(--bg-panel);
+    border-color: var(--border);
+    border-style: solid;
+    overflow-y: auto;
+    flex-shrink: 0;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .sidebar-left  { width: 220px; border-right-width: 1px; }
+  .sidebar-right { width: 260px; border-left-width: 1px; }
+
+  .section-label {
+    color: var(--text-dim);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── PROJECT SELECTOR ── */
+  .project-select {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    padding: 5px 8px;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .project-meta {
+    color: var(--text-dim);
+    font-size: 11px;
+    margin-top: 5px;
+    line-height: 1.6;
+  }
+  .status-ok  { color: var(--green); }
+  .status-na  { color: var(--text-dim); }
+
+  /* ── VIEW PRESETS ── */
+  .preset-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+  }
+  .btn-preset {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 0;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-preset:hover { border-color: var(--gold); color: var(--gold); }
+  .btn-preset.active { border-color: var(--gold); color: var(--gold); }
+
+  /* ── RENDER QUALITY ── */
+  .quality-options { display: flex; flex-direction: column; gap: 5px; }
+  .quality-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 11px;
+  }
+  .quality-option input[type=radio] { accent-color: var(--gold); cursor: pointer; }
+  .quality-option.selected { color: var(--gold); }
+
+  /* ── ACTION BUTTONS ── */
+  .btn-action {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 0;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    text-align: center;
+    margin-bottom: 5px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-action:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* ── 3D CANVAS ── */
+  .canvas-wrapper {
+    flex: 1;
+    position: relative;
+    background: #111111;
+    overflow: hidden;
+  }
+  #three-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .canvas-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .placeholder-title {
+    color: var(--gold);
+    font-size: 22px;
+    font-weight: bold;
+    letter-spacing: 2px;
+  }
+  .placeholder-sub {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-top: 8px;
+  }
+  .btn-reset-cam {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  .btn-reset-cam:hover { border-color: var(--gold); color: var(--gold); }
+  .canvas-stats {
+    position: absolute;
+    bottom: 8px;
+    left: 10px;
+    color: var(--text-dim);
+    font-size: 10px;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .axis-indicator {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 60px;
+    height: 60px;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* ── RIGHT SIDEBAR ── */
+  .param-row {
+    margin-bottom: 10px;
+  }
+  .param-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    font-size: 11px;
+    color: var(--text);
+  }
+  .param-label .lock-icon { color: var(--gold); font-size: 12px; }
+  .param-value {
+    color: var(--gold);
+    font-size: 11px;
+    min-width: 36px;
+    text-align: right;
+  }
+  input[type=range] {
+    width: 100%;
+    accent-color: var(--gold);
+    cursor: pointer;
+    height: 4px;
+  }
+  input[type=range]:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .btn-apply {
+    width: 100%;
+    background: var(--gold-dim);
+    border: 1px solid var(--gold);
+    color: var(--text-bright);
+    padding: 8px 0;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin-top: 4px;
+    transition: background 0.15s;
+  }
+  .btn-apply:hover { background: var(--gold); color: #000; }
+
+  .btn-reset-params {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    margin-top: 5px;
+    text-decoration: underline;
+    display: block;
+    width: 100%;
+    text-align: center;
+  }
+  .btn-reset-params:hover { color: var(--text); }
+
+  .auto-render-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .toggle-switch {
+    position: relative;
+    width: 32px;
+    height: 16px;
+  }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    top: 3px;
+    left: 3px;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .toggle-switch input:checked + .toggle-slider { background: var(--gold-dim); }
+  .toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(16px);
+    background: var(--gold);
+  }
+
+  /* ── VISIBILITY TOGGLES ── */
+  .toggle-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+  }
+  .btn-toggle {
+    background: var(--bg-card);
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    padding: 5px 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .btn-toggle.off {
+    border-color: var(--border);
+    color: var(--text-dim);
+  }
+  .btn-toggle:hover { opacity: 0.85; }
+
+  /* ── STATUS + LOG ── */
+  .status-line {
+    font-size: 12px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 6px;
+  }
+  .status-ready    { color: var(--green); }
+  .status-render   { color: var(--gold); }
+  .status-error    { color: var(--red); }
+  .status-idle     { color: var(--text-dim); }
+
+  .log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .btn-clear-log {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 10px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  .btn-clear-log:hover { color: var(--text); }
+  #log-output {
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    padding: 6px;
+    font-size: 10px;
+    height: 130px;
+    overflow-y: auto;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  #log-output .log-ok   { color: var(--green); }
+  #log-output .log-err  { color: var(--red); }
+  #log-output .log-info { color: var(--text-dim); }
+
+  /* ── COMPONENTS PANEL ── */
+  .comp-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .comp-panel-header .section-label { margin: 0; border: 0; padding: 0; }
+  .btn-show-all {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 10px;
+    padding: 2px 7px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-show-all:hover { border-color: var(--gold); color: var(--gold); }
+
+  .comp-row {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 5px;
+  }
+  .btn-comp-toggle {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    padding: 5px 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    text-align: left;
+    transition: all 0.15s;
+  }
+  .btn-comp-toggle.off {
+    border-color: var(--border);
+    color: var(--text-dim);
+  }
+  .btn-comp-toggle:hover { opacity: 0.85; }
+  .btn-isolate {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 10px;
+    padding: 4px 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+  .btn-isolate:hover { border-color: var(--gold); color: var(--gold); }
+  .btn-isolate.active { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+
+  /* ── WASM NOTICE ── */
+  .wasm-notice {
+    background: var(--bg-card);
+    border: 1px solid var(--gold-dim);
+    color: var(--gold-dim);
+    font-size: 10px;
+    padding: 6px 8px;
+    line-height: 1.5;
+    border-radius: 2px;
+  }
+
+  /* ── PRINT STYLES ── */
+  @media print {
+    .sidebar, header, .btn-reset-cam, .canvas-stats, .axis-indicator { display: none !important; }
+    body { background: #fff; color: #000; }
+    .canvas-wrapper { width: 100%; height: 60vh; }
+    #print-overlay { display: block !important; }
+  }
+
+  #print-overlay {
+    display: none;
+    background: #fff;
+    color: #000;
+    padding: 20px;
+    font-family: monospace;
+    font-size: 12px;
+  }
+  #print-overlay h2 { font-size: 18px; margin-bottom: 4px; }
+  #print-overlay table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  #print-overlay td, #print-overlay th {
+    border: 1px solid #ccc;
+    padding: 4px 8px;
+    text-align: left;
+  }
+  #print-overlay th { background: #eee; }
+  .print-footer { margin-top: 16px; color: #888; font-size: 10px; }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <span class="header-logo">⛮ JANIS PRODUCT DESIGN</span>
+  <span class="header-subtitle">3D Model Viewer</span>
+  <span class="header-version">v1.1</span>
+  <select id="project-select-header"></select>
+</header>
+
+<!-- ── BODY ── -->
+<div class="body">
+
+  <!-- LEFT SIDEBAR -->
+  <div class="sidebar sidebar-left">
+
+    <div>
+      <div class="section-label">Projects</div>
+      <select class="project-select" id="project-select-left"></select>
+      <div class="project-meta" id="project-meta">
+        Version: — &nbsp; Status: —
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">View</div>
+      <div class="preset-grid">
+        <button class="btn-preset" data-view="front">Front</button>
+        <button class="btn-preset" data-view="back">Back</button>
+        <button class="btn-preset" data-view="top">Top</button>
+        <button class="btn-preset" data-view="left">Left</button>
+        <button class="btn-preset" data-view="right">Right</button>
+        <button class="btn-preset active" data-view="iso">ISO</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Render Quality</div>
+      <div class="quality-options">
+        <label class="quality-option selected">
+          <input type="radio" name="quality" value="16" checked> Fast &nbsp;fn=16
+        </label>
+        <label class="quality-option">
+          <input type="radio" name="quality" value="32"> Normal fn=32
+        </label>
+        <label class="quality-option">
+          <input type="radio" name="quality" value="64"> Fine &nbsp;fn=64
+        </label>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Actions</div>
+      <button class="btn-action" id="btn-export-stl">⬇ Export STL</button>
+      <button class="btn-action" id="btn-screenshot">📷 Screenshot</button>
+      <button class="btn-action" id="btn-print">🖨 Print View</button>
+    </div>
+
+    <div class="wasm-notice">
+      ⚠ OpenSCAD WASM renders .scad in-browser. First render may take 10–30s to load engine.
+    </div>
+
+  </div>
+
+  <!-- 3D CANVAS -->
+  <div class="canvas-wrapper" id="canvas-wrapper">
+    <canvas id="three-canvas"></canvas>
+    <button class="btn-reset-cam" id="btn-reset-cam" title="Reset camera">⌂</button>
+    <div class="canvas-stats" id="canvas-stats"></div>
+    <canvas class="axis-indicator" id="axis-canvas" width="60" height="60"></canvas>
+    <div class="canvas-overlay" id="canvas-overlay" style="display:none">
+      <div class="placeholder-title" id="overlay-title"></div>
+      <div class="placeholder-sub" id="overlay-sub"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDEBAR -->
+  <div class="sidebar sidebar-right">
+
+    <div>
+      <div class="section-label">Parameters</div>
+      <div id="params-panel"></div>
+      <button class="btn-apply" id="btn-apply">Apply Changes</button>
+      <button class="btn-reset-params" id="btn-reset-params">Reset Defaults</button>
+      <div class="auto-render-row">
+        <span>Auto-render on change</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="auto-render-toggle" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Visibility</div>
+      <div class="toggle-grid" id="visibility-panel"></div>
+    </div>
+
+    <div>
+      <div class="comp-panel-header">
+        <div class="section-label">Components</div>
+        <button class="btn-show-all" id="btn-show-all-comps">Show All</button>
+      </div>
+      <div id="components-panel"></div>
+    </div>
+
+    <div>
+      <div class="section-label">Status</div>
+      <div class="status-line status-idle" id="status-line">● Idle</div>
+      <div class="log-header">
+        <span class="section-label" style="margin:0;border:0">Log</span>
+        <button class="btn-clear-log" id="btn-clear-log">Clear</button>
+      </div>
+      <div id="log-output"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- PRINT OVERLAY -->
+<div id="print-overlay">
+  <h2 id="print-title"></h2>
+  <div id="print-date"></div>
+  <table>
+    <thead><tr><th>Parameter</th><th>Value</th><th>Locked</th></tr></thead>
+    <tbody id="print-params"></tbody>
+  </table>
+  <div class="print-footer">Generated by Janis Product Design Viewer v1.1</div>
+</div>
+
+<script>
+// ─────────────────────────────
+// PROJECT REGISTRY
+// ─────────────────────────────
+
+const PROJECTS = {
+  'VM-01': {
+    label: 'VM-01 Vending Machine',
+    version: 'v36',
+    status: 'Manifold clean',
+    params: [
+      { id: 'total_w',      label: 'Width (mm)',      value: 640, min: 500, max: 800, step: 10, locked: false },
+      { id: 'total_h',      label: 'Height (mm)',     value: 700, min: 600, max: 900, step: 10, locked: true  },
+      { id: 'total_d',      label: 'Depth (mm)',      value: 600, min: 450, max: 700, step: 10, locked: false },
+      { id: 'tray_count',   label: 'Tray Count',      value: 2,   min: 1,   max: 4,   step: 1,  locked: false },
+      { id: 'spring_gap',   label: 'Spring Gap (mm)', value: 13,  min: 13,  max: 13,  step: 1,  locked: true  },
+      { id: 'spring_lanes', label: 'Spring Lanes',    value: 5,   min: 3,   max: 8,   step: 1,  locked: false },
+    ],
+    toggles: [
+      { id: 'show_shell_left',  label: 'Left Shell',  default: true },
+      { id: 'show_shell_right', label: 'Right Shell', default: true },
+      { id: 'show_shell_back',  label: 'Back Shell',  default: true },
+      { id: 'show_shell_top',   label: 'Top Shell',   default: true },
+    ],
+    components: [
+      { id: 'outer_shell',    label: 'Outer Shell',    default: true, match: 'translate([0, 0, leg_h]) outer_shell_debug();' },
+      { id: 'spring_tray',   label: 'Spring Trays',   default: true, match: 'for (t = [0:tray_count-1]) spring_tray(t);' },
+      { id: 'rack',          label: 'Tray Rack',       default: true, match: 'tray_rack();' },
+      { id: 'acrylic_disp',  label: 'Acrylic Display', default: true, match: 'acrylic_display();' },
+      { id: 'front_door',    label: 'Front Door',      default: true, match: 'front_door();' },
+      { id: 'exit_door',     label: 'Exit Door',       default: true, match: 'flap_door();' },
+    ],
+    scad: `// VM-01 Base Vending Machine
+// Janis Product Design
+// Version: v36
+// Date: 2026-06-29
+// Units: mm
+// Purpose: Smart donation vending machine — buddha ornaments
+// Payment: Online only, no cash/coin mechanism
+//
+// Changes from v35:
+//   ROOT CAUSE CONFIRMED: spring coil cylinder in implicit union with tray body causes 2-manifold.
+//   Two contact points: (1) lane-0 coil left edge at X=3mm = tray_wall_t (tangent touch = non-manifold)
+//                       (2) coil bottom at tray_floor_t+e grazes floor top under $fn=64 polygon faceting.
+//   Fix 1: spring_coil() d: spring_od → spring_od - 2 (display only — 1mm clearance each side from walls)
+//   Fix 2: coil Z centre: tray_floor_t+spring_od/2+e → tray_floor_t+spring_od/2+2 (2mm above floor)
+//   Fix 3: motor restored (if(false) → if(true)) — confirmed innocent by isolation test.
+
+$fn = 64;
+
+// ─────────────────────────────
+// PARAMETERS
+// ─────────────────────────────
+
+total_w = 640;
+total_h = 700;
+total_d = 600;
+corner_r = 20;
+skin_t = 2;
+
+// Legs
+leg_h = 50;
+leg_od = 25;
+leg_inset = 40;
+
+// Compartments
+product_w = 416;
+system_w = 204;    // screen board 180mm + bezel×2 + margin
+divider_t = 19;
+
+// Spring / Tray
+spring_od = 66;
+spring_l = 390;
+motor_d = 60;
+spring_gap = 13;    // OD-to-OD gap — OWNER-LOCKED (5mm clearance + 3mm partition + 5mm)
+spring_lanes = 5;
+tray_count = 2;
+tray_floor_t = 5;
+tray_wall_t = 3;
+spring_clearance = 50;
+tray_h = 121;           // floor(5) + spring_od(66) + clearance(50)
+partition_h = 40;
+tray_d = spring_l + motor_d;  // 450mm
+
+// Tray zone
+tray_zone_h = tray_h * tray_count;         // 242mm
+exit_door_h = 250;
+tray_0_z = leg_h + exit_door_h;            // 300mm
+tray_zone_top_z = tray_0_z + tray_zone_h;  // 542mm
+upper_display_h = total_h - tray_zone_top_z; // 158mm
+panel_zone_top_z = total_h;                  // 700mm
+panel_zone_h = panel_zone_top_z - tray_0_z;  // 400mm (Z 300-700)
+
+// Zones
+drop_zone_d = 138;
+tray_start_d = drop_zone_d;
+
+// Exit zone
+exit_door_w = 400;
+
+// Customer pickup flap
+flap_h = 100;
+flap_w = 250;
+flap_t = 3;
+
+// Tray rack
+rail_w = 10;
+rail_h = 10;
+latch_pin_d = 8;
+latch_pin_l = 10;   // 15 → 10: pin stays inside cavity, clears outer shell back face at 598mm
+
+// Door / panel
+door_t = 3;
+hinge_od = 12;
+hinge_h = 20;
+
+// Frame bars
+frame_bar = 20;
+
+// Dashboard
+dash_x = product_w + divider_t + skin_t;
+dash_w = system_w - divider_t - (skin_t * 2);  // 204 - 19 - 4 = 181mm
+screen_w = 165;
+screen_h = 100;
+screen_center_z = 280;
+screen_protrude = 30;   // screen protrudes this far forward of front face
+screen_y = skin_t - screen_protrude;   // -28mm — 30mm forward of front skin
+bracket_r = 8;
+bezel_t = 3;
+qr_w = 40;
+qr_h = 30;
+qr_d = 10;
+card_w = 85;
+card_h = 8;
+card_d = 15;
+speaker_w = 60;
+speaker_h = 20;
+speaker_slots = 5;
+
+// Epsilon — prevents z-fighting on coincident front faces
+e = 0.01;
+
+// Acrylic display zone (upper right compartment)
+acrylic_bot_z = tray_zone_top_z;               // 542mm
+acrylic_top_z = total_h - skin_t;              // 698mm
+acrylic_zone_h = acrylic_top_z - acrylic_bot_z; // 156mm
+acrylic_r = 8;
+acrylic_t = skin_t;
+
+// ─────────────────────────────
+// MODULES
+// ─────────────────────────────
+
+module rounded_box(w, h, d, r) {
+    hull() {
+        translate([r, r, 0]) cylinder(r=r, h=h);
+        translate([w-r, r, 0]) cylinder(r=r, h=h);
+        translate([r, d-r, 0]) cylinder(r=r, h=h);
+        translate([w-r, d-r, 0]) cylinder(r=r, h=h);
+    }
+}
+
+module leg() {
+    color("#AAAAAA")
+    cylinder(h=leg_h, d=leg_od);
+}
+
+module legs() {
+    positions = [
+        [leg_inset, leg_inset],
+        [total_w-leg_inset, leg_inset],
+        [leg_inset, total_d-leg_inset],
+        [total_w-leg_inset, total_d-leg_inset]
+    ];
+    for (p = positions)
+        translate([p[0], p[1], 0]) leg();
+}
+
+module spring_coil() {
+    color("#888888", 0.8)
+    cylinder(h=spring_l - 2, d=spring_od - 2);  // d-2: 1mm clearance each side, clears tray wall tangent touch
+}
+
+// Motor at BACK. Spring front end at Y=0 (drop zone boundary). Products fall forward.
+module spring_tray(tray_num) {
+    tray_w = product_w - 20;
+    z = leg_h + exit_door_h + (tray_num * tray_h);
+
+    translate([10, tray_start_d, z]) {
+        // Single solid box with hollow subtracted — no union() T-junctions, always manifold
+        color("#CCCCCC")
+        difference() {
+            // Outer solid box — full tray footprint
+            cube([tray_w, tray_d, tray_h]);
+
+            // Hollow interior — open top (+1 overshoot)
+            translate([tray_wall_t, tray_wall_t, tray_floor_t])
+                cube([tray_w - (tray_wall_t * 2),
+                      tray_d - (tray_wall_t * 2),
+                      tray_h - tray_floor_t + 1]);
+
+            // Open front face (Y=0) — springs and products visible from front
+            translate([tray_wall_t, -1, tray_floor_t])
+                cube([tray_w - (tray_wall_t * 2),
+                      tray_wall_t + 2,
+                      tray_h - tray_floor_t + 1]);
+
+            // Left side wall window
+            translate([-1, tray_wall_t * 2, tray_floor_t + tray_wall_t])
+                cube([tray_wall_t + 2,
+                      tray_d - (tray_wall_t * 4),
+                      tray_h - tray_floor_t - (tray_wall_t * 2)]);
+
+            // Right side wall window
+            translate([tray_w - tray_wall_t - 1, tray_wall_t * 2, tray_floor_t + tray_wall_t])
+                cube([tray_wall_t + 2,
+                      tray_d - (tray_wall_t * 4),
+                      tray_h - tray_floor_t - (tray_wall_t * 2)]);
+
+            // Rear motor mount cutouts
+            for (i = [0:spring_lanes-1]) {
+                x = tray_wall_t + spring_od/2 + i*(spring_od + spring_gap);
+                translate([x - 11, tray_d - tray_wall_t - 1, tray_floor_t])
+                    cube([22, tray_wall_t + 2, 36]);
+            }
+
+            // Rear latch pin hole
+            translate([tray_w/2, tray_d - tray_wall_t - 1, tray_h/2])
+                rotate([-90, 0, 0])
+                    cylinder(d=latch_pin_d, h=tray_wall_t + 2);
+        }
+
+        // Springs + motors
+        for (i = [0:spring_lanes-1]) {
+            x = tray_wall_t + spring_od/2 + i*(spring_od + spring_gap);
+
+            // Motor
+            color("#555555")
+            translate([x-9, tray_d - motor_d - tray_wall_t - e, tray_floor_t + e])
+                cube([18, motor_d - 2, 33]);
+
+            // Spring coil
+            color("#999999")
+            translate([x, tray_d - motor_d - 2, tray_floor_t + spring_od/2 + 2])
+                rotate([90, 0, 0])
+                    spring_coil();
+
+            if (i < spring_lanes-1) {
+                // Partition
+                color("#BBBBBB")
+                translate([x + spring_od/2 + spring_gap/2, tray_wall_t + e, tray_floor_t + e])
+                    cube([2, tray_d-(tray_wall_t*2) - e, partition_h]);
+            }
+        }
+    }
+}
+
+module tray_rack() {
+    tray_w = product_w - 20;
+    color("#AAAAAA")
+    for (t = [0:tray_count-1]) {
+        z = leg_h + exit_door_h + (t * tray_h);
+        translate([10, tray_start_d, z - rail_h])
+            cube([rail_w, tray_d, rail_h]);
+        translate([10 + tray_w - rail_w, tray_start_d, z - rail_h])
+            cube([rail_w, tray_d, rail_h]);
+        translate([10 + tray_w/2, tray_start_d + tray_d - tray_wall_t, z + tray_h/2])
+            rotate([-90, 0, 0])
+                cylinder(d=latch_pin_d, h=latch_pin_l);
+    }
+}
+
+module outer_shell() {
+    color("#C8C8C8", 0.75)
+    difference() {
+        rounded_box(total_w, total_h, total_d, corner_r);
+        translate([skin_t, skin_t, skin_t])
+            rounded_box(total_w-(skin_t*2), total_h-(skin_t*2), total_d-(skin_t*2), corner_r-1);
+        translate([skin_t, -1, 0])
+            cube([product_w-(skin_t*2), skin_t+2, tray_zone_top_z - leg_h]);
+        translate([(product_w - exit_door_w)/2, -1, 0])
+            cube([exit_door_w, skin_t+2, exit_door_h]);
+        translate([skin_t, -1, tray_zone_top_z - leg_h])
+            cube([product_w-(skin_t*2), skin_t+2, upper_display_h]);
+        translate([product_w + divider_t, -1, 0])
+            cube([system_w - divider_t - skin_t, skin_t+2, tray_zone_top_z - leg_h]);
+    }
+}
+
+module outer_shell_debug() {
+    color("#C8C8C8", 0.75)
+    difference() {
+        rounded_box(total_w, total_h, total_d, corner_r);
+        translate([skin_t, skin_t, skin_t])
+            rounded_box(total_w-(skin_t*2), total_h-(skin_t*2), total_d-(skin_t*2), corner_r-1);
+        translate([skin_t, -1, 0])
+            cube([product_w-(skin_t*2), skin_t+2, tray_zone_top_z - leg_h]);
+        translate([(product_w - exit_door_w)/2, -1, 0])
+            cube([exit_door_w, skin_t+2, exit_door_h]);
+        translate([skin_t, -1, tray_zone_top_z - leg_h])
+            cube([product_w-(skin_t*2), skin_t+2, upper_display_h]);
+        translate([product_w + divider_t, -1, 0])
+            cube([system_w - divider_t - skin_t, skin_t+2, tray_zone_top_z - leg_h]);
+        if (!show_shell_back)
+            translate([0, total_d - skin_t - 1, 0])
+                cube([total_w, skin_t + 2, total_h]);
+        if (!show_shell_top)
+            translate([0, 0, total_h - skin_t - 1])
+                cube([total_w, total_d, skin_t + 2]);
+        if (!show_shell_left)
+            translate([-1, 0, 0])
+                cube([skin_t + 2, total_d, total_h]);
+        if (!show_shell_right)
+            translate([total_w - skin_t - 1, 0, 0])
+                cube([skin_t + 2, total_d, total_h]);
+    }
+}
+
+module compartment_divider() {
+    color("#AAAAAA", 0.9)
+    translate([product_w, skin_t, leg_h])
+        cube([divider_t, total_d-(skin_t*2), total_h - leg_h - skin_t]);
+}
+
+module front_door() {
+    door_h = exit_door_h;
+    color("#888888", 0.9)
+    translate([skin_t, e, leg_h])
+        cube([product_w-(skin_t*2), door_t, door_h]);
+    hinge_positions = [
+        leg_h + door_h * 0.2,
+        leg_h + door_h * 0.5,
+        leg_h + door_h * 0.8
+    ];
+    for (hz = hinge_positions) {
+        color("#888888")
+        translate([skin_t, 0, hz])
+            cylinder(d=hinge_od, h=hinge_h);
+    }
+}
+
+module flap_door() {
+    color("#B0B0B0", 0.9)
+    translate([(product_w - flap_w)/2, skin_t, leg_h])
+        cube([flap_w, flap_t, flap_h]);
+}
+
+module spring_zone_panel() {
+    panel_x = skin_t;
+    panel_w = product_w - (skin_t * 2);
+    panel_z = leg_h + exit_door_h;
+    panel_h = total_h - (leg_h + exit_door_h);
+    panel_t = door_t;
+    color("#ADD8E6", 0.15)
+    translate([panel_x, e, panel_z])
+        cube([panel_w, panel_t, panel_h]);
+    hinge_zs = [
+        panel_z + panel_h * 0.2,
+        panel_z + panel_h * 0.5,
+        panel_z + panel_h * 0.8
+    ];
+    for (hz = hinge_zs) {
+        color("#888888")
+        translate([panel_x, 0, hz])
+            cylinder(d=hinge_od, h=hinge_h);
+    }
+}
+
+module left_front_acrylic() {
+    panel_x = skin_t;
+    panel_w = product_w - (skin_t * 2);
+    panel_z = leg_h;
+    panel_h = total_h - leg_h;
+    panel_t = door_t;
+    color("#ADD8E6", 0.15)
+    translate([panel_x, e, panel_z])
+        cube([panel_w, panel_t, panel_h]);
+}
+
+module tray_zone_frame() {
+    color("#AAAAAA")
+    union() {
+        translate([0, e*2, panel_zone_top_z - frame_bar])
+            cube([product_w, skin_t, frame_bar]);
+        translate([0, e*2, tray_0_z])
+            cube([product_w, skin_t, frame_bar]);
+        translate([0, e*2, tray_0_z + frame_bar])
+            cube([frame_bar, skin_t, panel_zone_h - (frame_bar * 2)]);
+        translate([product_w - frame_bar, e*2, tray_0_z + frame_bar])
+            cube([frame_bar, skin_t, panel_zone_h - (frame_bar * 2)]);
+    }
+}
+
+module sensor_strip() {
+    strip_z = tray_0_z - 20;
+    strip_t = 5;
+    strip_h = 8;
+    color("#222222")
+    translate([skin_t, skin_t, strip_z])
+        cube([strip_t, drop_zone_d, strip_h]);
+    color("#222222")
+    translate([product_w - skin_t - strip_t, skin_t, strip_z])
+        cube([strip_t, drop_zone_d, strip_h]);
+    color("#FF0000", 0.3)
+    translate([skin_t + strip_t,
+               skin_t + drop_zone_d/2,
+               strip_z + strip_h/2])
+        cube([product_w - (skin_t*2) - (strip_t*2), 2, 2]);
+}
+
+module dashboard() {
+    screen_z = screen_center_z - screen_h/2;
+    qr_z     = screen_z - 50 - qr_h;
+    card_z   = qr_z - 30 - card_h;
+    speaker_z = card_z - 20 - speaker_h;
+    color("#1A1A1A")
+    translate([product_w + divider_t + 10, screen_y, screen_z])
+        rotate([-30, 0, 0])
+            cube([screen_w, 5, screen_h]);
+    color("#333333", 0.8)
+    translate([product_w + divider_t + 10 - bezel_t,
+               screen_y - 2, screen_z - bezel_t])
+        rotate([-30, 0, 0])
+            cube([screen_w + (bezel_t*2), 3, screen_h + (bezel_t*2)]);
+    color("#444444")
+    translate([dash_x + dash_w/2 - screen_w/2, screen_y, screen_z - bracket_r])
+        cube([screen_w, 30, bracket_r * 2]);
+    color("#222222")
+    translate([dash_x + (dash_w - qr_w)/2, 0, qr_z])
+        cube([qr_w, qr_d, qr_h]);
+    color("#333333")
+    translate([dash_x + (dash_w - card_w)/2, 0, card_z])
+        cube([card_w, card_d, card_h]);
+    slot_h = 2;
+    slot_gap = 2;
+    color("#444444")
+    for (s = [0:speaker_slots-1]) {
+        translate([dash_x + (dash_w - speaker_w)/2, 0,
+                   speaker_z + s*(slot_h + slot_gap)])
+            cube([speaker_w, 3, slot_h]);
+    }
+}
+
+module acrylic_display() {
+    acrylic_front_w = system_w - divider_t - skin_t;
+    acrylic_front_x = product_w + divider_t;
+    color("#ADD8E6", 0.3)
+    translate([acrylic_front_x, e, acrylic_bot_z])
+        cube([acrylic_front_w, door_t, acrylic_zone_h]);
+    color("#ADD8E6", 0.3)
+    translate([total_w - (skin_t*2), skin_t, acrylic_bot_z])
+        cube([skin_t, total_d-(skin_t*2), acrylic_zone_h]);
+    color("#ADD8E6", 0.3)
+    translate([acrylic_front_x, skin_t, total_h - (skin_t*2)])
+        cube([acrylic_front_w, total_d-(skin_t*2), skin_t]);
+}
+
+module drop_zone_visual() {
+    color("#F0F0F0", 0.15)
+    translate([skin_t, skin_t, leg_h])
+        cube([product_w-(skin_t*2), drop_zone_d, exit_door_h]);
+}
+
+module rear_service_door() {
+    door_w = system_w - divider_t;
+    door_h = total_h * 0.5;
+    color("#B8B8B8", 0.6)
+    translate([product_w + divider_t, total_d - skin_t, leg_h + (total_h*0.25)])
+        cube([door_w, skin_t*2, door_h]);
+}
+
+// ─────────────────────────────
+// DEBUG TOGGLES
+// ─────────────────────────────
+show_shell_back  = true;
+show_shell_top   = true;
+show_shell_left  = true;
+show_shell_right = true;
+
+// ─────────────────────────────
+// ASSEMBLY
+// ─────────────────────────────
+
+legs();
+translate([0, 0, leg_h]) outer_shell_debug();
+compartment_divider();
+
+tray_rack();
+for (t = [0:tray_count-1]) spring_tray(t);
+
+front_door();
+flap_door();
+spring_zone_panel();
+tray_zone_frame();
+drop_zone_visual();
+
+sensor_strip();
+
+dashboard();
+acrylic_display();
+rear_service_door();
+`
+  },
+  'PR-01': {
+    label: 'PR-01 Pilates Reformer',
+    version: null,
+    status: 'Not started',
+    params: [],
+    toggles: [],
+    components: [],
+    scad: null
+  }
+};
+
+// ─────────────────────────────
+// STATE
+// ─────────────────────────────
+
+let activeProject = 'VM-01';
+let currentValues = {};
+let currentToggles = {};
+let currentComponents = {};
+let currentFn = 16;
+let lastSTLBuffer = null;
+let openscadInstance = null;
+let renderPending = false;
+let debounceTimer = null;
+let autoRender = true;
+let scene, camera, renderer, controls, modelMesh, gridHelper;
+let axisScene, axisCamera, axisRenderer;
+
+// ─────────────────────────────
+// LOG
+// ─────────────────────────────
+
+const logEl = document.getElementById('log-output');
+const logLines = [];
+
+function log(msg, type = 'info') {
+  const MAX = 50;
+  logLines.push({ msg, type });
+  if (logLines.length > MAX) logLines.shift();
+  logEl.innerHTML = logLines.map(l =>
+    `<div class="log-${l.type}">&gt; ${l.msg}</div>`
+  ).join('');
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function setStatus(msg, type = 'idle') {
+  const el = document.getElementById('status-line');
+  el.className = 'status-line status-' + type;
+  el.textContent = msg;
+}
+
+// ─────────────────────────────
+// THREE.JS INIT
+// ─────────────────────────────
+
+function initThree() {
+  const canvas = document.getElementById('three-canvas');
+  const wrapper = document.getElementById('canvas-wrapper');
+
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setClearColor(0x111111);
+
+  scene = new THREE.Scene();
+
+  camera = new THREE.PerspectiveCamera(45, 1, 0.1, 50000);
+  setView('iso');
+
+  // Lights
+  const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+  scene.add(ambient);
+  const dirMain = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirMain.position.set(500, 800, 600);
+  scene.add(dirMain);
+  const dirFill = new THREE.DirectionalLight(0xaaaaff, 0.3);
+  dirFill.position.set(-600, 400, -300);
+  scene.add(dirFill);
+
+  // Grid
+  gridHelper = new THREE.GridHelper(2000, 40, 0x444444, 0x2a2a2a);
+  scene.add(gridHelper);
+
+  controls = new THREE.OrbitControls(camera, canvas);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+
+  resizeRenderer();
+
+  // Axis indicator
+  initAxisIndicator();
+
+  window.addEventListener('resize', resizeRenderer);
+  animate();
+}
+
+function resizeRenderer() {
+  const wrapper = document.getElementById('canvas-wrapper');
+  const w = wrapper.clientWidth;
+  const h = wrapper.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+  updateAxisIndicator();
+}
+
+// ─────────────────────────────
+// VIEW PRESETS
+// ─────────────────────────────
+
+function setView(name) {
+  const D = 1400;
+  const positions = {
+    front: [320, 0, D],
+    back:  [320, 0, -D + 640],
+    top:   [320, D, 350],
+    left:  [-D + 320, 350, 350],
+    right: [D, 350, 350],
+    iso:   [900, 900, 900]
+  };
+  const targets = {
+    front: [320, 350, 0],
+    back:  [320, 350, 600],
+    top:   [320, 0, 300],
+    left:  [320, 350, 300],
+    right: [320, 350, 300],
+    iso:   [320, 350, 300]
+  };
+  const pos = positions[name] || positions.iso;
+  const tgt = targets[name] || targets.iso;
+  camera.position.set(...pos);
+  if (controls) {
+    controls.target.set(...tgt);
+    controls.update();
+  }
+
+  document.querySelectorAll('.btn-preset').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === name);
+  });
+}
+
+// ─────────────────────────────
+// AXIS INDICATOR
+// ─────────────────────────────
+
+function initAxisIndicator() {
+  const canvas = document.getElementById('axis-canvas');
+  axisRenderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+  axisRenderer.setSize(60, 60);
+  axisScene = new THREE.Scene();
+  axisCamera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+  axisCamera.position.set(0, 0, 3);
+
+  const arrows = [
+    { dir: [1,0,0], color: 0xff4444 },
+    { dir: [0,1,0], color: 0x44ff44 },
+    { dir: [0,0,1], color: 0x4444ff }
+  ];
+  arrows.forEach(a => {
+    const origin = new THREE.Vector3(0,0,0);
+    const dir = new THREE.Vector3(...a.dir);
+    const arrow = new THREE.ArrowHelper(dir, origin, 0.8, a.color, 0.2, 0.12);
+    axisScene.add(arrow);
+  });
+}
+
+function updateAxisIndicator() {
+  if (!axisRenderer) return;
+  axisCamera.quaternion.copy(camera.quaternion);
+  axisRenderer.render(axisScene, axisCamera);
+}
+
+// ─────────────────────────────
+// PROJECT UI
+// ─────────────────────────────
+
+function populateProjectDropdowns() {
+  const selLeft = document.getElementById('project-select-left');
+  const selHeader = document.getElementById('project-select-header');
+  [selLeft, selHeader].forEach(sel => {
+    sel.innerHTML = '';
+    Object.entries(PROJECTS).forEach(([id, p]) => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = p.label;
+      sel.appendChild(opt);
+    });
+    sel.value = activeProject;
+  });
+}
+
+function syncDropdowns(sourceId, val) {
+  ['project-select-left', 'project-select-header'].forEach(id => {
+    if (id !== sourceId) document.getElementById(id).value = val;
+  });
+}
+
+function switchProject(id) {
+  activeProject = id;
+  const proj = PROJECTS[id];
+
+  // Init state
+  currentValues = {};
+  proj.params.forEach(p => { currentValues[p.id] = p.value; });
+  currentToggles = {};
+  proj.toggles.forEach(t => { currentToggles[t.id] = t.default; });
+  currentComponents = {};
+  (proj.components || []).forEach(c => { currentComponents[c.id] = c.default; });
+
+  // Meta
+  const metaEl = document.getElementById('project-meta');
+  if (proj.version) {
+    const statusIcon = proj.status.toLowerCase().includes('clean') ? '✅' : '⚠';
+    metaEl.innerHTML = `Version: <b>${proj.version}</b> &nbsp; Status: <span class="status-ok">${statusIcon} ${proj.status}</span>`;
+  } else {
+    metaEl.innerHTML = `Version: — &nbsp; Status: <span class="status-na">Not started</span>`;
+  }
+
+  buildParamsPanel();
+  buildVisibilityPanel();
+  buildComponentsPanel();
+
+  if (proj.scad) {
+    document.getElementById('canvas-overlay').style.display = 'none';
+    if (autoRender) triggerRender();
+  } else {
+    showPlaceholder(proj);
+  }
+}
+
+function showPlaceholder(proj) {
+  clearModel();
+  const overlay = document.getElementById('canvas-overlay');
+  document.getElementById('overlay-title').textContent = `${proj.label}`;
+  document.getElementById('overlay-sub').textContent = 'Not started yet — dimensions pending from Janis';
+  overlay.style.display = 'flex';
+}
+
+// ─────────────────────────────
+// PARAMS PANEL
+// ─────────────────────────────
+
+function buildParamsPanel() {
+  const proj = PROJECTS[activeProject];
+  const panel = document.getElementById('params-panel');
+  panel.innerHTML = '';
+
+  if (!proj.params.length) {
+    panel.innerHTML = '<div style="color:var(--text-dim);font-size:11px">No parameters defined.</div>';
+    return;
+  }
+
+  proj.params.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'param-row';
+
+    const labelRow = document.createElement('div');
+    labelRow.className = 'param-label';
+    labelRow.innerHTML = `
+      <span>${p.label}${p.locked ? ' <span class="lock-icon">🔒</span>' : ''}</span>
+      <span class="param-value" id="val-${p.id}">${currentValues[p.id]}</span>
+    `;
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = p.min;
+    slider.max = p.max;
+    slider.step = p.step;
+    slider.value = currentValues[p.id];
+    slider.disabled = p.locked;
+    slider.id = 'slider-' + p.id;
+
+    slider.addEventListener('input', () => {
+      currentValues[p.id] = parseFloat(slider.value);
+      document.getElementById('val-' + p.id).textContent = slider.value;
+      scheduleAutoRender();
+    });
+
+    row.appendChild(labelRow);
+    row.appendChild(slider);
+    panel.appendChild(row);
+  });
+}
+
+function buildVisibilityPanel() {
+  const proj = PROJECTS[activeProject];
+  const panel = document.getElementById('visibility-panel');
+  panel.innerHTML = '';
+
+  if (!proj.toggles.length) {
+    panel.innerHTML = '<div style="color:var(--text-dim);font-size:11px">No toggles defined.</div>';
+    return;
+  }
+
+  proj.toggles.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'btn-toggle' + (currentToggles[t.id] ? '' : ' off');
+    btn.textContent = (currentToggles[t.id] ? '✓ ' : '') + t.label;
+    btn.id = 'tog-' + t.id;
+    btn.addEventListener('click', () => {
+      currentToggles[t.id] = !currentToggles[t.id];
+      btn.className = 'btn-toggle' + (currentToggles[t.id] ? '' : ' off');
+      btn.textContent = (currentToggles[t.id] ? '✓ ' : '') + t.label;
+      scheduleAutoRender();
+    });
+    panel.appendChild(btn);
+  });
+}
+
+function buildComponentsPanel() {
+  const proj = PROJECTS[activeProject];
+  const panel = document.getElementById('components-panel');
+  panel.innerHTML = '';
+
+  const comps = proj.components || [];
+  if (!comps.length) {
+    panel.innerHTML = '<div style="color:var(--text-dim);font-size:11px">No components defined.</div>';
+    return;
+  }
+
+  comps.forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'comp-row';
+
+    const btn = document.createElement('button');
+    const on = currentComponents[c.id];
+    btn.className = 'btn-comp-toggle' + (on ? '' : ' off');
+    btn.textContent = (on ? '✓ ' : '') + c.label;
+    btn.id = 'comp-' + c.id;
+    btn.addEventListener('click', () => {
+      currentComponents[c.id] = !currentComponents[c.id];
+      refreshComponentBtn(c.id);
+      scheduleAutoRender();
+    });
+
+    const isoBtn = document.createElement('button');
+    isoBtn.className = 'btn-isolate';
+    isoBtn.textContent = 'Iso';
+    isoBtn.id = 'iso-' + c.id;
+    isoBtn.title = `Isolate ${c.label}`;
+    isoBtn.addEventListener('click', () => isolateComponent(c.id));
+
+    row.appendChild(btn);
+    row.appendChild(isoBtn);
+    panel.appendChild(row);
+  });
+}
+
+function refreshComponentBtn(id) {
+  const proj = PROJECTS[activeProject];
+  const c = (proj.components || []).find(x => x.id === id);
+  if (!c) return;
+  const btn = document.getElementById('comp-' + id);
+  if (!btn) return;
+  const on = currentComponents[id];
+  btn.className = 'btn-comp-toggle' + (on ? '' : ' off');
+  btn.textContent = (on ? '✓ ' : '') + c.label;
+}
+
+function isolateComponent(id) {
+  const proj = PROJECTS[activeProject];
+  (proj.components || []).forEach(c => {
+    currentComponents[c.id] = (c.id === id);
+    refreshComponentBtn(c.id);
+    const isoBtn = document.getElementById('iso-' + c.id);
+    if (isoBtn) isoBtn.classList.toggle('active', c.id === id);
+  });
+  scheduleAutoRender();
+}
+
+function showAllComponents() {
+  const proj = PROJECTS[activeProject];
+  (proj.components || []).forEach(c => {
+    currentComponents[c.id] = true;
+    refreshComponentBtn(c.id);
+    const isoBtn = document.getElementById('iso-' + c.id);
+    if (isoBtn) isoBtn.classList.remove('active');
+  });
+  scheduleAutoRender();
+}
+
+// ─────────────────────────────
+// SCAD RENDERING
+// ─────────────────────────────
+
+function scheduleAutoRender() {
+  if (!autoRender) return;
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(triggerRender, 800);
+}
+
+function triggerRender() {
+  const proj = PROJECTS[activeProject];
+  if (!proj.scad) return;
+  renderScad();
+}
+
+async function renderScad() {
+  const proj = PROJECTS[activeProject];
+  if (!proj.scad) return;
+
+  setStatus('● Rendering...', 'render');
+  log(`Rendering ${proj.label} fn=${currentFn}...`);
+  const startTime = Date.now();
+
+  // Build param override block — OpenSCAD uses last assignment wins
+  let overrides = `$fn = ${currentFn};\n`;
+  proj.params.forEach(p => {
+    overrides += `${p.id} = ${currentValues[p.id]};\n`;
+  });
+  proj.toggles.forEach(t => {
+    overrides += `${t.id} = ${currentToggles[t.id]};\n`;
+  });
+
+  let scadWithOverrides = overrides + '\n' + proj.scad;
+
+  // Wrap disabled components with if(false){} in assembly section
+  (proj.components || []).forEach(c => {
+    if (!currentComponents[c.id]) {
+      scadWithOverrides = scadWithOverrides.replace(
+        c.match,
+        `if(false) { ${c.match} }`
+      );
+    }
+  });
+
+  try {
+    if (!openscadInstance) {
+      log('Loading OpenSCAD WASM engine...');
+      // Dynamic load — openscad.js sets window.OpenSCAD
+      await loadOpenSCADWasm();
+    }
+
+    log('Running WASM render...');
+    const result = await openscadInstance.render(scadWithOverrides, { outputFile: 'out.stl' });
+
+    if (!result || !result.output) {
+      throw new Error('WASM returned no output. Check SCAD syntax.');
+    }
+
+    lastSTLBuffer = result.output.buffer || result.output;
+
+    const loader = new THREE.STLLoader();
+    const geometry = loader.parse(lastSTLBuffer);
+    geometry.computeVertexNormals();
+    geometry.center();
+
+    updateScene(geometry);
+
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    const tris = Math.floor(geometry.attributes.position.count / 3);
+    log(`✅ Complete: ${elapsed}s — ${tris.toLocaleString()} triangles`, 'ok');
+    document.getElementById('canvas-stats').textContent = `${tris.toLocaleString()} triangles · ${elapsed}s`;
+    setStatus(`✅ Ready (${elapsed}s)`, 'ready');
+    document.getElementById('canvas-overlay').style.display = 'none';
+
+  } catch (err) {
+    log(`❌ Error: ${err.message}`, 'err');
+    setStatus('❌ Error — see log', 'error');
+    console.error(err);
+  }
+}
+
+async function loadOpenSCADWasm() {
+  return new Promise((resolve, reject) => {
+    if (window.OpenSCAD) {
+      initOpenSCAD(resolve, reject);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/@openscad/wasm@0.0.3/dist/openscad.js';
+    script.onload = () => initOpenSCAD(resolve, reject);
+    script.onerror = () => reject(new Error('Failed to load OpenSCAD WASM script from CDN'));
+    document.head.appendChild(script);
+  });
+}
+
+async function initOpenSCAD(resolve, reject) {
+  try {
+    if (!window.OpenSCAD) {
+      reject(new Error('OpenSCAD WASM not available on window.OpenSCAD'));
+      return;
+    }
+    openscadInstance = await window.OpenSCAD({ noInitialRun: true });
+    log('WASM loaded ✅', 'ok');
+    resolve();
+  } catch (e) {
+    reject(e);
+  }
+}
+
+// ─────────────────────────────
+// SCENE UPDATE
+// ─────────────────────────────
+
+function clearModel() {
+  if (modelMesh) {
+    scene.remove(modelMesh);
+    modelMesh.geometry.dispose();
+    modelMesh.material.dispose();
+    modelMesh = null;
+  }
+}
+
+function updateScene(geometry) {
+  clearModel();
+
+  const material = new THREE.MeshPhongMaterial({
+    color: 0xcccccc,
+    shininess: 40,
+    side: THREE.DoubleSide
+  });
+
+  modelMesh = new THREE.Mesh(geometry, material);
+  scene.add(modelMesh);
+
+  // Auto-fit camera
+  const box = new THREE.Box3().setFromObject(modelMesh);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const fitDist = maxDim * 1.5;
+  camera.near = fitDist / 1000;
+  camera.far = fitDist * 20;
+  camera.updateProjectionMatrix();
+  controls.target.copy(center);
+  controls.update();
+}
+
+// ─────────────────────────────
+// EXPORT STL
+// ─────────────────────────────
+
+function exportSTL() {
+  if (!lastSTLBuffer) {
+    log('No STL available — render first', 'err');
+    return;
+  }
+  const blob = new Blob([lastSTLBuffer], { type: 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${activeProject}-${PROJECTS[activeProject].version || 'export'}.stl`;
+  a.click();
+  URL.revokeObjectURL(url);
+  log(`⬇ STL exported (${(lastSTLBuffer.byteLength / 1024 / 1024).toFixed(1)} MB)`, 'ok');
+}
+
+// ─────────────────────────────
+// SCREENSHOT
+// ─────────────────────────────
+
+function takeScreenshot() {
+  renderer.render(scene, camera);
+  const dataURL = renderer.domElement.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = dataURL;
+  a.download = `${activeProject}-screenshot-${Date.now()}.png`;
+  a.click();
+  log('📷 Screenshot saved', 'ok');
+}
+
+// ─────────────────────────────
+// PRINT VIEW
+// ─────────────────────────────
+
+function printView() {
+  const proj = PROJECTS[activeProject];
+
+  document.getElementById('print-title').textContent = `${proj.label} — ${proj.version || '—'}`;
+  document.getElementById('print-date').textContent = `Date: ${new Date().toLocaleDateString()}`;
+
+  const tbody = document.getElementById('print-params');
+  tbody.innerHTML = '';
+  proj.params.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${p.label}</td><td>${currentValues[p.id]}</td><td>${p.locked ? '🔒 Locked' : ''}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('print-overlay').style.display = 'block';
+  window.print();
+
+  window.addEventListener('afterprint', () => {
+    document.getElementById('print-overlay').style.display = 'none';
+  }, { once: true });
+}
+
+// ─────────────────────────────
+// RESET PARAMS
+// ─────────────────────────────
+
+function resetParams() {
+  const proj = PROJECTS[activeProject];
+  proj.params.forEach(p => {
+    currentValues[p.id] = p.value;
+    const slider = document.getElementById('slider-' + p.id);
+    const valEl = document.getElementById('val-' + p.id);
+    if (slider) slider.value = p.value;
+    if (valEl) valEl.textContent = p.value;
+  });
+  log('Parameters reset to defaults');
+}
+
+// ─────────────────────────────
+// EVENT WIRING
+// ─────────────────────────────
+
+function wireEvents() {
+  // Project dropdowns
+  ['project-select-left', 'project-select-header'].forEach(id => {
+    document.getElementById(id).addEventListener('change', function() {
+      syncDropdowns(id, this.value);
+      switchProject(this.value);
+    });
+  });
+
+  // View presets
+  document.querySelectorAll('.btn-preset').forEach(btn => {
+    btn.addEventListener('click', () => setView(btn.dataset.view));
+  });
+
+  // Render quality
+  document.querySelectorAll('input[name=quality]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      currentFn = parseInt(this.value);
+      document.querySelectorAll('.quality-option').forEach(el => {
+        el.classList.toggle('selected', el.querySelector('input') === this);
+      });
+    });
+  });
+
+  // Camera reset
+  document.getElementById('btn-reset-cam').addEventListener('click', () => setView('iso'));
+
+  // Apply
+  document.getElementById('btn-apply').addEventListener('click', triggerRender);
+
+  // Reset params
+  document.getElementById('btn-reset-params').addEventListener('click', resetParams);
+
+  // Auto-render toggle
+  document.getElementById('auto-render-toggle').addEventListener('change', function() {
+    autoRender = this.checked;
+  });
+
+  // Actions
+  document.getElementById('btn-export-stl').addEventListener('click', exportSTL);
+  document.getElementById('btn-screenshot').addEventListener('click', takeScreenshot);
+  document.getElementById('btn-print').addEventListener('click', printView);
+
+  // Show all components
+  document.getElementById('btn-show-all-comps').addEventListener('click', showAllComponents);
+
+  // Clear log
+  document.getElementById('btn-clear-log').addEventListener('click', () => {
+    logLines.length = 0;
+    logEl.innerHTML = '';
+  });
+}
+
+// ─────────────────────────────
+// INIT
+// ─────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+  initThree();
+  populateProjectDropdowns();
+  wireEvents();
+  switchProject(activeProject);
+  log('Janis Product Design Viewer v1.1 ready');
+  log('Select a project and click [Apply Changes] to render');
+});
+</script>
+</body>
+</html>
