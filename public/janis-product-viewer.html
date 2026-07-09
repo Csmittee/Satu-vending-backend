@@ -579,6 +579,13 @@
         <button class="btn-preset" data-view="right">Right</button>
         <button class="btn-preset active" data-view="iso">ISO</button>
       </div>
+      <div class="auto-render-row" style="margin-top:8px">
+        <span>Show grid</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="grid-toggle" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
     </div>
 
     <div>
@@ -1436,9 +1443,10 @@ function prettifyFilename(filename) {
 
 // Returns [{filename, label, url}] for every .stl in
 // public/models/<folderName>/ — throws with a clear message on 404
-// (folder doesn't exist yet), 403 (unauthenticated rate limit, 60/hr per
-// IP), or any other network/HTTP failure, so callers can show the error
-// in the UI instead of failing silently.
+// (folder doesn't exist yet), 403/429 (unauthenticated rate limit, 60/hr
+// per IP — GitHub uses either code depending on which limit is hit), or
+// any other network/HTTP failure, so callers can show the error in the
+// UI instead of failing silently.
 async function fetchModelFolder(folderName) {
   const apiUrl = `https://api.github.com/repos/${SATU_BACKEND_REPO}/contents/public/models/${folderName}`;
   let resp;
@@ -1451,7 +1459,7 @@ async function fetchModelFolder(folderName) {
     if (resp.status === 404) {
       throw new Error(`Folder not found — public/models/${folderName}/ doesn't exist yet in ${SATU_BACKEND_REPO}`);
     }
-    if (resp.status === 403) {
+    if (resp.status === 403 || resp.status === 429) {
       throw new Error('GitHub API rate limit reached (60 unauthenticated requests/hour per IP) — try again later');
     }
     throw new Error(`GitHub API error ${resp.status} fetching public/models/${folderName}/`);
@@ -1464,6 +1472,43 @@ async function fetchModelFolder(folderName) {
       label: prettifyFilename(e.name),
       url: `https://api.janishammer.com/models/${folderName}/${e.name}`
     }));
+}
+
+// ─────────────────────────────
+// MODEL FOLDER CACHE (fixes the real 60/hr unauthenticated GitHub API
+// cap being hit during normal repeated project-switching/testing)
+// ─────────────────────────────
+const modelFolderCache = new Map(); // folderName -> { files, timestamp }
+const MODEL_FOLDER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 min — short enough a fresh upload shows up on its own soon, long enough to stop hammering GitHub on every project switch
+
+// Cache-aware wrapper around fetchModelFolder(). Always resolves (never
+// throws) with {files, error, stale}: `files` is the best available list
+// (possibly the last known-good cached one even when this call's own
+// fetch failed), `error` is set only when THIS call's fetch failed,
+// `stale` is true when `files` came from the cache rather than a fresh
+// fetch just now. Callers decide how to present a stale-but-present list
+// vs. a hard failure with nothing to show.
+async function getModelFolder(folderName, { force = false } = {}) {
+  const cached = modelFolderCache.get(folderName);
+  const isFresh = cached && (Date.now() - cached.timestamp) < MODEL_FOLDER_CACHE_TTL_MS;
+
+  if (isFresh && !force) {
+    return { files: cached.files, error: null, stale: false };
+  }
+
+  try {
+    const files = await fetchModelFolder(folderName);
+    modelFolderCache.set(folderName, { files, timestamp: Date.now() });
+    return { files, error: null, stale: false };
+  } catch (err) {
+    if (cached) {
+      // Keep showing the last successfully cached list rather than a
+      // blank/broken one — the error is still reported so the UI can
+      // flag it, just not at the cost of losing a working view.
+      return { files: cached.files, error: err, stale: true };
+    }
+    return { files: [], error: err, stale: false };
+  }
 }
 
 // ─────────────────────────────
@@ -1680,27 +1725,47 @@ function buildVisibilityPanel() {
 // renders them as a dropdown, each entry labeled from its own filename.
 // No manifest to maintain — add/remove/rename a file in the repo folder
 // and it appears/disappears here on next load, no code change needed.
-function buildModelFolderPicker(panel, proj) {
+function buildModelFolderPicker(panel, proj, { force = false } = {}) {
   panel.style.gridTemplateColumns = '1fr';
   const loading = document.createElement('div');
   loading.style.cssText = 'color:var(--text-dim);font-size:10px;margin-bottom:6px;line-height:1.5';
-  loading.textContent = 'Loading available views…';
+  loading.textContent = force ? 'Refreshing available views…' : 'Loading available views…';
   panel.appendChild(loading);
 
-  fetchModelFolder(proj.modelsFolder).then(files => {
+  getModelFolder(proj.modelsFolder, { force }).then(({ files, error, stale }) => {
     panel.innerHTML = '';
 
+    if (error) {
+      log(`Model folder fetch failed: ${error.message}`, 'err');
+    }
+
     if (!files.length) {
-      const empty = document.createElement('div');
-      empty.style.cssText = 'color:var(--text-dim);font-size:11px;line-height:1.5';
-      empty.textContent = `No .stl files found yet in public/models/${proj.modelsFolder}/.`;
-      panel.appendChild(empty);
+      // Hard failure — nothing cached to fall back on.
+      const errEl = document.createElement('div');
+      errEl.style.cssText = 'color:var(--red);font-size:11px;line-height:1.5';
+      errEl.textContent = error
+        ? `⚠ Could not load model list: ${error.message}`
+        : `No .stl files found yet in public/models/${proj.modelsFolder}/.`;
+      panel.appendChild(errEl);
+      const refreshBtn = buildRefreshModelsButton(panel, proj);
+      panel.appendChild(refreshBtn);
+      if (error) setStatus('❌ Model folder fetch failed — see log', 'error');
       return;
+    }
+
+    if (error) {
+      // Fetch failed this time, but we have a cached list to show.
+      const warn = document.createElement('div');
+      warn.style.cssText = 'color:var(--red);font-size:10px;margin-bottom:6px;line-height:1.5';
+      warn.textContent = `⚠ ${error.message} — showing last known list.`;
+      panel.appendChild(warn);
+      setStatus('⚠ Model list refresh failed — showing cached list', 'error');
     }
 
     const note = document.createElement('div');
     note.style.cssText = 'color:var(--text-dim);font-size:10px;margin-bottom:6px;line-height:1.5';
-    note.textContent = `${files.length} view${files.length === 1 ? '' : 's'} — public/models/${proj.modelsFolder}/`;
+    note.textContent = `${files.length} view${files.length === 1 ? '' : 's'} — public/models/${proj.modelsFolder}/`
+      + (stale ? ' (cached)' : '');
     panel.appendChild(note);
 
     const sel = document.createElement('select');
@@ -1715,16 +1780,23 @@ function buildModelFolderPicker(panel, proj) {
     sel.addEventListener('change', () => loadSTL(sel.value));
     panel.appendChild(sel);
 
+    panel.appendChild(buildRefreshModelsButton(panel, proj));
+
     loadSTL(files[0].url);
-  }).catch(err => {
-    panel.innerHTML = '';
-    const errEl = document.createElement('div');
-    errEl.style.cssText = 'color:var(--red);font-size:11px;line-height:1.5';
-    errEl.textContent = `⚠ Could not load model list: ${err.message}`;
-    panel.appendChild(errEl);
-    log(`Model folder fetch failed: ${err.message}`, 'err');
-    setStatus('❌ Model folder fetch failed — see log', 'error');
   });
+}
+
+// "Refresh models" button — force-bypasses the 5-min cache and re-fetches
+// the folder listing immediately, so a just-uploaded .stl shows up without
+// waiting out the TTL. Rebuilds the whole picker in place.
+function buildRefreshModelsButton(panel, proj) {
+  const btn = document.createElement('button');
+  btn.className = 'btn-action';
+  btn.id = 'btn-refresh-models';
+  btn.textContent = '↻ Refresh models';
+  btn.style.cssText = 'margin-top:6px';
+  btn.addEventListener('click', () => buildModelFolderPicker(panel, proj, { force: true }));
+  return btn;
 }
 
 function buildComponentsPanel() {
@@ -1831,7 +1903,17 @@ async function loadSTL(url) {
     // OpenSCAD is Z-up; Three.js is Y-up. Rotate -90° around X so model stands upright.
     geometry.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
     geometry.computeVertexNormals();
-    geometry.center();
+
+    // Center X/Z but keep the model's floor (bounding-box min Y) sitting at
+    // Y=0 — same convention as OpenSCAD, where the object sits ON the grid
+    // rather than being bisected by it. geometry.center() would put the
+    // whole bounding box at the origin, running the grid through the middle
+    // of the model.
+    geometry.computeBoundingBox();
+    const bbox = geometry.boundingBox;
+    const centerX = (bbox.max.x + bbox.min.x) / 2;
+    const centerZ = (bbox.max.z + bbox.min.z) / 2;
+    geometry.translate(-centerX, -bbox.min.y, -centerZ);
 
     updateScene(geometry);
     lastSTLBuffer = buffer;
@@ -2333,6 +2415,11 @@ function wireEvents() {
   // Auto-render toggle
   document.getElementById('auto-render-toggle').addEventListener('change', function() {
     autoRender = this.checked;
+  });
+
+  // Grid visibility toggle
+  document.getElementById('grid-toggle').addEventListener('change', function() {
+    if (gridHelper) gridHelper.visible = this.checked;
   });
 
   // Actions
