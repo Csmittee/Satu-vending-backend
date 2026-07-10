@@ -1208,6 +1208,55 @@ acrylic_display();
 rear_service_door();
 `
   },
+  'VM-02': {
+    label: 'VM-02 Vending Machine',
+    version: 'v2',
+    status: 'Manifold clean — paused (Janis-confirmed, 2026-07-10)',
+    modelsFolder: 'VM-02',
+    params: [
+      { id: 'tray_count',    label: 'Tray Count',                    value: 3,   min: 1,  max: 5, step: 1,    locked: false },
+      { id: 'product_w',     label: 'Product Compartment Width (mm)', value: 422, min: 422, max: 422, step: 1, locked: true },
+      { id: 'system_w',      label: 'System/Dashboard Width (mm)',   value: 143, min: 143, max: 143, step: 1, locked: true },
+      { id: 'total_w',       label: 'Width (mm)',                    value: 584, min: 584, max: 584, step: 1, locked: true },
+      { id: 'total_h',       label: 'Height (mm)',                   value: 821, min: 821, max: 821, step: 1, locked: true },
+      { id: 'leg_od',        label: 'Leg Diameter (mm)',             value: 80,  min: 80,  max: 80,  step: 1, locked: true },
+      // tray_out_pct is a length-5 vector in the live .scad (independent
+      // per-tray slide) — the params UI here only supports single scalar
+      // sliders, so it's exposed as 5 separately-named params rather than
+      // silently flattened to one shared value. Only the first tray_count
+      // of these are physically meaningful (matches the .scad's own
+      // "Only the first tray_count entries are meaningful" comment) — the
+      // UI doesn't hide the rest since this is a scad:null/STL-mode
+      // project (no live re-render to react to tray_count changes).
+      { id: 'tray_out_pct_0', label: 'Tray 0 Slide-Out %', value: 0, min: 0, max: 1, step: 0.05, locked: false },
+      { id: 'tray_out_pct_1', label: 'Tray 1 Slide-Out %', value: 0, min: 0, max: 1, step: 0.05, locked: false },
+      { id: 'tray_out_pct_2', label: 'Tray 2 Slide-Out %', value: 0, min: 0, max: 1, step: 0.05, locked: false },
+      { id: 'tray_out_pct_3', label: 'Tray 3 Slide-Out %', value: 0, min: 0, max: 1, step: 0.05, locked: false },
+      { id: 'tray_out_pct_4', label: 'Tray 4 Slide-Out %', value: 0, min: 0, max: 1, step: 0.05, locked: false },
+    ],
+    toggles: [
+      { id: 'show_door',           label: 'Front Door',     default: true },
+      { id: 'show_frame',          label: 'Tray Frame',     default: true },
+      { id: 'show_sensor',         label: 'Sensor Strip',   default: true },
+      { id: 'show_acrylic_display', label: 'Acrylic Display', default: true },
+      { id: 'show_shell_back',     label: 'Back Shell',     default: true },
+      { id: 'show_shell_top',      label: 'Top Shell',      default: true },
+      { id: 'show_shell_bottom',   label: 'Bottom Shell',   default: true },
+      { id: 'show_shell_left',     label: 'Left Shell',     default: true },
+      { id: 'show_shell_right',    label: 'Right Shell',    default: true },
+    ],
+    components: [
+      { id: 'legs',              label: 'Legs',              default: true, match: 'legs();' },
+      { id: 'outer_shell',       label: 'Outer Shell',       default: true, match: 'translate([0, 0, leg_h]) outer_shell();' },
+      { id: 'spring_tray',       label: 'Spring Trays',      default: true, match: 'for (t = [0:tray_count-1]) spring_tray(t);' },
+      { id: 'tray_rack',         label: 'Tray Rack',         default: true, match: 'tray_rack();' },
+      { id: 'left_zone_door',    label: 'Front Door',        default: true, match: 'if (show_door) left_zone_door();' },
+      { id: 'acrylic_display',   label: 'Acrylic Display',   default: true, match: 'if (show_acrylic_display) acrylic_display();' },
+      { id: 'dashboard',         label: 'Dashboard',         default: true, match: 'dashboard();' },
+      { id: 'rear_service_door', label: 'Rear Service Door', default: true, match: 'rear_service_door();' },
+    ],
+    scad: null
+  },
   'PR-01': {
     label: 'PR-01 Pilates Reformer',
     version: 'PR-01-assembly-v31',
@@ -1457,7 +1506,12 @@ async function fetchModelFolder(folderName) {
   }
   if (!resp.ok) {
     if (resp.status === 404) {
-      throw new Error(`Folder not found — public/models/${folderName}/ doesn't exist yet in ${SATU_BACKEND_REPO}`);
+      // Git can't track an empty directory, so "folder missing" and "folder
+      // exists but has nothing uploaded yet" are the same state from the
+      // Contents API's point of view — treat both as "no files yet" (an
+      // empty list, not an error) so a brand-new project's first-ever
+      // upload doesn't read as a broken API call.
+      return [];
     }
     if (resp.status === 403 || resp.status === 429) {
       throw new Error('GitHub API rate limit reached (60 unauthenticated requests/hour per IP) — try again later');
@@ -1740,16 +1794,34 @@ function buildModelFolderPicker(panel, proj, { force = false } = {}) {
     }
 
     if (!files.length) {
-      // Hard failure — nothing cached to fall back on.
-      const errEl = document.createElement('div');
-      errEl.style.cssText = 'color:var(--red);font-size:11px;line-height:1.5';
-      errEl.textContent = error
-        ? `⚠ Could not load model list: ${error.message}`
-        : `No .stl files found yet in public/models/${proj.modelsFolder}/.`;
-      panel.appendChild(errEl);
+      // No file to loadSTL() here — clear whatever the previously active
+      // project left in the scene so an empty/missing folder can't leave a
+      // stale, wrong model silently on screen (would otherwise look
+      // identical to a real loaded view).
+      clearModel();
+      const overlay = document.getElementById('canvas-overlay');
+      const msgEl = document.createElement('div');
+      if (error) {
+        // Hard failure — nothing cached to fall back on. e.g. rate limit,
+        // network error — a real problem, styled as one.
+        msgEl.style.cssText = 'color:var(--red);font-size:11px;line-height:1.5';
+        msgEl.textContent = `⚠ Could not load model list: ${error.message}`;
+        setStatus('❌ Model folder fetch failed — see log', 'error');
+        document.getElementById('overlay-title').textContent = proj.label;
+        document.getElementById('overlay-sub').textContent = `⚠ Could not load model list: ${error.message}`;
+      } else {
+        // No error — the folder is just empty (or doesn't exist yet, same
+        // thing to git). A normal, expected first-upload state, not a
+        // failure — informational styling, no warning icon.
+        msgEl.style.cssText = 'color:var(--text-dim);font-size:11px;line-height:1.5';
+        msgEl.textContent = `No .stl files uploaded yet in public/models/${proj.modelsFolder}/.`;
+        document.getElementById('overlay-title').textContent = proj.label;
+        document.getElementById('overlay-sub').textContent = `No models uploaded yet — add an .stl to public/models/${proj.modelsFolder}/`;
+      }
+      overlay.style.display = 'flex';
+      panel.appendChild(msgEl);
       const refreshBtn = buildRefreshModelsButton(panel, proj);
       panel.appendChild(refreshBtn);
-      if (error) setStatus('❌ Model folder fetch failed — see log', 'error');
       return;
     }
 
