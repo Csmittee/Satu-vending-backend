@@ -1290,6 +1290,56 @@ rear_service_door();
       { id: 'leg_sockets',  label: 'Leg Sockets',         default: true, match: 'if (show_leg_sockets)  leg_socket(pole_cx[i], pole_cy[i]);' },
     ],
     scad: null
+  },
+  'BBQ-01': {
+    label: 'BBQ-01 Offset Smoker',
+    version: 'v20',
+    status: 'Lid/rib/CB1/tray mechanism locked (PR #172 merged) — CB1 counterweight tuning open',
+    modelsFolder: 'BBQ-01',
+    // STL-mode project (scad: null) — every param/toggle below documents
+    // the real live Customizer control in BBQ-offset-smoker-base-v20.scad
+    // / BBQ-chambers-v26.scad / BBQ-understructure-v19.scad (names/ranges
+    // read live from those files, not guessed) for reference even though
+    // there is no in-browser WASM re-render yet. Views come from whatever
+    // .stl files exist in public/models/BBQ-01/ (dynamic picker, see
+    // .claude/SKILL_viewer_update.md's "PROCEDURE — JANIS ... NEW" section
+    // — same flow already used by VM-01/VM-02, no cc prompt needed to
+    // add/remove/rename a view).
+    params: [
+      { id: 'door_open_deg',        label: 'Lid Open (deg)',          value: 0,  min: 0,   max: 90,  step: 5, locked: false },
+      { id: 'tray0_angle_deg',      label: 'Tray 0 Fold (deg)',       value: 0,  min: 0,   max: 90,  step: 5, locked: false },
+      { id: 'tray1_angle_deg',      label: 'Tray 1 Fold (deg)',       value: 0,  min: 0,   max: 90,  step: 5, locked: false },
+      { id: 'firebox_door_open_deg', label: 'Firebox Door Open (deg)', value: 0, min: 0,   max: 110, step: 5, locked: false },
+      { id: 'steer_deg',            label: 'Front Steer (deg)',       value: 0,  min: -45, max: 45,  step: 5, locked: false },
+      { id: 'handle_fold_deg',      label: 'Tow Handle Fold (deg)',   value: 90, min: 0,   max: 90,  step: 5, locked: false },
+    ],
+    toggles: [
+      { id: 'show_chamber_shell',      label: 'Chamber Shell',    default: true },
+      { id: 'show_visual_lid',         label: 'Lid',              default: true },
+      { id: 'show_lid_hinge',          label: 'Lid Hinge/Ribs',   default: true },
+      { id: 'show_firebox',            label: 'Firebox',          default: true },
+      { id: 'show_exhaust_room',       label: 'Exhaust Room',     default: true },
+      { id: 'show_chimney_pipe',       label: 'Chimney Pipe',     default: true },
+      { id: 'show_grate',              label: 'Grill Grate',      default: true },
+      { id: 'show_trays',              label: 'Prep Trays',       default: true },
+      { id: 'show_rear_axle',          label: 'Rear Axle/Wheels', default: true },
+      { id: 'show_rear_fenders',       label: 'Rear Fenders',     default: true },
+      { id: 'show_front_wheel_support', label: 'Front Wheel/Tow', default: true },
+    ],
+    components: [
+      { id: 'chamber_shell',    label: 'Chamber Shell',      default: true, match: 'if (show_chamber_shell) color("#C8C8C8", 0.75) chamber_shell();' },
+      { id: 'firebox',          label: 'Firebox',            default: true, match: 'if (show_firebox) color("#C8C8C8", 0.75) firebox(firebox_door_open_deg);' },
+      { id: 'exhaust_room',     label: 'Exhaust Room',       default: true, match: 'if (show_exhaust_room) color("#C8C8C8", 0.75) exhaust_room();' },
+      { id: 'chimney_pipe',     label: 'Chimney Pipe',       default: true, match: 'if (show_chimney_pipe) color("#C8C8C8", 0.75) chimney_pipe();' },
+      { id: 'grill_grate',      label: 'Grill Grate',        default: true, match: 'if (show_grate) color("#CCCCCC", 1.0) grill_grate();' },
+      { id: 'trays',            label: 'Prep Trays',         default: true, match: 'if (show_trays) color("#AAAAAA", 1.0) trays();' },
+      { id: 'visual_lid',       label: 'Lid Shell',          default: true, match: 'if (show_visual_lid) color("#C8C8C8", 0.75) lid(door_open_deg);' },
+      { id: 'lid_hinge',        label: 'Lid Hinge + Ribs + CB1', default: true, match: 'if (show_lid_hinge) color("#8C8C8C", 1.0) lid_hinge_assembly(door_open_deg);' },
+      { id: 'rear_axle',        label: 'Rear Axle + Wheels', default: true, match: 'if (show_rear_axle) rear_axle();' },
+      { id: 'rear_fenders',     label: 'Rear Fenders',       default: true, match: 'if (show_rear_fenders) color("#999999", 1.0) rear_fenders();' },
+      { id: 'front_wheel_support', label: 'Front Wheel + Tow Handle', default: true, match: 'if (show_front_wheel_support) front_wheel_support(steer_deg, handle_fold_deg);' },
+    ],
+    scad: null
   }
 };
 
